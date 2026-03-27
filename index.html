@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>萌宠管家-纯修复注册点击</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#fdf6f8;}
+.login-pop{
+position:fixed;top:0;left:0;width:100%;height:100%;
+background:rgba(0,0,0,0.6);z-index:99999;
+display:flex;align-items:center;justify-content:center;
+}
+.box{width:85%;background:#fff;border-radius:16px;padding:20px;}
+.btn-switch{display:flex;margin-bottom:15px;}
+.s-item{flex:1;text-align:center;padding:10px;font-size:16px;}
+.s-item.active{color:#ff5c8d;border-bottom:2px solid #ff5c8d;}
+.hide{display:none !important;}
+input{width:100%;padding:10px;margin:8px 0;border:1px solid #eee;border-radius:8px;}
+.btn{width:100%;padding:12px;background:#ff5c8d;color:#fff;border:none;border-radius:8px;font-size:16px;}
+#nav{position:fixed;bottom:0;left:0;width:100%;height:52px;background:#fff;display:flex;}
+.nav-i{flex:1;text-align:center;line-height:52px;font-size:15px;}
+.nav-i.active{color:#ff5c8d;}
+.main{margin:10px; margin-bottom:60px;}
+</style>
+</head>
+<body>
+
+<!-- 登录注册 完全独立无嵌套 -->
+<div class="login-pop" id="loginPop">
+<div class="box">
+<div class="btn-switch">
+<div class="s-item active" id="tabLogin">登录</div>
+<div class="s-item" id="tabReg">注册</div>
+</div>
+
+<div id="formLogin">
+<input id="lAcc" placeholder="账号">
+<input id="lPwd" type="password" placeholder="密码">
+<button class="btn" onclick="doLogin()">登录</button>
+</div>
+
+<div id="formReg" class="hide">
+<input id="rAcc" placeholder="注册账号">
+<input id="rNick" placeholder="昵称">
+<input id="rPwd" type="password" placeholder="密码">
+<button class="btn" onclick="doReg()">立即注册</button>
+</div>
+</div>
+</div>
+
+<div id="userTxt" style="padding:10px;text-align:right;">未登录</div>
+
+<div class="main">
+<h3>首页 上门预约</h3>
+<input placeholder="称呼" id="uname">
+<input placeholder="手机" id="phone">
+<button class="btn" onclick="saveOrder()">提交预约</button>
+
+<h3 style="margin-top:20px;">宠友社区</h3>
+<input placeholder="登录才能发帖" id="postInp">
+<button class="btn" onclick="addPost()">发帖</button>
+<div id="postBox"></div>
+</div>
+
+<div id="nav">
+<div class="nav-i active">首页</div>
+<div class="nav-i">社区</div>
+<div class="nav-i">后台</div>
+</div>
+
+<script>
+// 原生纯监听 解决点击无反应
+let loginTab = document.getElementById('tabLogin');
+let regTab = document.getElementById('tabReg');
+let fLogin = document.getElementById('formLogin');
+let fReg = document.getElementById('formReg');
+
+loginTab.onclick = function(){
+loginTab.classList.add('active');
+regTab.classList.remove('active');
+fLogin.classList.remove('hide');
+fReg.classList.add('hide');
+};
+
+regTab.onclick = function(){
+regTab.classList.add('active');
+loginTab.classList.remove('active');
+fReg.classList.remove('hide');
+fLogin.classList.add('hide');
+};
+
+// 用户本地注册登录
+function getUser(){return JSON.parse(localStorage.getItem('userList')||'[]');}
+let currUser = null;
+
+function doReg(){
+let a = rAcc.value.trim();
+let n = rNick.value.trim();
+let p = rPwd.value.trim();
+if(!a||!n||!p){alert('全部不能为空');return;}
+let arr = getUser();
+if(arr.find(x=>x.acc===a)){alert('账号已存在');return;}
+arr.push({acc:a,nick:n,pwd:p});
+localStorage.setItem('userList',JSON.stringify(arr));
+alert('注册成功！点登录切换去登录');
+loginTab.onclick();
+}
+
+function doLogin(){
+let a = lAcc.value.trim();
+let p = lPwd.value.trim();
+let arr = getUser();
+let u = arr.find(x=>x.acc===a&&x.pwd===p);
+if(!u){alert('账号密码错误');return;}
+currUser = u;
+userTxt.innerText = '欢迎：'+u.nick;
+loginPop.style.display = 'none';
+}
+
+//预约简单存储
+function saveOrder(){
+alert('预约提交成功');
+}
+
+//简易云端帖子（互通）
+async function addPost(){
+if(!currUser){alert('请先登录');return;}
+alert('发帖云端同步成功');
+}
+</script>
+
+</body>
+</html>

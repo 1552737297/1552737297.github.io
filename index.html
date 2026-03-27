@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<!-- 强制禁止缓存 根治刷新看不见 -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>萌宠管家-实时同步无缓存版</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#fdf6f8;padding-bottom:80px;font-family:sans-serif;}
+#nav{
+position:fixed;top:0;left:0;width:100%;height:52px;
+background:#fff;display:flex;z-index:9999999;
+pointer-events:auto !important;
+box-shadow:0 1px 4px #eee;
+}
+.nav-item{
+flex:1;text-align:center;line-height:52px;
+font-size:15px;color:#666;user-select:none;
+}
+.nav-item.active{color:#ff5c8d;border-bottom:3px solid #ff5c8d;font-weight:bold;}
+.main{margin-top:58px;padding:15px;}
+.page{display:none;}
+.page.show{display:block;}
+.banner{width:100%;height:140px;border-radius:16px;background:linear-gradient(135deg,#ff9aaa,#ffccd5);display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;font-weight:bold;margin-bottom:15px;}
+.form-box{background:#fff;border-radius:14px;padding:16px;margin-bottom:12px;}
+input,textarea{width:100%;padding:10px;border:1px solid #eee;border-radius:8px;margin-top:6px;margin-bottom:12px;}
+.btn{width:100%;background:#ff5c8d;color:#fff;border:none;padding:12px;border-radius:8px;font-size:16px;}
+.post-card{background:#fff;padding:14px;border-radius:12px;margin-bottom:12px;}
+.reply-area{background:#f8f8f8;padding:10px;border-radius:8px;margin-top:10px;}
+.reply-item{font-size:14px;color:#555;padding:4px 0;border-bottom:1px solid #eee;}
+.tip{text-align:center;color:#999;font-size:13px;margin:8px 0;}
+</style>
+</head>
+<body>
+
+<div id="nav">
+<div class="nav-item active" ontouchstart="goTab(0)">下单预约</div>
+<div class="nav-item" ontouchstart="goTab(1)">宠友社区</div>
+<div class="nav-item" ontouchstart="goTab(2)">商家后台</div>
+</div>
+
+<div class="main">
+<div class="page show" id="p0">
+<div class="banner">🐾上门萌宠喂养</div>
+<div class="tip">预约数据本地独立保存</div>
+<div class="form-box">
+<label>昵称</label>
+<input id="uname" placeholder="您的称呼">
+<label>手机号</label>
+<input id="phone" placeholder="11位手机号">
+<label>上门地址</label>
+<input id="addr" placeholder="详细住址">
+<label>预约时间</label>
+<input type="datetime-local" id="ptime">
+<label>备注</label>
+<textarea id="note" rows="3"></textarea>
+<button class="btn" onclick="orderSub()">立即预约</button>
+</div>
+</div>
+
+<div class="page" id="p1">
+<div class="banner">🐱宠友交流-秒同步云端</div>
+<div class="tip">发帖/回复立刻显示，无缓存延迟</div>
+<div class="form-box">
+<input id="nick" placeholder="发帖昵称">
+<textarea id="cnt" rows="4" placeholder="分享养宠日常"></textarea>
+<button class="btn" onclick="addPost()">发布帖子</button>
+</div>
+<div id="plist">加载公共社区数据...</div>
+</div>
+
+<div class="page" id="p2">
+<div class="banner">🔐商家管理中心</div>
+<div class="form-box" style="text-align:center">
+<p>管理员密码：123456</p >
+<input type="password" id="pwd">
+<button class="btn" onclick="loginAdmin()">登录后台</button>
+</div>
+<div id="adminCon" style="display:none" class="form-box">
+<h4>我的预约订单</h4>
+<div id="olist"></div>
+</div>
+</div>
+</div>
+
+<script>
+//顶部切换+强制刷新数据
+function goTab(i){
+let navs = document.querySelectorAll('.nav-item');
+navs.forEach(x=>x.classList.remove('active'));
+navs[i].classList.add('active');
+
+let pages = document.querySelectorAll('.page');
+pages.forEach(x=>x.classList.remove('show'));
+document.getElementById('p'+i).classList.add('show');
+if(i===1){
+  //切社区强制重载最新云端
+  renderCloudData();
+}
+}
+
+//预约本地存储
+function getOrder(){return JSON.parse(localStorage.getItem('petOrder')||'[]');}
+function saveOrder(d){localStorage.setItem('petOrder',JSON.stringify(d));}
+function orderSub(){
+let o={
+name:uname.value.trim(),phone:phone.value.trim(),addr:addr.value.trim(),
+time:ptime.value,note:note.value.trim()
+};
+if(!o.name||!o.phone||!o.addr||!o.time){alert('请完善预约信息');return;}
+let arr=getOrder();arr.unshift(o);saveOrder(arr);
+alert('预约成功！');
+uname.value='';phone.value='';addr.value='';note.value='';
+}
+
+//独立专属无延迟云端库
+const binUrl = "https://jsonbin.io/api/v3/b/67e3097c8a456b798ee20c9";
+const masterKey = "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJTKnfUsq";
+
+async function getCloudData(){
+ try{
+  let res = await fetch(binUrl+"?r="+Date.now());
+  let json = await res.json();
+  return json.record || [];
+ }catch(e){
+  return [];
+ }
+}
+
+async function setCloudData(list){
+ await fetch(binUrl,{
+  method:"PUT",
+  headers:{
+   "Content-Type":"application/json",
+   "X-Master-Key":masterKey
+  },
+  body:JSON.stringify(list)
+ });
+}
+
+//发帖 发完自动刷新
+async function addPost(){
+ let n = nick.value.trim();
+ let c = cnt.value.trim();
+ if(!n||!c){alert('昵称和内容不能为空');return;}
+ let arr = await getCloudData();
+ arr.unshift({id:Date.now(),nick:n,content:c,reply:[]});
+ await setCloudData(arr);
+ nick.value="";cnt.value="";
+ renderCloudData();
+ alert('发布成功，即刻显示！');
+}
+
+//渲染帖子
+async function renderCloudData(){
+ let arr = await getCloudData();
+ let html = "";
+ if(arr.length===0){
+  html = '<div style="padding:30px;text-align:center;color:#999;">暂无帖子，快来首发</div>';
+ }else{
+  arr.forEach(item=>{
+   html += `<div class="post-card">
+    <strong>${item.nick}</strong>
+    <div style="margin:8px 0;">${item.content}</div>
+    <div class="reply-area">
+     <input placeholder="回复昵称" data-pid="${item.id}">
+     <textarea placeholder="写回复" data-pid="${item.id}"></textarea>
+     <button class="btn" style="padding:8px" onclick="replySubmit(${item.id})">提交回复</button>
+     <div style="margin-top:8px;">`;
+   if(item.reply&&item.reply.length>0){
+    item.reply.forEach(r=>html+=`<div class="reply-item">${r.n}：${r.c}</div>`);
+   }else{
+    html += `<div class="reply-item" style="color:#999;">暂无回复</div>`;
+   }
+   html += `</div></div></div>`;
+  });
+ }
+ document.getElementById("plist").innerHTML = html;
+}
+
+//回复提交即时刷新
+async function replySubmit(pid){
+ let n = document.querySelector(`input[data-pid="${pid}"]`).value.trim();
+ let c = document.querySelector(`textarea[data-pid="${pid}"]`).value.trim();
+ if(!n||!c){alert('请填昵称和回复内容');return;}
+ let arr = await getCloudData();
+ for(let i=0;i<arr.length;i++){
+  if(arr[i].id===pid){
+   arr[i].reply.push({n,c});break;
+  }
+ }
+ await setCloudData(arr);
+ renderCloudData();
+ alert('回复立刻同步成功！');
+}
+
+//商家登录
+function loginAdmin(){
+if(pwd.value==="123456"){
+document.getElementById('adminCon').style.display='block';
+let arr=getOrder(),h='';
+arr.forEach(x=>{
+h+=`<div style="background:#f8f8f8;padding:10px;border-radius:8px;margin-bottom:6px;">
+姓名：${x.name}<br>手机：${x.phone}<br>地址：${x.addr}<br>时间：${x.time}
+</div>`;
+});
+document.getElementById('olist').innerHTML=h;
+alert('登录成功');
+}
+}
+
+//首次加载强制读最新
+window.onload=function(){renderCloudData();}
+</script>
+
+</body>
+</html>

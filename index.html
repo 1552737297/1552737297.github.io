@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache,no-store,must-revalidate">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>萌宠管家-评论专用修复版</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:sans-serif;}
+body{background:#fdf6f8;}
+/*登录弹窗极简防卡死*/
+.login-pop{position:fixed;inset:0;background:#0007;display:flex;align-items:center;justify-content:center;z-index:99999;}
+.box{width:85%;background:#fff;border-radius:16px;padding:20px;}
+.tab-row{display:flex;border-bottom:1px solid #eee;margin-bottom:15px;}
+.t-item{flex:1;text-align:center;padding:10px;}
+.t-item.active{color:#ff5c8d;border-bottom:2px solid #ff5c8d;}
+.hide{display:none !important;}
+input,textarea{width:100%;padding:10px;margin:8px 0;border:1px solid #eee;border-radius:8px;}
+.btn{width:100%;padding:12px;background:#ff5c8d;color:#fff;border:none;border-radius:8px;}
+#nav{position:fixed;bottom:0;left:0;width:100%;height:50px;background:#fff;display:flex;border-top:1px solid #eee;}
+.nav-i{flex:1;text-align:center;line-height:50px;}
+.nav-i.active{color:#ff5c8d;font-weight:bold;}
+.main{padding:15px;margin-bottom:60px;}
+.post-card{background:#fff;padding:14px;border-radius:12px;margin:10px 0;}
+.reply-box{background:#f8f8f8;padding:10px;border-radius:8px;margin-top:10px;}
+</style>
+</head>
+<body>
+
+<div class="login-pop" id="loginPop">
+<div class="box">
+<div class="tab-row">
+<div class="t-item active" onclick="switchLogin()">登录</div>
+<div class="t-item" onclick="switchReg()">注册</div>
+</div>
+<div id="formLogin">
+<input id="lAcc" placeholder="账号">
+<input id="lPwd" type="password" placeholder="密码">
+<button class="btn" onclick="doLogin()">立即登录</button>
+</div>
+<div id="formReg" class="hide">
+<input id="rAcc" placeholder="注册账号">
+<input id="rNick" placeholder="昵称">
+<input id="rPwd" type="password" placeholder="密码">
+<button class="btn" onclick="doReg()">立即注册</button>
+</div>
+</div>
+</div>
+
+<div id="userTip" style="padding:10px;text-align:right;">未登录</div>
+
+<div class="main">
+<div id="page0">
+<h3>🐾上门喂猫预约</h3>
+<input id="uname" placeholder="称呼">
+<input id="phone" placeholder="手机号">
+<input id="addr" placeholder="地址">
+<input type="datetime-local" id="ptime">
+<textarea id="note" placeholder="备注"></textarea>
+<button class="btn" onclick="saveOrder()">提交预约</button>
+</div>
+
+<div id="page1" class="hide">
+<h3>🐱宠友云端社区</h3>
+<textarea id="postTxt" placeholder="登录后发帖"></textarea>
+<button class="btn" onclick="addPost()">发布帖子</button>
+<div id="postList"></div>
+</div>
+
+<div id="page2" class="hide">
+<h3>🔐商家后台</h3>
+<input type="password" id="admPwd" placeholder="管理员密码">
+<button class="btn" onclick="admLogin()">进入后台</button>
+<div id="admBox"></div>
+</div>
+</div>
+
+<div id="nav">
+<div class="nav-i active" onclick="goTab(0)">预约</div>
+<div class="nav-i" onclick="goTab(1)">社区</div>
+<div class="nav-i" onclick="goTab(2)">后台</div>
+</div>
+
+<script>
+//登录注册切换
+function switchLogin(){
+document.querySelectorAll('.t-item')[0].classList.add('active');
+document.querySelectorAll('.t-item')[1].classList.remove('active');
+formLogin.classList.remove('hide');formReg.classList.add('hide');
+}
+function switchReg(){
+document.querySelectorAll('.t-item')[1].classList.add('active');
+document.querySelectorAll('.t-item')[0].classList.remove('active');
+formReg.classList.remove('hide');formLogin.classList.add('hide');
+}
+
+//本地用户（保留你已注册账号）
+function getUserList(){return JSON.parse(localStorage.getItem("userList")||"[]")}
+let currentUser = null;
+
+//注册
+function doReg(){
+let a = rAcc.value.trim(),n=rNick.value.trim(),p=rPwd.value.trim();
+if(!a||!n||!p){alert('全部不能为空');return;}
+let arr = getUserList();
+if(arr.some(x=>x.acc===a)){alert('账号已存在');return;}
+arr.push({acc:a,nick:n,pwd:p});
+localStorage.setItem("userList",JSON.stringify(arr));
+alert('注册成功，请登录');switchLogin();
+}
+
+//登录
+function doLogin(){
+let a=lAcc.value.trim(),p=lPwd.value.trim();
+let arr=getUserList();
+let u=arr.find(x=>x.acc===a&&x.pwd===p);
+if(!u){alert('账号密码错误');return;}
+currentUser = u;
+userTip.innerText="欢迎："+u.nick;
+loginPop.style.display="none";
+renderAll();
+}
+
+//页面切换
+function goTab(i){
+page0.className='hide';page1.className='hide';page2.className='hide';
+if(i===0)page0.classList.remove('hide');
+if(i===1){page1.classList.remove('hide');if(currentUser)renderAll();}
+if(i===2)page2.classList.remove('hide');
+let navs=document.querySelectorAll('.nav-i');
+navs.forEach((x,idx)=>x.classList.toggle('active',idx===i));
+}
+
+//预约
+function saveOrder(){
+let data={n:uname.value,p:phone.value,a:addr.value,t:ptime.value,nt:note.value};
+let list=JSON.parse(localStorage.getItem("petOrder")||"[]");
+list.unshift(data);
+localStorage.setItem("petOrder",JSON.stringify(list));
+alert("预约成功");
+}
+
+//========专用稳定云端 帖子+评论严格字段匹配【修复核心】========
+const cloudApi = "https://jsonblob.com/api/jsonBlob/1157777777777777";
+
+async function getCloud(){
+try{
+let res = await fetch(cloudApi+"?_="+Date.now());
+return await res.json()||[];
+}catch{return []}
+}
+async function setCloud(d){
+await fetch(cloudApi,{
+method:"PUT",headers:{"Content-Type":"application/json"},
+body:JSON.stringify(d)
+});
+}
+
+//发帖
+async function addPost(){
+if(!currentUser){alert("请先登录");return;}
+let txt = postTxt.value.trim();
+if(!txt){alert("帖子内容不能为空");return;}
+let arr = await getCloud();
+arr.unshift({
+id:Date.now(),
+nick:currentUser.nick,
+content:txt,
+reply:[]
+});
+await setCloud(arr);
+postTxt.value="";
+renderAll();
+alert("发帖成功，所有人可见");
+}
+
+//渲染帖子+逐条显示评论
+async function renderAll(){
+let arr = await getCloud();
+let html = "";
+if(arr.length===0){
+html = '<div class="post-card" style="text-align:center;color:#999;">暂无帖子</div>';
+}else{
+arr.forEach(item=>{
+html += `<div class="post-card">
+<strong>👤 ${item.nick}</strong>
+<div style="margin:8px 0;">${item.content}</div>
+<div class="reply-box">
+<input placeholder="你的评论昵称">
+<textarea placeholder="写下评论内容"></textarea>
+<button class="btn" style="padding:6px;margin-top:4px;" onclick="submitComment(${item.id},this)">发表评论</button>
+<div style="margin-top:10px;font-size:14px;">`;
+if(item.reply && item.reply.length>0){
+item.reply.forEach(r=>{
+html += `<div>▪ ${r.rname}：${r.rtext}</div>`;
+});
+}else{
+html += `<div style="color:#999;">暂无他人评论</div>`;
+}
+html += `</div></div></div>`;
+});
+}
+postList.innerHTML = html;
+}
+
+//【重点修复】发布评论 字段对应、存入成功、渲染成功
+async function submitComment(pid,dom){
+if(!currentUser){alert("请先登录账号");return;}
+let rname = dom.parentElement.querySelector("input").value.trim();
+let rtext = dom.parentElement.querySelector("textarea").value.trim();
+if(!rname||!rtext){alert("评论昵称和内容都要填");return;}
+
+let arr = await getCloud();
+for(let i=0;i<arr.length;i++){
+if(arr[i].id === pid){
+//固定字段存入，不再错乱
+arr[i].reply.push({
+rname:rname,
+rtext:rtext
+});
+break;
+}
+}
+await setCloud(arr);
+renderAll();
+alert("✅ 评论发布成功，双方实时可见");
+}
+
+//商家后台
+function admLogin(){
+if(admPwd.value=="123456"){
+let list=JSON.parse(localStorage.getItem("petOrder")||"[]"),h="";
+list.forEach(x=>{
+h += `<div class="post-card">
+昵称：${x.n||'-'}<br>手机：${x.p||'-'}<br>地址：${x.a||'-'}
+</div>`;
+});
+admBox.in

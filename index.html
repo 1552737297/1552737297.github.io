@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>轻奢宠伴 | 高端上门养护社区</title>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "SF Pro Display","PingFang SC","Microsoft Yahei",sans-serif;
+}
+body {
+  background: linear-gradient(135deg,#f7f9fc,#eef2f7);
+  font-size: 14px;
+  padding-bottom: 80px;
+}
+
+/* 顶部导航菜单 */
+.top-menu{
+  background: linear-gradient(135deg,#5b9df8,#3278e3);
+  padding:16px;
+  color:#fff;
+  text-align:center;
+  border-radius:0 0 24px 24px;
+  box-shadow:0 4px 12px rgba(50,120,227,0.2);
+}
+.menu-title{
+  font-size:18px;
+  font-weight:600;
+  margin-bottom:12px;
+}
+.menu-list{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  justify-content:center;
+}
+.menu-item{
+  background:rgba(255,255,255,0.25);
+  padding:8px 14px;
+  border-radius:20px;
+  font-size:13px;
+}
+.admin-entrance{
+  margin-top:10px;
+  font-size:12px;
+  opacity:0.9;
+}
+.admin-entrance span{
+  text-decoration:underline;
+  cursor:pointer;
+}
+
+/* 弹窗遮罩 */
+.pop-mask{
+  position:fixed;
+  top:0;left:0;right:0;bottom:0;
+  background:rgba(0,0,0,0.5);
+  display:none;
+  z-index:999;
+}
+.pop-box{
+  width:85%;
+  background:#fff;
+  border-radius:20px;
+  padding:24px;
+  position:absolute;
+  top:50%;left:50%;
+  transform:translate(-50%,-50%);
+}
+
+/* 高端磨砂卡片 阴影分层 */
+.glass-card {
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  margin: 18px 16px;
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 8px 24px rgba(26,71,141,0.08),0 2px 8px rgba(0,0,0,0.04);
+  border: 1px solid rgba(255,255,255,0.6);
+  transition: all 0.3s ease;
+}
+.glass-card:active {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(26,71,141,0.12);
+}
+/* 高级标题样式 */
+.senior-title {
+  display: flex;
+  align-items: center;
+  font-size: 17px;
+  font-weight: 600;
+  color: #1a2b48;
+  margin-bottom: 20px;
+  letter-spacing: 1px;
+}
+.senior-title::before {
+  content: "";
+  width: 5px;
+  height: 20px;
+  background: linear-gradient(180deg,#5b9df8,#3278e3);
+  border-radius: 3px;
+  margin-right: 10px;
+}
+/* 登录文案 */
+.user-status {
+  font-size: 15px;
+  color: #445577;
+  margin-bottom: 16px;
+  font-weight: 500;
+}
+/* 轻奢输入框 */
+.lux-input {
+  width: 100%;
+  height: 50px;
+  padding: 0 16px;
+  background: rgba(242,246,252,0.85);
+  border: 1px solid rgba(200,215,235,0.5);
+  border-radius: 16px;
+  outline: none;
+  font-size: 14px;
+  color: #223;
+  margin-bottom: 14px;
+  transition: 0.25s;
+}
+.lux-input:focus {
+  border-color: #5b9df8;
+  background: #fff;
+}
+/* 高端按钮组 */
+.btn-wrap {
+  display: flex;
+  gap: 14px;
+}
+.lux-btn {
+  flex: 1;
+  height: 48px;
+  border-radius: 16px;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+.btn-gradient {
+  background: linear-gradient(135deg,#5b9df8,#3278e3);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(50,120,227,0.25);
+}
+.btn-gradient:active {
+  opacity: 0.9;
+  transform: scale(0.98);
+}
+.btn-light {
+  background: rgba(235,240,248,0.9);
+  color: #556688;
+}
+/* 轻奢文本域 */
+.lux-textarea {
+  width: 100%;
+  height: 110px;
+  padding: 16px;
+  background: rgba(242,246,252,0.85);
+  border: 1px solid rgba200,215,235,0.5;
+  border-radius: 16px;
+  resize: none;
+  outline: none;
+  font-size: 14px;
+  transition: 0.25s;
+}
+.lux-textarea:focus {
+  border-color: #5b9df8;
+  background: #fff;
+}
+/* 精致帖子条目 */
+.post-item {
+  padding: 18px 0;
+  border-bottom: 1px solid rgba(225,232,242,0.6);
+}
+.post-item:last-child {
+  border-bottom: none;
+}
+.post-nick {
+  font-size: 14px;
+  font-weight: 600;
+  color: #3278e3;
+  margin-bottom: 10px;
+}
+.post-txt {
+  color: #2c3b54;
+  line-height: 1.7;
+  font-size: 14px;
+}
+.post-time {
+  font-size: 12px;
+  color: #8899b3;
+  margin-top: 10px;
+}
+.del-btn{
+  margin-top:8px;
+  padding:4px 10px;
+  background:#f56c6c;
+  color:#fff;
+  border:none;
+  border-radius:6px;
+  font-size:12px;
+}
+</style>
+</head>
+<body>
+
+<!-- 1.上门服务顶部菜单 -->
+<div class="top-menu">
+  <div class="menu-title">🐾 宠物上门尊享服务</div>
+  <div class="menu-list">
+    <div class="menu-item">上门喂猫</div>
+    <div class="menu-item">上门遛狗</div>
+    <div class="menu-item">临时寄养</div>
+    <div class="menu-item">宠物洗护</div>
+    <div class="menu-item">健康陪护</div>
+  </div>
+  <div class="admin-entrance" onclick="openAdminPop()">
+    <span>管理员后台登录入口</span>
+  </div>
+</div>
+
+<!-- 管理员登录弹窗 -->
+<div class="pop-mask" id="adminMask">
+  <div class="pop-box">
+    <div style="font-size:16px;font-weight:600;margin-bottom:15px;">🔐 管理员后台登录</div>
+    <input class="lux-input" id="adminAcc" placeholder="请输入管理员账号">
+    <input class="lux-input" id="adminPwd" placeholder="请输入密码" type="password">
+    <div class="btn-wrap">
+      <button class="lux-btn btn-gradient" onclick="adminLogin()">登录后台</button>
+      <button class="lux-btn btn-light" onclick="closeAdminPop()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- 管理员后台面板 默认隐藏 -->
+<div class="glass-card" id="adminPanel" style="display:none;">
+  <div class="senior-title">👑 管理员管理中心</div>
+  <div>可审核/删除全部用户动态</div>
+  <div id="adminAllPost"></div>
+</div>
+
+<!-- 普通用户登录 -->
+<div class="glass-card">
+  <div class="user-status" id="userInfo">未登录 · 请设置专属昵称</div>
+  <input class="lux-input" id="nick" placeholder="🐾 输入你的专属昵称" />
+  <div class="btn-wrap">
+    <button class="lux-btn btn-gradient" onclick="login()">即刻登录</button>
+    <button class="lux-btn btn-light" onclick="logout()">退出账号</button>
+  </div>
+</div>
+
+<!-- 发布动态 -->
+<div class="glass-card">
+  <div class="senior-title">宠爱动态 · 即刻分享</div>
+  <textarea class="lux-textarea" id="content" placeholder="分享高端上门喂养、宠物洗护、临时寄养专属体验..."></textarea>
+  <div class="btn-wrap" style="margin-top:16px;">
+    <button class="lux-btn btn-gradient" onclick="publish()">发布轻奢动态</button>
+    <button class="lux-btn btn-light" onclick="refreshAllPost()">全局实时刷新</button>
+  </div>
+</div>
+
+<!-- 全局社区 -->
+<div class="glass-card">
+  <div class="senior-title">🌍 全域宠友轻奢社区</div>
+  <div id="allPost"></div>
+</div>
+
+<!-- 我的发布 -->
+<div class="glass-card">
+  <div class="senior-title">🐈 我的专属宠爱记录</div>
+  <div id="myPost"></div>
+</div>
+
+<script>
+//========== 管理员配置 ==========
+const ADMIN_ACCOUNT = "admin";
+const ADMIN_PASSWORD = "123456";
+let isAdminLogin = false;
+
+function openAdminPop(){
+  document.getElementById("adminMask").style.display = "block";
+}
+function closeAdminPop(){
+  document.getElementById("adminMask").style.display = "none";
+}
+//管理员登录
+function adminLogin(){
+  let acc = document.getElementById("adminAcc").value.trim();
+  let pwd = document.getElementById("adminPwd").value.trim();
+  if(acc === ADMIN_ACCOUNT && pwd === ADMIN_PASSWORD){
+    isAdminLogin = true;
+    alert("✅ 管理员登录成功，进入后台管理");
+    closeAdminPop();
+    document.getElementById("adminPanel").style.display = "block";
+    renderAdminPost();
+  }else{
+    alert("❌ 账号或密码错误");
+  }
+}
+//管理员渲染可删除列表
+function renderAdminPost(){
+  let list = getCloudData();
+  let html = "";
+  list.forEach((item,idx)=>{
+    html += `
+    <div class="post-item">
+      <div

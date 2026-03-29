@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>太空雷霆战机 - 稳定商城版</title>
+<title>太空雷霆战机 - 启动修复版</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{
@@ -85,6 +85,7 @@ background:linear-gradient(90deg,#0ff,#08f);
 color:#000;border:none;border-radius:50px;font-weight:bold;
 box-shadow:0 0 30px #08f;cursor:pointer;
 transition:all 0.3s;
+z-index:100;
 }
 #startBtn:hover{transform:translate(-50%,-50%) scale(1.08);box-shadow:0 0 40px #0ff}
 #startBtn:active{transform:translate(-50%,-50%) scale(0.96)}
@@ -97,6 +98,7 @@ background:linear-gradient(90deg,#ff9,#fc0);
 color:#000;border:none;border-radius:50px;font-weight:bold;
 box-shadow:0 0 25px #fc0;cursor:pointer;
 transition:all 0.3s;
+z-index:100;
 }
 #shopBtn:hover{transform:translate(-50%,-50%) scale(1.08);box-shadow:0 0 35px #fc0}
 
@@ -165,7 +167,7 @@ border:2px solid #fc0;
 box-shadow:0 0 60px rgba(255,180,0,0.4);
 padding:24px;
 display:none;
-z-index:20;
+z-index:200;
 overflow-y:auto;
 }
 .shopTitle{
@@ -365,6 +367,7 @@ let boss=null;
 let bossBullets=[];
 let textEffects=[];
 
+// 本地存储修复
 function loadData(){
   const d=localStorage.getItem('spaceGameData');
   if(!d)return;
@@ -373,15 +376,13 @@ function loadData(){
     gold=j.gold||0;
     unlockedSkins=j.unlockedSkins||[1];
     skinColors=j.skinColors||skinColors;
-  }catch(e){}
+  }catch(e){console.error('加载数据失败',e)}
   goldText.innerText='金币：'+gold;
 }
 function saveData(){
   try{
-    localStorage.setItem('spaceGameData',JSON.stringify({
-      gold,unlockedSkins,skinColors
-    }));
-  }catch(e){}
+    localStorage.setItem('spaceGameData',JSON.stringify({gold,unlockedSkins,skinColors}));
+  }catch(e){console.error('保存数据失败',e)}
 }
 window.onload=loadData;
 
@@ -392,37 +393,19 @@ function randomHexColor(){
   return c;
 }
 function generateRandomSkinColor(){
-  return{
-    body:randomHexColor(),
-    bodyDark:randomHexColor(),
-    wing:randomHexColor(),
-    shield:randomHexColor()
-  };
+  return{body:randomHexColor(),bodyDark:randomHexColor(),wing:randomHexColor(),shield:randomHexColor()};
 }
 
 function addParticle(x,y,color){
-  particles.push({
-    x,y,
-    vx:(Math.random()-0.5)*1.2,
-    vy:Math.random()*2+1.5,
-    life:30+Math.random()*20,
-    maxLife:50,color
-  });
+  particles.push({x,y,vx:(Math.random()-0.5)*1.2,vy:Math.random()*2+1.5,life:30+Math.random()*20,maxLife:50,color});
 }
 function drawParticles(){
   for(let i=particles.length-1;i>=0;i--){
-    const p=particles[i];
-    p.x+=p.vx;
-    p.y+=p.vy;
-    p.life--;
+    const p=particles[i];p.x+=p.vx;p.y+=p.vy;p.life--;
     if(p.life<=0){particles.splice(i,1);continue}
-    const a=p.life/p.maxLife;
-    const s=2+a*3;
-    ctx.globalAlpha=a;
-    ctx.fillStyle=p.color;
-    ctx.beginPath();
-    ctx.arc(p.x,p.y,s,0,Math.PI*2);
-    ctx.fill();
+    const a=p.life/p.maxLife;const s=2+a*3;
+    ctx.globalAlpha=a;ctx.fillStyle=p.color;
+    ctx.beginPath();ctx.arc(p.x,p.y,s,0,Math.PI*2);ctx.fill();
   }
   ctx.globalAlpha=1;
 }
@@ -431,109 +414,69 @@ function showItemText(x,y,text){
   textEffects.push({x,y,text,alpha:1,life:60,vy:-1.5});
 }
 
+// 音频系统修复（异步+异常捕获）
 const audioCtx=new (window.AudioContext||window.webkitAudioContext)();
 let bgMusicLoop=null;
 let musicGain=null;
 
-function initAudio(){
+async function initAudio(){
   if(musicGain)return;
-  musicGain=audioCtx.createGain();
-  musicGain.gain.value=0.25;
-  musicGain.connect(audioCtx.destination);
-  createBgMusic();
+  try{
+    musicGain=audioCtx.createGain();
+    musicGain.gain.value=0.25;
+    musicGain.connect(audioCtx.destination);
+    await createBgMusic();
+  }catch(e){console.error('音频初始化失败',e)}
 }
-function createBgMusic(){
+async function createBgMusic(){
   if(bgMusicLoop)return;
-  bgMusicLoop=audioCtx.createBufferSource();
-  bgMusicLoop.loop=true;
-  const buf=audioCtx.createBuffer(1,audioCtx.sampleRate*2,audioCtx.sampleRate);
-  const data=buf.getChannelData(0);
-  for(let i=0;i<buf.length;i++){
-    const t=i/audioCtx.sampleRate;
-    const note=440*Math.pow(2,(Math.floor(t*2)%4)/12);
-    data[i]=Math.sin(2*Math.PI*note*t)*Math.exp(-t*0.5)*0.3;
-  }
-  bgMusicLoop.buffer=buf;
-  bgMusicLoop.connect(musicGain);
+  try{
+    bgMusicLoop=audioCtx.createBufferSource();
+    bgMusicLoop.loop=true;
+    const buf=audioCtx.createBuffer(1,audioCtx.sampleRate*2,audioCtx.sampleRate);
+    const data=buf.getChannelData(0);
+    for(let i=0;i<buf.length;i++){
+      const t=i/audioCtx.sampleRate;
+      const note=440*Math.pow(2,(Math.floor(t*2)%4)/12);
+      data[i]=Math.sin(2*Math.PI*note*t)*Math.exp(-t*0.5)*0.3;
+    }
+    bgMusicLoop.buffer=buf;
+    bgMusicLoop.connect(musicGain);
+  }catch(e){console.error('创建背景音乐失败',e)}
 }
 
 function playSound(t){
   if(!audioCtx)return;
-  const o=audioCtx.createOscillator();
-  const g=audioCtx.createGain();
-  g.gain.value=0.2;
-  o.connect(g);
-  g.connect(audioCtx.destination);
-  switch(t){
-    case'shoot':
-      o.type='square';
-      o.frequency.value=660;
-      o.frequency.exponentialRampToValueAtTime(220,audioCtx.currentTime+0.12);
-      g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.15);
-      o.start();o.stop(audioCtx.currentTime+0.15);
-      break;
-    case'boom':
-      o.type='triangle';
-      o.frequency.value=150;
-      o.frequency.exponentialRampToValueAtTime(20,audioCtx.currentTime+0.3);
-      g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.35);
-      o.start();o.stop(audioCtx.currentTime+0.35);
-      break;
-    case'item':
-      o.type='sine';
-      o.frequency.value=330;
-      o.frequency.exponentialRampToValueAtTime(660,audioCtx.currentTime+0.15);
-      g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.2);
-      o.start();o.stop(audioCtx.currentTime+0.2);
-      break;
-    case'ult':
-      o.type='sawtooth';
-      o.frequency.value=80;
-      o.frequency.exponentialRampToValueAtTime(320,audioCtx.currentTime+0.4);
-      g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.5);
-      o.start();o.stop(audioCtx.currentTime+0.5);
-      break;
-    case'bomb':
-      o.type='triangle';
-      o.frequency.value=60;
-      o.frequency.exponentialRampToValueAtTime(10,audioCtx.currentTime+0.5);
-      g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.6);
-      o.start();o.stop(audioCtx.currentTime+0.6);
-      break;
-    case'gameover':
-      o.type='sawtooth';
-      o.frequency.value=440;
-      o.frequency.exponentialRampToValueAtTime(110,audioCtx.currentTime+0.8);
-      g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.9);
-      o.start();o.stop(audioCtx.currentTime+0.9);
-      break;
-    case'unlock':
-      o.type='sine';
-      o.frequency.setValueAtTime(440,audioCtx.currentTime);
-      o.frequency.setValueAtTime(550,audioCtx.currentTime+0.1);
-      o.frequency.setValueAtTime(660,audioCtx.currentTime+0.2);
-      g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.3);
-      o.start();o.stop(audioCtx.currentTime+0.3);
-      break;
-    case'coin':
-      o.type='sine';
-      o.frequency.value=660;
-      o.frequency.exponentialRampToValueAtTime(880,audioCtx.currentTime+0.1);
-      g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.2);
-      o.start();o.stop(audioCtx.currentTime+0.2);
-      break;
-  }
+  try{
+    const o=audioCtx.createOscillator();
+    const g=audioCtx.createGain();
+    g.gain.value=0.2;
+    o.connect(g);
+    g.connect(audioCtx.destination);
+    switch(t){
+      case'shoot':o.type='square';o.frequency.value=660;o.frequency.exponentialRampToValueAtTime(220,audioCtx.currentTime+0.12);g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.15);break;
+      case'boom':o.type='triangle';o.frequency.value=150;o.frequency.exponentialRampToValueAtTime(20,audioCtx.currentTime+0.3);g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.35);break;
+      case'item':o.type='sine';o.frequency.value=330;o.frequency.exponentialRampToValueAtTime(660,audioCtx.currentTime+0.15);g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.2);break;
+      case'ult':o.type='sawtooth';o.frequency.value=80;o.frequency.exponentialRampToValueAtTime(320,audioCtx.currentTime+0.4);g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.5);break;
+      case'bomb':o.type='triangle';o.frequency.value=60;o.frequency.exponentialRampToValueAtTime(10,audioCtx.currentTime+0.5);g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.6);break;
+      case'gameover':o.type='sawtooth';o.frequency.value=440;o.frequency.exponentialRampToValueAtTime(110,audioCtx.currentTime+0.8);g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.9);break;
+      case'unlock':o.type='sine';o.frequency.setValueAtTime(440,audioCtx.currentTime);o.frequency.setValueAtTime(550,audioCtx.currentTime+0.1);o.frequency.setValueAtTime(660,audioCtx.currentTime+0.2);g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.3);break;
+      case'coin':o.type='sine';o.frequency.value=660;o.frequency.exponentialRampToValueAtTime(880,audioCtx.currentTime+0.1);g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.2);break;
+    }
+    o.start();o.stop(audioCtx.currentTime+0.6);
+  }catch(e){console.error('播放音效失败',e)}
 }
 
-function playBgMusic(){
-  if(!bgMusicLoop)createBgMusic();
-  try{bgMusicLoop.start()}catch(e){}
+async function playBgMusic(){
+  if(!bgMusicLoop)await createBgMusic();
+  try{if(bgMusicLoop)bgMusicLoop.start()}catch(e){console.error('播放背景音乐失败',e)}
 }
 function stopBgMusic(){
-  try{if(bgMusicLoop)bgMusicLoop.stop()}catch(e){}
+  try{if(bgMusicLoop)bgMusicLoop.stop()}catch(e){console.error('停止背景音乐失败',e)}
   bgMusicLoop=null;
 }
 
+// 触摸事件修复
 canvas.addEventListener('touchmove',function(e){
   if(!gameRunning||ulting)return;
   e.preventDefault();
@@ -566,12 +509,8 @@ skinSwitchBtn.onclick=function(){
 
 document.addEventListener('keydown',function(e){
   const k=parseInt(e.key);
-  if(k>=1&&k<=5&&unlockedSkins.includes(k)){
-    currentSkin=k;
-  }
-  if(e.key===' '&&ultCharge>=ultMax){
-    useUltimate();
-  }
+  if(k>=1&&k<=5&&unlockedSkins.includes(k))currentSkin=k;
+  if(e.key===' '&&ultCharge>=ultMax)useUltimate();
 });
 
 bombBtn.onclick=function(){
@@ -579,27 +518,21 @@ bombBtn.onclick=function(){
   player.bombCount--;
   bombText.innerText='炸弹：'+player.bombCount;
   playSound('bomb');
-  for(let i=0;i<enemies.length;i++){
-    boom(enemies[i].x+enemies[i].w/2,enemies[i].y+enemies[i].h/2);
-  }
-  enemies=[];
-  bossBullets=[];
+  enemies.forEach(e=>boom(e.x+e.w/2,e.y+e.h/2));
+  enemies=[];bossBullets=[];
   if(boss)boss.hp-=10;
 };
 
 ultBtn.onclick=useUltimate;
 function useUltimate(){
   if(ultCharge<ultMax||ulting)return;
-  ultCharge=0;
-  ulting=true;
-  ultFrame=0;
+  ultCharge=0;ulting=true;ultFrame=0;
   player.invincibleTime=2000;
   playSound('ult');
 }
 function doUltimateDamage(){
-  for(let e of enemies)boom(e.x+e.w/2,e.y+e.h/2);
-  enemies=[];
-  bossBullets=[];
+  enemies.forEach(e=>boom(e.x+e.w/2,e.y+e.h/2));
+  enemies=[];bossBullets=[];
   if(boss)boss.hp-=25+level*5;
 }
 
@@ -614,40 +547,25 @@ function shoot(){
       bullets.push({type:'laser',x:cx+8,y:player.y+8,w:12,h:44,speed:13,color:'#f0f'});
     }
   }
-  if(player.weaponLevel>=1){
-    bullets.push({type:'normal',x:cx-2,y:player.y,w:4,h:14,speed:9,color:'#0ff'});
-  }
+  if(player.weaponLevel>=1)bullets.push({type:'normal',x:cx-2,y:player.y,w:4,h:14,speed:9,color:'#0ff'});
   if(player.weaponLevel>=2){
     bullets.push({type:'normal',x:player.x+8,y:player.y+12,w:4,h:14,speed:9,color:'#0ff'});
     bullets.push({type:'normal',x:player.x+38,y:player.y+12,w:4,h:14,speed:9,color:'#0ff'});
   }
-  if(player.wingLevel>=1){
-    bullets.push({type:'normal',x:player.x-10,y:player.y+24,w:3,h:12,speed:8,color:'#0ff'});
-  }
-  if(player.wingLevel>=2){
-    bullets.push({type:'normal',x:player.x+56,y:player.y+24,w:3,h:12,speed:8,color:'#0ff'});
-  }
+  if(player.wingLevel>=1)bullets.push({type:'normal',x:player.x-10,y:player.y+24,w:3,h:12,speed:8,color:'#0ff'});
+  if(player.wingLevel>=2)bullets.push({type:'normal',x:player.x+56,y:player.y+24,w:3,h:12,speed:8,color:'#0ff'});
 }
 
 function fireFollowMissile(){
   if(!gameRunning||ulting||enemies.length===0)return;
   const t=enemies[Math.floor(Math.random()*enemies.length)];
-  followMissiles.push({
-    x:player.x+player.w/2,
-    y:player.y,
-    target:t,
-    w:8,h:12,speed:6,color:'#f80'
-  });
+  followMissiles.push({x:player.x+player.w/2,y:player.y,target:t,w:8,h:12,speed:6,color:'#f80'});
 }
 
 function createEnemy(){
   if(!gameRunning||boss||ulting)return;
   const s=2.6+level*0.3+Math.random()*1.8;
-  enemies.push({
-    x:Math.random()*(canvas.width-36),
-    y:-40,
-    w:36,h:44,speed:s,hp:1
-  });
+  enemies.push({x:Math.random()*(canvas.width-36),y:-40,w:36,h:44,speed:s,hp:1});
 }
 
 function spawnBoss(){
@@ -655,16 +573,7 @@ function spawnBoss(){
   const hp=40+level*25;
   let size=140+level*12;
   if(size>210)size=210;
-  boss={
-    x:canvas.width/2-size/2,
-    y:50,
-    w:size,h:size*0.75,
-    hp:hp,maxHp:hp,
-    speed:1.3+level*0.22,
-    dir:1,
-    level:level,
-    attackTimer:0
-  };
+  boss={x:canvas.width/2-size/2,y:50,w:size,h:size*0.75,hp:hp,maxHp:hp,speed:1.3+level*0.22,dir:1,level:level,attackTimer:0};
   bossHpText.style.display='block';
 }
 
@@ -678,22 +587,13 @@ function bossAttack(){
     for(let i=0;i<cnt;i++){
       const a=(Math.PI*2/cnt)*i;
       const sp=3.2+level*0.5;
-      bossBullets.push({
-        x:boss.x+boss.w/2,
-        y:boss.y+boss.h/2,
-        vx:Math.cos(a)*sp,
-        vy:Math.sin(a)*sp,
-        w:8,h:8,color:'#f44'
-      });
+      bossBullets.push({x:boss.x+boss.w/2,y:boss.y+boss.h/2,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,w:8,h:8,color:'#f44'});
     }
   }
 }
 
 function collide(a,b){
-  return a.x<b.x+b.w&&
-         a.x+a.w>b.x&&
-         a.y<b.y+b.h&&
-         a.y+a.h>b.y;
+  return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
 }
 function boom(x,y){
   effects.push({x,y,t:0,max:14});
@@ -702,79 +602,40 @@ function boom(x,y){
 
 function dropItem(x,y){
   const list=['weapon','shield','laser','wing','bomb','invincible','magnet','score'];
-  items.push({
-    x,y,w:26,h:26,
-    type:list[Math.floor(Math.random()*list.length)],
-    speed:2
-  });
+  items.push({x,y,w:26,h:26,type:list[Math.floor(Math.random()*list.length)],speed:2});
 }
 
 function applySkinEffect(){
-  if(currentSkin===4){
-    player.shieldCount=player.shieldMax;
-  }
+  if(currentSkin===4)player.shieldCount=player.shieldMax;
 }
 
 function drawPlayer(){
   if(player.invincibleTime>0&&Math.floor(Date.now()/120)%2===0)return;
-  const cx=player.x+25;
-  const cy=player.y+30;
+  const cx=player.x+25;const cy=player.y+30;
   const c=skinColors[currentSkin];
   addParticle(cx-8,player.y+55,c.body);
   addParticle(cx+8,player.y+55,c.body);
   addParticle(cx,player.y+58,'#fff');
   ctx.save();
-  ctx.translate(cx,cy);
-  ctx.rotate(shipRotate);
-  ctx.translate(-cx,-cy);
+  ctx.translate(cx,cy);ctx.rotate(shipRotate);ctx.translate(-cx,-cy);
   const grd=ctx.createLinearGradient(cx,player.y-10,cx,player.y+70);
-  grd.addColorStop(0,'#fff');
-  grd.addColorStop(0.05,c.body);
-  grd.addColorStop(0.6,c.bodyDark);
-  grd.addColorStop(1,'#000');
+  grd.addColorStop(0,'#fff');grd.addColorStop(0.05,c.body);grd.addColorStop(0.6,c.bodyDark);grd.addColorStop(1,'#000');
   ctx.fillStyle=grd;
   ctx.beginPath();
-  ctx.moveTo(cx,player.y-8);
-  ctx.lineTo(player.x+6,player.y+28);
-  ctx.lineTo(player.x+10,player.y+56);
-  ctx.lineTo(cx,player.y+64);
-  ctx.lineTo(player.x+40,player.y+56);
-  ctx.lineTo(player.x+44,player.y+28);
-  ctx.closePath();
-  ctx.fill();
+  ctx.moveTo(cx,player.y-8);ctx.lineTo(player.x+6,player.y+28);ctx.lineTo(player.x+10,player.y+56);
+  ctx.lineTo(cx,player.y+64);ctx.lineTo(player.x+40,player.y+56);ctx.lineTo(player.x+44,player.y+28);
+  ctx.closePath();ctx.fill();
   ctx.fillStyle=c.wing;
-  ctx.beginPath();
-  ctx.moveTo(player.x+12,player.y+18);
-  ctx.lineTo(player.x-22,player.y+36);
-  ctx.lineTo(player.x-18,player.y+58);
-  ctx.lineTo(player.x+16,player.y+32);
-  ctx.closePath();
-  ctx.fill();
-  ctx.beginPath();
-  ctx.moveTo(player.x+38,player.y+18);
-  ctx.lineTo(player.x+72,player.y+36);
-  ctx.lineTo(player.x+68,player.y+58);
-  ctx.lineTo(player.x+34,player.y+32);
-  ctx.closePath();
-  ctx.fill();
-  ctx.fillStyle='#fff';
-  ctx.fillRect(cx-5,player.y+58,10,4);
-  ctx.fillStyle=c.body;
-  ctx.fillRect(cx-4,player.y+54,8,4);
+  ctx.beginPath();ctx.moveTo(player.x+12,player.y+18);ctx.lineTo(player.x-22,player.y+36);ctx.lineTo(player.x-18,player.y+58);ctx.lineTo(player.x+16,player.y+32);ctx.closePath();ctx.fill();
+  ctx.beginPath();ctx.moveTo(player.x+38,player.y+18);ctx.lineTo(player.x+72,player.y+36);ctx.lineTo(player.x+68,player.y+58);ctx.lineTo(player.x+34,player.y+32);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#fff';ctx.fillRect(cx-5,player.y+58,10,4);
+  ctx.fillStyle=c.body;ctx.fillRect(cx-4,player.y+54,8,4);
   if(player.shieldCount>0){
     const a=player.shieldCount/player.shieldMax;
-    ctx.globalAlpha=a*0.9;
-    ctx.strokeStyle=c.shield;
-    ctx.lineWidth=3;
-    ctx.beginPath();
-    ctx.arc(cx,cy,46,0,Math.PI*2);
-    ctx.stroke();
-    ctx.globalAlpha=a*0.3;
-    ctx.strokeStyle='#fff';
-    ctx.lineWidth=2;
-    ctx.beginPath();
-    ctx.arc(cx,cy,42,0,Math.PI*2);
-    ctx.stroke();
+    ctx.globalAlpha=a*0.9;ctx.strokeStyle=c.shield;ctx.lineWidth=3;
+    ctx.beginPath();ctx.arc(cx,cy,46,0,Math.PI*2);ctx.stroke();
+    ctx.globalAlpha=a*0.3;ctx.strokeStyle='#fff';ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(cx,cy,42,0,Math.PI*2);ctx.stroke();
     ctx.globalAlpha=1;
   }
   ctx.restore();
@@ -786,30 +647,20 @@ function drawUltimate(){
   const a=ultFrame/ultDuration;
   const r=350*a;
   ctx.fillStyle=`rgba(255,0,255,${0.6-a*0.6})`;
-  ctx.beginPath();
-  ctx.arc(canvas.width/2,canvas.height/2,r,0,Math.PI*2);
-  ctx.fill();
+  ctx.beginPath();ctx.arc(canvas.width/2,canvas.height/2,r,0,Math.PI*2);ctx.fill();
 }
 
 function drawEnemy(e){
   ctx.fillStyle='#ff2255';
-  ctx.beginPath();
-  ctx.moveTo(e.x+e.w/2,e.y);
-  ctx.lineTo(e.x,e.y+e.h);
-  ctx.lineTo(e.x+e.w,e.y+e.h);
-  ctx.closePath();
-  ctx.fill();
-  ctx.fillStyle='#fff';
-  ctx.fillRect(e.x+e.w/2-2,e.y+10,4,6);
+  ctx.beginPath();ctx.moveTo(e.x+e.w/2,e.y);ctx.lineTo(e.x,e.y+e.h);ctx.lineTo(e.x+e.w,e.y+e.h);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#fff';ctx.fillRect(e.x+e.w/2-2,e.y+10,4,6);
 }
 
 function drawBoss(){
   if(!boss)return;
   const grd=ctx.createLinearGradient(boss.x,boss.y,boss.x,boss.y+boss.h);
-  grd.addColorStop(0,'#ff8800');
-  grd.addColorStop(1,'#ff2200');
-  ctx.fillStyle=grd;
-  ctx.fillRect(boss.x,boss.y,boss.w,boss.h);
+  grd.addColorStop(0,'#ff8800');grd.addColorStop(1,'#ff2200');
+  ctx.fillStyle=grd;ctx.fillRect(boss.x,boss.y,boss.w,boss.h);
   ctx.fillStyle='#fff';
   ctx.fillRect(boss.x+boss.w/2-6,boss.y+10,12,8);
   ctx.fillRect(boss.x+20,boss.y+boss.h-20,12,8);
@@ -818,154 +669,65 @@ function drawBoss(){
 
 function drawBullet(b){
   if(b.type==='laser'){
-    ctx.fillStyle='#ff00ff';
-    ctx.fillRect(b.x,b.y,b.w,b.h);
-    ctx.fillStyle='#fff';
-    ctx.fillRect(b.x+5,b.y,10,b.h);
+    ctx.fillStyle='#ff00ff';ctx.fillRect(b.x,b.y,b.w,b.h);
+    ctx.fillStyle='#fff';ctx.fillRect(b.x+5,b.y,10,b.h);
   }else{
-    ctx.fillStyle=b.color;
-    ctx.fillRect(b.x,b.y,b.w,b.h);
-    ctx.fillStyle='#fff';
-    ctx.fillRect(b.x,b.y+2,b.w,4);
+    ctx.fillStyle=b.color;ctx.fillRect(b.x,b.y,b.w,b.h);
+    ctx.fillStyle='#fff';ctx.fillRect(b.x,b.y+2,b.w,4);
   }
 }
 
 function drawMissile(m){
-  ctx.fillStyle='#ff6600';
-  ctx.fillRect(m.x,m.y,m.w,m.h);
-  ctx.fillStyle='#ffff00';
-  ctx.fillRect(m.x+2,m.y+2,4,8);
+  ctx.fillStyle='#ff6600';ctx.fillRect(m.x,m.y,m.w,m.h);
+  ctx.fillStyle='#ffff00';ctx.fillRect(m.x+2,m.y+2,4,8);
 }
 function drawItem(it){
-  const m={
-    weapon:'#ffcc00',shield:'#00eeff',laser:'#ff00ff',
-    wing:'#00ff88',bomb:'#ff3300',invincible:'#ffff88',
-    magnet:'#00ffcc',score:'#ff66ff'
-  };
+  const m={weapon:'#ffcc00',shield:'#00eeff',laser:'#ff00ff',wing:'#00ff88',bomb:'#ff3300',invincible:'#ffff88',magnet:'#00ffcc',score:'#ff66ff'};
   ctx.fillStyle=m[it.type];
-  ctx.beginPath();
-  ctx.arc(it.x+it.w/2,it.y+it.h/2,it.w/2,0,Math.PI*2);
-  ctx.fill();
-  ctx.strokeStyle='#fff';
-  ctx.lineWidth=2;
-  ctx.stroke();
+  ctx.beginPath();ctx.arc(it.x+it.w/2,it.y+it.h/2,it.w/2,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
 }
 function drawEffect(ef){
   const s=ef.t*3.8;
-  ctx.fillStyle='#ff6600';
-  ctx.beginPath();
-  ctx.arc(ef.x,ef.y,s,0,Math.PI*2);
-  ctx.fill();
-  ctx.fillStyle='#ffff00';
-  ctx.beginPath();
-  ctx.arc(ef.x,ef.y,s*0.6,0,Math.PI*2);
-  ctx.fill();
+  ctx.fillStyle='#ff6600';ctx.beginPath();ctx.arc(ef.x,ef.y,s,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#ffff00';ctx.beginPath();ctx.arc(ef.x,ef.y,s*0.6,0,Math.PI*2);ctx.fill();
 }
 function drawTextEffects(){
-  ctx.font='16px Arial';
-  ctx.textAlign='center';
+  ctx.font='16px Arial';ctx.textAlign='center';
   for(let i=textEffects.length-1;i>=0;i--){
-    const te=textEffects[i];
-    te.life--;
-    te.y+=te.vy;
-    te.alpha=te.life/60;
+    const te=textEffects[i];te.life--;te.y+=te.vy;te.alpha=te.life/60;
     if(te.life<=0){textEffects.splice(i,1);continue}
-    ctx.globalAlpha=te.alpha;
-    ctx.fillStyle='#fff';
-    ctx.fillText(te.text,te.x,te.y);
+    ctx.globalAlpha=te.alpha;ctx.fillStyle='#fff';ctx.fillText(te.text,te.x,te.y);
   }
   ctx.globalAlpha=1;
 }
 
-shopBtn.onclick=function(){
-  shopPanel.style.display='block';
-};
-closeShopBtn.onclick=function(){
-  shopPanel.style.display='none';
-};
+// 商城按钮事件修复
+shopBtn.onclick=function(){shopPanel.style.display='block'};
+closeShopBtn.onclick=function(){shopPanel.style.display='none'};
 tabItem.onclick=function(){
-  tabItem.classList.add('active');
-  tabGacha.classList.remove('active');
-  shopItems.style.display='flex';
-  shopGacha.style.display='none';
+  tabItem.classList.add('active');tabGacha.classList.remove('active');
+  shopItems.style.display='flex';shopGacha.style.display='none';
 };
 tabGacha.onclick=function(){
-  tabGacha.classList.add('active');
-  tabItem.classList.remove('active');
-  shopGacha.style.display='flex';
-  shopItems.style.display='none';
+  tabGacha.classList.add('active');tabItem.classList.remove('active');
+  shopGacha.style.display='flex';shopItems.style.display='none';
 };
 
 document.querySelectorAll('[buy]').forEach(b=>{
   b.onclick=function(){
     const t=b.getAttribute('buy');
-    let cost=0;
-    let ok=false;
+    let cost=0,ok=false;
     switch(t){
-      case'bomb':
-        cost=200;
-        if(gold>=cost){
-          gold-=cost;
-          player.bombCount++;
-          ok=true;
-        }
-        break;
-      case'shield':
-        cost=300;
-        if(gold>=cost&&player.shieldCount<player.shieldMax){
-          gold-=cost;
-          player.shieldCount++;
-          ok=true;
-        }
-        break;
-      case'weapon':
-        cost=500;
-        if(gold>=cost&&player.weaponLevel<player.weaponMax){
-          gold-=cost;
-          player.weaponLevel++;
-          ok=true;
-        }
-        break;
-      case'wing':
-        cost=600;
-        if(gold>=cost&&player.wingLevel<player.wingMax){
-          gold-=cost;
-          player.wingLevel++;
-          ok=true;
-        }
-        break;
-      case'laser':
-        cost=700;
-        if(gold>=cost&&player.laserLevel<player.laserMax){
-          gold-=cost;
-          player.laserLevel++;
-          player.laserTime=8000;
-          ok=true;
-        }
-        break;
-      case'magnet':
-        cost=250;
-        if(gold>=cost){
-          gold-=cost;
-          player.magnetTime=6000;
-          ok=true;
-        }
-        break;
-      case'invincible':
-        cost=400;
-        if(gold>=cost){
-          gold-=cost;
-          player.invincibleTime=6000;
-          ok=true;
-        }
-        break;
+      case'bomb':cost=200;if(gold>=cost){gold-=cost;player.bombCount++;ok=true;}break;
+      case'shield':cost=300;if(gold>=cost&&player.shieldCount<player.shieldMax){gold-=cost;player.shieldCount++;ok=true;}break;
+      case'weapon':cost=500;if(gold>=cost&&player.weaponLevel<player.weaponMax){gold-=cost;player.weaponLevel++;ok=true;}break;
+      case'wing':cost=600;if(gold>=cost&&player.wingLevel<player.wingMax){gold-=cost;player.wingLevel++;ok=true;}break;
+      case'laser':cost=700;if(gold>=cost&&player.laserLevel<player.laserMax){gold-=cost;player.laserLevel++;player.laserTime=8000;ok=true;}break;
+      case'magnet':cost=250;if(gold>=cost){gold-=cost;player.magnetTime=6000;ok=true;}break;
+      case'invincible':cost=400;if(gold>=cost){gold-=cost;player.invincibleTime=6000;ok=true;}break;
     }
-    if(ok){
-      playSound('coin');
-      goldText.innerText='金币：'+gold;
-      bombText.innerText='炸弹：'+player.bombCount;
-      saveData();
-    }
+    if(ok){playSound('coin');goldText.innerText='金币：'+gold;bombText.innerText='炸弹：'+player.bombCount;saveData();}
   };
 });
 
@@ -974,33 +736,17 @@ document.querySelectorAll('[gacha]').forEach(b=>{
     const cnt=parseInt(b.getAttribute('gacha'));
     const cost=cnt===1?300:2700;
     if(gold<cost)return;
-    gold-=cost;
-    playSound('coin');
-    goldText.innerText='金币：'+gold;
+    gold-=cost;playSound('coin');
     let res='';
     for(let i=0;i<cnt;i++){
       const r=Math.random();
-      if(r<0.4){
-        const c=Math.floor(Math.random()*3)+1;
-        player.bombCount+=c;
-        res+=`炸弹×${c}，`;
-      }else if(r<0.65){
-        gold+=150;
-        res+='金币×150，';
-      }else if(r<0.85){
-        player.invincibleTime=5000;
-        res+='无敌，';
-      }else{
+      if(r<0.4){const c=Math.floor(Math.random()*3)+1;player.bombCount+=c;res+=`炸弹×${c}，`;}
+      else if(r<0.65){gold+=150;res+='金币×150，';}
+      else if(r<0.85){player.invincibleTime=5000;res+='无敌，';}
+      else{
         let skin=Math.floor(Math.random()*4)+2;
-        if(!unlockedSkins.includes(skin)){
-          unlockedSkins.push(skin);
-          skinColors[skin]=generateRandomSkinColor();
-          res+=`解锁皮肤${skin}，`;
-          playSound('unlock');
-        }else{
-          gold+=500;
-          res+='金币×500，';
-        }
+        if(!unlockedSkins.includes(skin)){unlockedSkins.push(skin);skinColors[skin]=generateRandomSkinColor();res+=`解锁皮肤${skin}，`;playSound('unlock');}
+        else{gold+=500;res+='金币×500，';}
       }
     }
     gachaResult.textContent=res.slice(0,-1);
@@ -1010,15 +756,14 @@ document.querySelectorAll('[gacha]').forEach(b=>{
   };
 });
 
+// 游戏主循环（全异常捕获）
 function loop(){
   if(!gameRunning)return;
   try{
-    ctx.fillStyle='#000';
-    ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle='#000';ctx.fillRect(0,0,canvas.width,canvas.height);
     drawParticles();
     if(ulting){
-      ultFrame++;
-      drawUltimate();
+      ultFrame++;drawUltimate();
       if(ultFrame===15)doUltimateDamage();
       if(ultFrame>=ultDuration)ulting=false;
       requestAnimationFrame(loop);
@@ -1028,155 +773,204 @@ function loop(){
     if(player.laserTime>0)player.laserTime-=16;
     if(player.invincibleTime>0)player.invincibleTime-=16;
     if(player.magnetTime>0)player.magnetTime-=16;
-    drawPlayer();
-    drawTextEffects();
-    bossAttack();
+    drawPlayer();drawTextEffects();bossAttack();
 
-    for(let i=bullets.length-1;i>=0;i--){
-      const b=bullets[i];
-      b.y-=b.speed;
-      drawBullet(b);
-      if(b.y<-20)bullets.splice(i,1);
-    }
+    // 子弹逻辑
+    for(let i=bullets.length-1;i>=0;i--){const b=bullets[i];b.y-=b.speed;drawBullet(b);if(b.y<-20)bullets.splice(i,1);}
+    // 导弹逻辑
     for(let i=followMissiles.length-1;i>=0;i--){
       const m=followMissiles[i];
-      if(!m.target||enemies.indexOf(m.target)===-1){
-        followMissiles.splice(i,1);
-        continue;
-      }
-      const dx=m.target.x+10-m.x;
-      const dy=m.target.y+10-m.y;
-      const d=Math.hypot(dx,dy)||1;
-      m.x+=dx/d*m.speed;
-      m.y+=dy/d*m.speed;
-      drawMissile(m);
-      if(collide(m,m.target)){
-        boom(m.x,m.y);
-        m.target.hp=0;
-        followMissiles.splice(i,1);
-        addUltCharge(3);
-      }
+      if(!m.target||enemies.indexOf(m.target)===-1){followMissiles.splice(i,1);continue;}
+      const dx=m.target.x+10-m.x,dy=m.target.y+10-m.y,d=Math.hypot(dx,dy)||1;
+      m.x+=dx/d*m.speed;m.y+=dy/d*m.speed;drawMissile(m);
+      if(collide(m,m.target)){boom(m.x,m.y);m.target.hp=0;followMissiles.splice(i,1);addUltCharge(3);}
     }
+    // 道具逻辑
     for(let i=items.length-1;i>=0;i--){
-      const it=items[i];
-      it.y+=it.speed;
+      const it=items[i];it.y+=it.speed;
       if(player.magnetTime>0){
-        const dx=player.x+player.w/2-it.x;
-        const dy=player.y+player.h/2-it.y;
-        const d=Math.hypot(dx,dy)||1;
-        if(d<130){
-          it.x+=dx/d*4.2;
-          it.y+=dy/d*4.2;
-        }
+        const dx=player.x+player.w/2-it.x,dy=player.y+player.h/2-it.y,d=Math.hypot(dx,dy)||1;
+        if(d<130){it.x+=dx/d*4.2;it.y+=dy/d*4.2;}
       }
       drawItem(it);
       if(collide(player,it)){
-        playSound('item');
-        const tx=it.x+it.w/2;
-        const ty=it.y;
+        playSound('item');const tx=it.x+it.w/2,ty=it.y;
         switch(it.type){
-          case'weapon':
-            if(player.weaponLevel<player.weaponMax)player.weaponLevel++;
-            showItemText(tx,ty,`武器Lv${player.weaponLevel}`);
-            break;
-          case'shield':
-            if(player.shieldCount<player.shieldMax)player.shieldCount++;
-            showItemText(tx,ty,`护盾${player.shieldCount}层`);
-            break;
-          case'laser':
-            if(player.laserLevel<player.laserMax)player.laserLevel++;
-            player.laserTime=8000;
-            showItemText(tx,ty,`激光Lv${player.laserLevel}`);
-            break;
-          case'wing':
-            if(player.wingLevel<player.wingMax)player.wingLevel++;
-            showItemText(tx,ty,`僚机Lv${player.wingLevel}`);
-            break;
-          case'bomb':
-            player.bombCount++;
-            showItemText(tx,ty,'获得炸弹');
-            break;
-          case'invincible':
-            player.invincibleTime=6000;
-            showItemText(tx,ty,'无敌激活');
-            break;
-          case'magnet':
-            player.magnetTime=6000;
-            showItemText(tx,ty,'拾取磁铁');
-            break;
-          case'score':
-            score+=currentSkin===5?150:100;
-            showItemText(tx,ty,'加分道具');
-            break;
+          case'weapon':if(player.weaponLevel<player.weaponMax)player.weaponLevel++;showItemText(tx,ty,`武器Lv${player.weaponLevel}`);break;
+          case'shield':if(player.shieldCount<player.shieldMax)player.shieldCount++;showItemText(tx,ty,`护盾${player.shieldCount}层`);break;
+          case'laser':if(player.laserLevel<player.laserMax)player.laserLevel++;player.laserTime=8000;showItemText(tx,ty,`激光Lv${player.laserLevel}`);break;
+          case'wing':if(player.wingLevel<player.wingMax)player.wingLevel++;showItemText(tx,ty,`僚机Lv${player.wingLevel}`);break;
+          case'bomb':player.bombCount++;showItemText(tx,ty,'获得炸弹');break;
+          case'invincible':player.invincibleTime=6000;showItemText(tx,ty,'无敌激活');break;
+          case'magnet':player.magnetTime=6000;showItemText(tx,ty,'拾取磁铁');break;
+          case'score':score+=currentSkin===5?150:100;showItemText(tx,ty,'加分道具');break;
         }
         items.splice(i,1);
       }
       if(it.y>canvas.height)items.splice(i,1);
     }
+    // 敌机逻辑
     for(let i=enemies.length-1;i>=0;i--){
-      const e=enemies[i];
-      e.y+=e.speed;
-      drawEnemy(e);
+      const e=enemies[i];e.y+=e.speed;drawEnemy(e);
       if(collide(player,e)){
-        if(player.shieldCount>0){
-          boom(e.x,e.y);
-          enemies.splice(i,1);
-          if(currentSkin!==4)player.shieldCount--;
-          continue;
-        }
-        if(player.invincibleTime>0){
-          boom(e.x,e.y);
-          enemies.splice(i,1);
-          continue;
-        }
-        gameOver();
-        return;
+        if(player.shieldCount>0){boom(e.x,e.y);enemies.splice(i,1);if(currentSkin!==4)player.shieldCount--;continue;}
+        if(player.invincibleTime>0){boom(e.x,e.y);enemies.splice(i,1);continue;}
+        gameOver();return;
       }
       if(e.y>canvas.height+50)enemies.splice(i,1);
     }
+    // BOSS逻辑
     if(boss){
       bossHpText.textContent=`BOSS ${level} 血量：${boss.hp}/${boss.maxHp}`;
       boss.x+=boss.speed*boss.dir;
       if(boss.x<20||boss.x+boss.w>canvas.width-20)boss.dir*=-1;
       drawBoss();
+      // BOSS子弹
       for(let i=bossBullets.length-1;i>=0;i--){
-        const b=bossBullets[i];
-        b.x+=b.vx;
-        b.y+=b.vy;
-        ctx.fillStyle=b.color;
-        ctx.beginPath();
-        ctx.arc(b.x+b.w/2,b.y+b.h/2,b.w/2,0,Math.PI*2);
-        ctx.fill();
+        const b=bossBullets[i];b.x+=b.vx;b.y+=b.vy;
+        ctx.fillStyle=b.color;ctx.beginPath();ctx.arc(b.x+b.w/2,b.y+b.h/2,b.w/2,0,Math.PI*2);ctx.fill();
         if(collide(player,b)){
-          if(player.shieldCount>0){
-            if(currentSkin!==4)player.shieldCount--;
-            bossBullets.splice(i,1);
-            continue;
-          }
-          if(player.invincibleTime>0){
-            bossBullets.splice(i,1);
-            continue;
-          }
-          gameOver();
-          return;
+          if(player.shieldCount>0){if(currentSkin!==4)player.shieldCount--;bossBullets.splice(i,1);continue;}
+          if(player.invincibleTime>0){bossBullets.splice(i,1);continue;}
+          gameOver();return;
         }
         if(b.x<0||b.x>canvas.width||b.y<0||b.y>canvas.height)bossBullets.splice(i,1);
       }
+      // 子弹打BOSS
       for(let i=bullets.length-1;i>=0;i--){
         if(boss&&collide(bullets[i],boss)){
-          bullets.splice(i,1);
-          boss.hp--;
+          bullets.splice(i,1);boss.hp--;
           addUltCharge(currentSkin===3?0.8:0.5);
           if(boss.hp<=0){
             boom(boss.x+boss.w/2,boss.y+boss.h/2);
             score+=currentSkin===5?1200*level:800*level;
-            const gAdd=currentSkin===5?300*level:200*level;
-            gold+=gAdd;
-            saveData();
-            addUltCharge(30);
-            unlockSkinByLevel(level);
-            boss=null;
-            bossBullets=[];
-            bossHpText.style.display='none';
-            level++;
-            if(bossSpawnTimer)clearTimeout(bossSpawn
+            const gAdd=currentSkin===5?300*level:200*level;gold+=gAdd;saveData();
+            addUltCharge(30);unlockSkinByLevel(level);
+            boss=null;bossBullets=[];bossHpText.style.display='none';
+            level++;levelText.innerText='关卡：'+level;
+            if(bossSpawnTimer)clearTimeout(bossSpawnTimer);
+            bossSpawnTimer=setTimeout(spawnBoss,9000);
+          }
+        }
+      }
+      if(collide(player,boss)&&player.invincibleTime<=0){gameOver();return;}
+    }
+    // 子弹打敌机
+    for(let i=bullets.length-1;i>=0;i--){
+      for(let j=enemies.length-1;j>=0;j--){
+        if(collide(bullets[i],enemies[j])){
+          bullets.splice(i,1);enemies[j].hp--;
+          if(enemies[j].hp<=0){
+            boom(enemies[j].x+enemies[j].w/2,enemies[j].y+enemies[j].h/2);
+            if(Math.random()<0.45)dropItem(enemies[j].x,enemies[j].y);
+            enemies.splice(j,1);
+            score+=currentSkin===5?30:20;
+            gold+=currentSkin===5?4:2;saveData();
+            addUltCharge(currentSkin===3?3:2);
+            break;
+          }
+        }
+      }
+    }
+    // 爆炸效果
+    for(let i=effects.length-1;i>=0;i--){const ef=effects[i];ef.t++;drawEffect(ef);if(ef.t>=ef.max)effects.splice(i,1);}
+    requestAnimationFrame(loop);
+  }catch(e){
+    console.error('游戏循环异常',e);
+    requestAnimationFrame(loop);
+  }
+}
+
+function unlockSkinByLevel(bossLevel){
+  let skin=null,tip='';
+  switch(bossLevel){case1:skin=2;tip='3D战机·射速更快';break;case2:skin=3;tip='3D战机·大招加速';break;case3:skin=4;tip='3D战机·护盾不破';break;case4:skin=5;tip='3D战机·分数翻倍';break;}
+  if(skin&&!unlockedSkins.includes(skin)){
+    unlockedSkins.push(skin);skinColors[skin]=generateRandomSkinColor();
+    playSound('unlock');
+    unlockTip.textContent='击败BOSS！解锁：'+tip;
+    unlockTip.style.display='block';
+    setTimeout(()=>unlockTip.style.display='none',3000);
+    saveData();
+  }
+}
+
+function addUltCharge(amt){
+  if(ultCharge>=ultMax)return;
+  ultCharge+=amt;
+  if(ultCharge>ultMax)ultCharge=ultMax;
+  ultText.innerText=`大招能量：${Math.floor(ultCharge)}/${ultMax}`;
+  ultBtn.disabled=ultCharge<ultMax;
+}
+
+// 开始游戏函数（异步+全修复）
+async function start(){
+  try{
+    gameRunning=true;
+    // 重置所有状态
+    score=0;level=1;
+    player.weaponLevel=1;player.laserLevel=0;player.laserTime=0;
+    player.wingLevel=0;player.shieldCount=1;
+    player.invincibleTime=0;player.magnetTime=0;player.bombCount=0;
+    ultCharge=0;ulting=false;
+    // 重置UI
+    scoreText.innerText='分数：0';levelText.innerText='关卡：1';
+    bombText.innerText='炸弹：0';ultText.innerText='大招能量：0/100';
+    // 清空所有对象
+    particles=[];bullets=[];enemies=[];effects=[];items=[];
+    textEffects=[];followMissiles=[];boss=null;bossBullets=[];
+    // 玩家位置
+    player.x=canvas.width/2-25;player.y=canvas.height*0.8;
+    // 清理定时器
+    if(bossSpawnTimer)clearTimeout(bossSpawnTimer);
+    bossSpawnTimer=setTimeout(spawnBoss,30000);
+    // 隐藏开始界面，显示游戏UI
+    logo.style.display='none';author.style.display='none';
+    startBtn.style.display='none';shopBtn.style.display='none';
+    bombBtn.style.display='block';skinSwitchBtn.style.display='block';
+    ultBtn.style.display='block';ultBtn.disabled=true;
+    defeat.style.display='none';shopPanel.style.display='none';
+    // 清理旧定时器
+    if(window.shootInterval)clearInterval(window.shootInterval);
+    if(window.enemyInterval)clearInterval(window.enemyInterval);
+    if(window.missileInterval)clearInterval(window.missileInterval);
+    // 启动游戏定时器
+    window.shootInterval=setInterval(shoot,currentSkin===2?180:240);
+    window.enemyInterval=setInterval(createEnemy,1100);
+    window.missileInterval=setInterval(fireFollowMissile,1200);
+    // 初始化音频并播放
+    await initAudio();
+    stopBgMusic();
+    await createBgMusic();
+    await playBgMusic();
+    // 启动主循环
+    loop();
+  }catch(e){
+    console.error('开始游戏失败',e);
+    gameRunning=false;
+  }
+}
+
+function gameOver(){
+  gameRunning=false;
+  stopBgMusic();
+  playSound('gameover');
+  // 清理定时器
+  if(bossSpawnTimer)clearTimeout(bossSpawnTimer);
+  clearInterval(window.shootInterval);
+  clearInterval(window.enemyInterval);
+  clearInterval(window.missileInterval);
+  // 显示失败界面
+  defeatInfo.innerHTML=`最高关卡：${level}<br>最终得分：${score}<br>获得金币：${gold%1000}<br>再接再厉！`;
+  defeat.style.display='block';
+  // 隐藏游戏UI，显示开始界面
+  bombBtn.style.display='none';skinSwitchBtn.style.display='none';ultBtn.style.display='none';
+  logo.style.display='block';author.style.display='block';
+  startBtn.style.display='block';shopBtn.style.display='block';
+}
+
+// 按钮事件绑定（修复关键）
+startBtn.onclick=start;
+restartBtn.onclick=start;
+</script>
+</body>
+</html>

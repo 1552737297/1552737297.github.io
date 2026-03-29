@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>泰拉瑞亚 手机联机 GitHubPages稳定版</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;user-select:none;touch-action:none;}
+body{background:#000;overflow:hidden;}
+#gameCanvas{display:block;}
+
+.ctrl{z-index:20;}
+.left-ctrl{position:fixed;bottom:120px;left:20px;display:flex;gap:15px;}
+.right-ctrl{position:fixed;bottom:120px;right:20px;flex-direction:column;display:flex;gap:15px;}
+.btn{
+  width:70px;height:70px;background:rgba(0,0,0,0.55);
+  border-radius:50%;color:#fff;text-align:center;
+  line-height:70px;font-size:22px;border:2px solid #ffffff88;
+  backdrop-filter: blur(4px);
+}
+
+.inventory-bar{
+    position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+    background:rgba(15,15,15,0.75);backdrop-filter:blur(6px);
+    padding:12px 18px;border-radius:16px;border:1px solid #ffffff22;
+    display:flex;gap:10px;z-index:30;
+}
+.inv-slot{
+    width:58px;height:58px;background:#2b2b2b;border:2px solid #444;
+    border-radius:12px;color:#fff;font-size:14px;padding:4px;text-align:right;
+}
+.inv-slot.active{border-color:#ffd700;box-shadow:0 0 10px #ffd70088;}
+
+.hp-ui{position:fixed;top:15px;left:15px;display:flex;gap:5px;z-index:40;}
+.heart{width:30px;height:30px;background:#e74c3c;border-radius:50%;box-shadow:0 0 6px #e74c3c66;}
+.heart.empty{background:#333;box-shadow:none;}
+
+.top-info{
+  position:fixed;top:18px;left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,0.6);color:#ffd700;padding:6px 16px;
+  border-radius:20px;font-size:16px;z-index:40;backdrop-filter:blur(4px);
+}
+
+.save-btn, .shop-btn, .music-btn{
+  position:fixed;top:15px;z-index:40;padding:8px 14px;border-radius:12px;
+  border:none;color:#fff;font-size:15px;backdrop-filter:blur(4px);
+}
+.save-btn{right:15px;background:#27ae6099;}
+.shop-btn{right:95px;background:#3498db99;}
+.music-btn{right:175px;background:#9b59b699;}
+
+.night-cover{position:fixed;inset:0;background:rgba(0,0,20,0);pointer-events:none;z-index:5;transition:background 1.5s;}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<div class="night-cover" id="nightCover"></div>
+<div class="top-info" id="goldUI">金币：0</div>
+
+<div class="left-ctrl">
+<div class="btn" id="btnL">←</div>
+<div class="btn" id="btnR">→</div>
+</div>
+<div class="right-ctrl">
+<div class="btn" id="btnJ">跳跃</div>
+<div class="btn" id="btnAtk">攻击</div>
+</div>
+
+<div class="hp-ui" id="hpUI"></div>
+<button class="save-btn" id="saveBtn">存档</button>
+<button class="shop-btn" id="shopBtn">商店</button>
+<button class="music-btn" id="musicBtn">音乐开关</button>
+
+<div class="inventory-bar">
+    <div class="inv-slot active" data-id="0"></div>
+    <div class="inv-slot" data-id="2"></div>
+    <div class="inv-slot" data-id="1"></div>
+    <div class="inv-slot" data-id="3"></div>
+</div>
+
+<script>
+// 兼容本地file协议和GitHub Pages，统一用window.onload确保DOM就绪
+window.addEventListener("load", function(){
+  const canvas = document.getElementById("gameCanvas");
+  if(!canvas) return; // 防报错兜底
+  const ctx = canvas.getContext("2d");
+  const nightCover = document.getElementById("nightCover");
+  const goldUI = document.getElementById("goldUI");
+  const musicBtn = document.getElementById("musicBtn");
+
+  let musicOn = false;
+  musicBtn.onclick = function(){
+      musicOn = !musicOn;
+      musicBtn.innerText = musicOn ? "已开启音效" : "音乐开关";
+  };
+
+  function resize(){
+    canvas.width = innerWidth;
+    canvas.height = innerHeight;
+  }
+  resize();
+  window.onresize = resize;
+
+  const TILE = 32;
+  const WORLD_W = 80;
+  const WORLD_H = 40;
+
+  let world = [];
+  let mobs = [];
+  let fruits = [];
+  let chests = [];
+  let particles = [];
+  let fireFlies = [];
+  let animTime = 0;
+  let screenShake = {x:0,y:0,time:0};
+
+  function startShake(dur){
+      screenShake.time = dur;
+  }
+
+  function initFireFly(){
+      for(let i=0;i<20;i++){
+          fireFlies.push({
+              x: Math.random()*WORLD_W*TILE,
+              y: Math.random()*WORLD_H*TILE*0.6,
+              vx: (Math.random()-0.5)*0.8,
+              vy: (Math.random()-0.5)*0.8,
+              alpha: Math.random()
+          });
+      }
+  }
+
+  function spawnParticle(x,y,color,num){
+    for(let i=0;i<num;i++){
+      particles.push({
+        x,y,
+        vx:(Math.random()-0.5)*4,
+        vy:(Math.random()-0.5)*4,
+        life:25,
+        color
+      });
+    }
+  }
+
+  function initFreshWorld(){
+      world = [];
+      for(let y = 0; y < WORLD_H; y++){
+          world[y] = [];
+          for(let x = 0; x < WORLD_W; x++){
+              let groundH = Math.floor(WORLD_H/3 + Math.sin(x * 0.12) * 4);
+              if(y < groundH) world[y][x] = 0;
+              else if(y === groundH) world[y][x] = 2;
+              else if(y < groundH + 8) world[y][x] = 1;
+              else if(y < WORLD_H - 5) world[y][x] = 3;
+              else world[y][x] = 0;
+          }
+      }
+      chests = [];
+      for(let i=0;i<8;i++){
+          chests.push({
+              x: Math.random() * WORLD_W * TILE,
+              y: (WORLD_H/2 + Math.random()*6) * TILE
+          });
+      }
+      initFireFly();
+  }
+
+  let player = {
+      x: WORLD_W / 2 * TILE,
+      y: 12 * TILE,
+      w:24, h:32,
+      vx:0, vy:0,
+      speed:3.5,
+      gravity:0.5,
+      jumpPower:-13,
+      onGround:false,
+      hp:5, maxHp:5,
+      coin:50,
+      jumpTwice:false,
+      atkCd:0,
+      facing:1
+  };
+
+  let dayTime = 0;
+  let key = {left:false, right:false, jump:false};
+
+  // 按钮事件兜底，防止元素未加载报错
+  const btnL = document.getElementById("btnL");
+  const btnR = document.getElementById("btnR");
+  const btnJ = document.getElementById("btnJ");
+  const btnAtk = document.getElementById("btnAtk");
+  if(btnL){
+      btnL.ontouchstart=e=>{e.preventDefault();key.left=true;};
+      btnL.ontouchend=()=>key.left=false;
+  }
+  if(btnR){
+      btnR.ontouchstart=e=>{e.preventDefault();key.right=true;};
+      btnR.ontouchend=()=>key.right=false;
+  }
+  if(btnJ){
+      btnJ.addEventListener("touchstart",e=>{
+          e.preventDefault();
+          if(player.onGround){
+              player.jumpTwice = true;
+              player.vy = player.jumpPower;
+          }else if(player.jumpTwice){
+              player.vy = -10;
+              player.jumpTwice = false;
+          }
+      });
+  }
+  if(btnAtk){
+      btnAtk.ontouchstart=e=>{
+          e.preventDefault();
+          if(player.atkCd <= 0){
+              player.atkCd = 25;
+              startShake(8);
+              for(let i=mobs.length-1;i>=0;i--){
+                  if(Math.abs(mobs[i].x - player.x) < 70){
+                      spawnParticle(mobs[i].x,mobs[i].y,"#ff6644",12);
+                      mobs.splice(i,1);
+                      player.coin +=6;
+                  }
+              }
+          }
+      };
+  }
+
+  let bag = {1:10,2:5,3:8};
+  let selectItem = 0;
+  const slots = document.querySelectorAll(".inv-slot");
+  slots.forEach(slot=>{
+      slot.addEventListener("touchstart",e=>{
+          e.preventDefault();
+          slots.forEach(s

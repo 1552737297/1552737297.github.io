@@ -648,83 +648,69 @@ function applySkinEffect() {
 // ====================== 修复后的战机绘制 ======================
 function drawPlayer(){
   if(player.invincibleTime>0 && Math.floor(Date.now()/120)%2==0) return;
+
   const cx = player.x + 25;
   const cy = player.y + 30;
-
   let bodyColor = getPlayerColor();
-  let glowIntensity = Math.min(30, 10 + playerLevel * 2);
+  let glow = Math.min(30, 10 + playerLevel * 2);
 
-  // 清除之前的阴影
   ctx.shadowBlur = 0;
-  
-  // 设置发光效果
-  if (playerLevel >= 10) {
-    ctx.shadowColor = bodyColor;
-    ctx.shadowBlur = 35;
-  } else {
-    ctx.shadowColor = bodyColor;
-    ctx.shadowBlur = glowIntensity;
-  }
+  ctx.shadowColor = bodyColor;
+  ctx.shadowBlur = glow;
 
-  // 绘制战机主体
-  ctx.beginPath();
-  ctx.moveTo(cx, player.y);
-  ctx.lineTo(player.x + 10, player.y + 40);
-  ctx.lineTo(player.x + 15, player.y + 55);
-  ctx.lineTo(cx, player.y + 60);
-  ctx.lineTo(player.x + 35, player.y + 55);
-  ctx.lineTo(player.x + 40, player.y + 40);
-  ctx.closePath();
-  ctx.fillStyle = bodyColor;
-  ctx.fill();
-
-  // 绘制驾驶舱
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(cx - 3, player.y + 52, 6, 8);
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(cx - 1, player.y + 54, 2, 4);
-
-  // 绘制机翼
-  if(player.wingLevel >=1){
+  // 画一架小飞机
+  function drawJet(x, y, scale){
     ctx.beginPath();
-    ctx.moveTo(player.x + 12, player.y + 38);
-    ctx.lineTo(player.x - 16, player.y + 48);
-    ctx.lineTo(player.x - 16, player.y + 58);
-    ctx.lineTo(player.x + 12, player.y + 48);
-    ctx.closePath();
-    ctx.fillStyle = bodyColor;
-    ctx.fill();
-  }
-  if(player.wingLevel >=2){
-    ctx.beginPath();
-    ctx.moveTo(player.x + 38, player.y + 38);
-    ctx.lineTo(player.x + 66, player.y + 48);
-    ctx.lineTo(player.x + 66, player.y + 58);
-    ctx.lineTo(player.x + 38, player.y + 48);
+    ctx.moveTo(x + 25*scale, y);
+    ctx.lineTo(x + 10*scale, y + 40*scale);
+    ctx.lineTo(x + 15*scale, y + 55*scale);
+    ctx.lineTo(x + 25*scale, y + 60*scale);
+    ctx.lineTo(x + 35*scale, y + 55*scale);
+    ctx.lineTo(x + 40*scale, y + 40*scale);
     ctx.closePath();
     ctx.fillStyle = bodyColor;
     ctx.fill();
   }
 
-  // 绘制护盾
+  // ========== 外观等级：1 → 2 → 3 → 4 架，非常稳定 ==========
+  let stage = 1;
+  if (playerLevel >= 3) stage = 2;
+  if (playerLevel >= 5) stage = 3;
+  if (playerLevel >= 7) stage = 4;
+
+  // 主机
+  drawJet(player.x, player.y, 1);
+
+  // 2阶段：左右2架
+  if (stage >= 2) {
+    drawJet(player.x - 40, player.y + 10, 0.7);
+    drawJet(player.x + 40, player.y + 10, 0.7);
+  }
+
+  // 3阶段：前2架
+  if (stage >= 3) {
+    drawJet(player.x - 20, player.y - 12, 0.6);
+    drawJet(player.x + 20, player.y - 12, 0.6);
+  }
+
+  // 4阶段：菱形编队
+  if (stage >= 4) {
+    drawJet(player.x - 55, player.y + 18, 0.5);
+    drawJet(player.x + 55, player.y + 18, 0.5);
+  }
+  // ==========================================================
+
+  // 护盾
   if(player.shieldCount > 0){
-    let opacity = player.shieldCount / player.shieldMax;
-    ctx.strokeStyle = bodyColor; 
-    ctx.lineWidth=2;
-    ctx.globalAlpha = opacity;
-    ctx.beginPath(); 
-    ctx.arc(cx, cy, 40, 0, Math.PI*2); 
-    ctx.stroke();
-    
-    ctx.strokeStyle = '#fff'; 
-    ctx.lineWidth=1;
-    ctx.beginPath(); 
-    ctx.arc(cx, cy, 36, 0, Math.PI*2); 
-    ctx.stroke();
+    let opa = player.shieldCount / player.shieldMax;
+    ctx.globalAlpha = opa;
+    ctx.strokeStyle = bodyColor; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(cx, cy, 40, 0, Math.PI*2); ctx.stroke();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.arc(cx, cy, 36, 0, Math.PI*2); ctx.stroke();
     ctx.globalAlpha = 1;
   }
 
-  // 清除阴影效果
   ctx.shadowBlur = 0;
 }
 

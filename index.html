@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>太空雷霆战机 - 终极科幻版 · 大招系统</title>
+<title>太空雷霆战机 - 3D科幻版</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{
@@ -11,13 +11,13 @@ body{
 display:flex;justify-content:center;align-items:center;
 height:100vh;overflow:hidden;touch-action:none;
 color:#fff;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto;
-perspective: 1000px;
+perspective: 1200px;
 }
 #game{
 border:2px solid #0ef;
-background:linear-gradient(#000,#10122a);
+background:linear-gradient(#000,#0a0b1e);
 display:block;
-box-shadow: 0 0 40px rgba(0,200,255,0.3), 0 0 80px rgba(0,100,255,0.15);
+box-shadow: 0 0 50px rgba(0,200,255,0.4), 0 0 100px rgba(0,100,255,0.2);
 border-radius: 8px;
 }
 .ui{
@@ -42,7 +42,6 @@ text-align: center;
 }
 #bomb{top:16px;right:16px}
 
-/* 大招能量 UI */
 #ultimate{
 position:absolute;
 bottom:16px;left:50%;transform:translateX(-50%);
@@ -124,7 +123,6 @@ transform: scale(0.92);
 box-shadow:0 0 12px #f30;
 }
 
-/* 大招按钮 */
 #ultBtn{
 position:absolute;bottom:30px;left:110px;
 width:76px;height:76px;
@@ -148,7 +146,6 @@ transform: scale(0.92);
 box-shadow:0 0 40px #f0f;
 }
 
-/* 换肤按钮 */
 #skinSwitchBtn{
 position:absolute;bottom:30px;left:30px;
 width:60px;height:60px;
@@ -216,7 +213,7 @@ transform: scale(0.94);
 </head>
 <body>
 <div id="logo">太空雷霆战机</div>
-<div id="author">BOSS解锁皮肤 · 每款自带特效</div>
+<div id="author">3D 科幻战机 · BOSS解锁皮肤</div>
 <div id="score" class="ui">分数：0</div>
 <div id="level" class="ui">关卡：1</div>
 <div id="bossHp" class="ui">BOSS 血量：</div>
@@ -265,22 +262,18 @@ let score = 0;
 let level = 1;
 let bossSpawnTimer = null;
 
-// 皮肤系统：解锁 + 切换 + 随机颜色
 let unlockedSkins = [1];
 let currentSkin = 1;
-let rainbowOffset = 0;
 let skinColors = {
   1: { body: '#00d9ff', bodyDark: '#005dff', wing: '#0042bd', shield: '#00d9ff' }
 };
 
-// 大招系统
 let ultCharge = 0;
 const ultMax = 100;
 let ulting = false;
 let ultFrame = 0;
 const ultDuration = 60;
 
-// 玩家属性升级系统
 const player = {
   x: canvas.width/2-25, y: canvas.height*0.8, w:50, h:60,
   shieldCount: 1, shieldMax: 3,
@@ -299,7 +292,6 @@ let boss = null;
 let bossBullets = [];
 let textEffects = [];
 
-// ====================== 随机颜色生成工具 ======================
 function randomHexColor() {
   const letters = '0123456789ABCDEF';
   let color = '#';
@@ -317,7 +309,6 @@ function generateRandomSkinColor() {
   return { body: c1, bodyDark: c2, wing: c3, shield: c4 };
 }
 
-// 显示道具拾取文字
 function showItemText(x, y, text) {
   textEffects.push({
     x, y, text,
@@ -326,7 +317,6 @@ function showItemText(x, y, text) {
   });
 }
 
-// ====================== 音效系统 ======================
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 let bgMusicLoop = null;
 let musicGain = null;
@@ -439,8 +429,6 @@ function stopBgMusic() {
   bgMusicLoop = null;
 }
 
-// =======================================================
-
 canvas.addEventListener('touchmove', e=>{
   if(!gameRunning || ulting) return;
   e.preventDefault();
@@ -454,7 +442,6 @@ canvas.addEventListener('touchmove', e=>{
   if(player.y + player.h > canvas.height) player.y = canvas.height - player.h;
 });
 
-// 换肤：只切已解锁
 skinSwitchBtn.onclick = () => {
   let next = currentSkin;
   for (let i = 0; i < 10; i++) {
@@ -475,7 +462,6 @@ document.addEventListener('keydown', e=>{
   if(e.key === ' ' && ultCharge >= ultMax) useUltimate();
 });
 
-// 炸弹
 bombBtn.onclick = () => {
   if(player.bombCount <= 0) return;
   player.bombCount--;
@@ -487,7 +473,6 @@ bombBtn.onclick = () => {
   if(boss) boss.hp -= 10;
 };
 
-// 大招
 ultBtn.onclick = useUltimate;
 function useUltimate(){
   if(ultCharge < ultMax || ulting) return;
@@ -505,13 +490,11 @@ function doUltimateDamage(){
   if(boss) boss.hp -= 25 + level*5;
 }
 
-// ========== 子弹数量精简版 ==========
 function shoot(){
   if(!gameRunning || ulting) return;
   playSound('shoot');
   const cx = player.x + player.w/2;
 
-  // 激光：只保留 1束 / 2束，更清爽
   if(player.laserLevel > 0){
     bullets.push({type:'laser',x:cx-10,y:player.y,w:20,h:60,speed:14,color:'#f0f'});
     if(player.laserLevel >=3){
@@ -520,7 +503,6 @@ function shoot(){
     }
   }
 
-  // 主武器：减少数量
   if(player.weaponLevel>=1){
     bullets.push({type:'normal',x:cx-2,y:player.y,w:4,h:14,speed:9,color:'#0ff'});
   }
@@ -529,7 +511,6 @@ function shoot(){
     bullets.push({type:'normal',x:player.x+38,y:player.y+12,w:4,h:14,speed:9,color:'#0ff'});
   }
 
-  // 僚机：减少到最多2个，不叠加更多
   if(player.wingLevel >=1){
     bullets.push({type:'normal',x:player.x-10,y:player.y+24,w:3,h:12,speed:8,color:'#0ff'});
   }
@@ -599,7 +580,6 @@ function boom(x,y){
   playSound('boom');
 }
 
-// 道具掉落 + 升级逻辑
 function dropItem(x,y){
   const list = [
     'weapon','shield','laser','wing','bomb','invincible','magnet','score'
@@ -608,7 +588,6 @@ function dropItem(x,y){
   items.push({x,y,w:26,h:26,type,speed:2});
 }
 
-// 皮肤特效
 function applySkinEffect() {
   switch (currentSkin) {
     case 4:
@@ -617,74 +596,79 @@ function applySkinEffect() {
   }
 }
 
-// 绘制玩家
+// ====================== 3D 战机绘制 ======================
 function drawPlayer(){
   if(player.invincibleTime>0 && Math.floor(Date.now()/120)%2==0) return;
   const cx = player.x + 25;
   const cy = player.y + 30;
-
   const colors = skinColors[currentSkin];
-  let bodyGrd = ctx.createLinearGradient(0, player.y, 0, player.y+60);
-  bodyGrd.addColorStop(0, colors.body);
-  bodyGrd.addColorStop(1, colors.bodyDark);
-  const wingColor = colors.wing;
-  const shieldColor = colors.shield;
 
-  ctx.fillStyle = bodyGrd;
+  // 3D 机身渐变
+  let grd = ctx.createLinearGradient(cx, player.y, cx, player.y + 60);
+  grd.addColorStop(0, colors.body);
+  grd.addColorStop(0.6, colors.bodyDark);
+  grd.addColorStop(1, '#000');
+
+  // 3D 立体机头
+  ctx.fillStyle = grd;
   ctx.beginPath();
   ctx.moveTo(cx, player.y);
-  ctx.lineTo(player.x + 10, player.y + 40);
-  ctx.lineTo(player.x + 15, player.y + 55);
+  ctx.lineTo(player.x + 8, player.y + 30);
+  ctx.lineTo(player.x + 12, player.y + 52);
   ctx.lineTo(cx, player.y + 60);
-  ctx.lineTo(player.x + 35, player.y + 55);
-  ctx.lineTo(player.x + 40, player.y + 40);
+  ctx.lineTo(player.x + 38, player.y + 52);
+  ctx.lineTo(player.x + 42, player.y + 30);
   ctx.closePath();
   ctx.fill();
 
-  ctx.fillStyle = shieldColor;
-  ctx.fillRect(cx - 3, player.y + 52, 6, 8);
+  // 3D 侧翼发光
+  ctx.fillStyle = colors.wing;
+  ctx.beginPath();
+  ctx.moveTo(player.x + 10, player.y + 20);
+  ctx.lineTo(player.x - 18, player.y + 38);
+  ctx.lineTo(player.x - 14, player.y + 54);
+  ctx.lineTo(player.x + 14, player.y + 34);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(player.x + 40, player.y + 20);
+  ctx.lineTo(player.x + 68, player.y + 38);
+  ctx.lineTo(player.x + 64, player.y + 54);
+  ctx.lineTo(player.x + 36, player.y + 34);
+  ctx.closePath();
+  ctx.fill();
+
+  // 3D 引擎光效
+  ctx.fillStyle = colors.body;
+  ctx.fillRect(cx - 4, player.y + 54, 8, 6);
   ctx.fillStyle = '#fff';
-  ctx.fillRect(cx - 1, player.y + 54, 2, 4);
+  ctx.fillRect(cx - 2, player.y + 55, 4, 4);
 
-  // 僚机渲染
-  if(player.wingLevel >=1){
-    ctx.fillStyle = wingColor;
-    ctx.beginPath();
-    ctx.moveTo(player.x + 12, player.y + 38);
-    ctx.lineTo(player.x - 16, player.y + 48);
-    ctx.lineTo(player.x - 16, player.y + 58);
-    ctx.lineTo(player.x + 12, player.y + 48);
-    ctx.closePath();
-    ctx.fill();
-  }
-  if(player.wingLevel >=2){
-    ctx.fillStyle = wingColor;
-    ctx.beginPath();
-    ctx.moveTo(player.x + 38, player.y + 38);
-    ctx.lineTo(player.x + 66, player.y + 48);
-    ctx.lineTo(player.x + 66, player.y + 58);
-    ctx.lineTo(player.x + 38, player.y + 48);
-    ctx.closePath();
-    ctx.fill();
-  }
-
-  // 多层护盾
+  // 3D 护盾球面
   if(player.shieldCount > 0){
-    let opacity = player.shieldCount / player.shieldMax;
-    ctx.strokeStyle = shieldColor; ctx.lineWidth=2;
-    ctx.globalAlpha = opacity;
-    ctx.beginPath(); ctx.arc(cx, cy, 40, 0, Math.PI*2); ctx.stroke();
-    ctx.strokeStyle = '#fff'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.arc(cx, cy, 36, 0, Math.PI*2); ctx.stroke();
+    let op = player.shieldCount / player.shieldMax;
+    ctx.globalAlpha = op * 0.8;
+    ctx.strokeStyle = colors.shield;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 42, 0, Math.PI*2);
+    ctx.stroke();
+
+    ctx.globalAlpha = op * 0.4;
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 38, 0, Math.PI*2);
+    ctx.stroke();
     ctx.globalAlpha = 1;
   }
 }
 
-// 大招特效
 function drawUltimate(){
   let a = ultFrame / ultDuration;
-  let r = 300 * a;
-  ctx.fillStyle = `rgba(255,0,255,${0.4 - a*0.4})`;
+  let r = 320 * a;
+  ctx.fillStyle = `rgba(255,0,255,${0.5 - a*0.5})`;
   ctx.beginPath();
   ctx.arc(canvas.width/2, canvas.height/2, r, 0, Math.PI*2);
   ctx.fill();
@@ -762,7 +746,6 @@ function drawEffect(ef){
   ctx.fill();
 }
 
-// 绘制道具名字
 function drawTextEffects() {
   ctx.font = '16px Arial';
   ctx.textAlign = 'center';
@@ -780,7 +763,6 @@ function drawTextEffects() {
   }
 }
 
-// 主循环
 function loop(){
   try {
     if(!gameRunning) return;
@@ -808,13 +790,11 @@ function loop(){
     drawTextEffects();
     bossAttack();
 
-    // 子弹
     for(let i=bullets.length-1;i>=0;i--){
       let b = bullets[i]; b.y -= b.speed; drawBullet(b);
       if(b.y < -20) bullets.splice(i,1);
     }
 
-    // 导弹
     for(let i=followMissiles.length-1;i>=0;i--){
       let m = followMissiles[i];
       if(!m.target || enemies.indexOf(m.target)===-1){ followMissiles.splice(i,1); continue; }
@@ -830,7 +810,6 @@ function loop(){
       }
     }
 
-    // 道具拾取 + 升级
     for(let i=items.length-1;i>=0;i--){
       let it = items[i]; it.y += it.speed;
       if(player.magnetTime>0){
@@ -887,7 +866,6 @@ function loop(){
       if(it.y>canvas.height) items.splice(i,1);
     }
 
-    // 敌机碰撞（护盾层数消耗）
     for(let i=enemies.length-1;i>=0;i--){
       let e = enemies[i]; e.y += e.speed; drawEnemy(e);
       if(collide(player,e)){
@@ -904,7 +882,6 @@ function loop(){
       if(e.y>canvas.height+50) enemies.splice(i,1);
     }
 
-    // BOSS
     if(boss){
       bossHpText.innerText = `BOSS ${level} 血量：${boss.hp}/${boss.maxHp}`;
       boss.x += boss.speed * boss.dir;
@@ -952,7 +929,6 @@ function loop(){
       }
     }
 
-    // 子弹打敌机
     for(let i=bullets.length-1;i>=0;i--){
       for(let j=enemies.length-1;j>=0;j--){
         if(collide(bullets[i],enemies[j])){
@@ -970,7 +946,6 @@ function loop(){
       }
     }
 
-    // 爆炸
     for(let i=effects.length-1;i>=0;i--){
       let ef = effects[i]; ef.t++; drawEffect(ef);
       if(ef.t >= ef.max) effects.splice(i,1);
@@ -983,15 +958,14 @@ function loop(){
   }
 }
 
-// BOSS解锁皮肤
 function unlockSkinByLevel(bossLevel){
   let skinId = null;
   let tip = '';
   switch(bossLevel){
-    case 1: skinId=2; tip='随机炫彩战机 · 射速更快'; break;
-    case 2: skinId=3; tip='随机炫彩战机 · 大招充能加速'; break;
-    case 3: skinId=4; tip='随机炫彩战机 · 护盾不破'; break;
-    case 4: skinId=5; tip='随机炫彩战机 · 分数翻倍'; break;
+    case 1: skinId=2; tip='3D炫彩战机 · 射速更快'; break;
+    case 2: skinId=3; tip='3D炫彩战机 · 大招充能加速'; break;
+    case 3: skinId=4; tip='3D炫彩战机 · 护盾不破'; break;
+    case 4: skinId=5; tip='3D炫彩战机 · 分数翻倍'; break;
   }
   if(skinId && !unlockedSkins.includes(skinId)){
     unlockedSkins.push(skinId);
@@ -1003,7 +977,6 @@ function unlockSkinByLevel(bossLevel){
   }
 }
 
-// 增加大招能量
 function addUltCharge(amt){
   if(ultCharge >= ultMax) return;
   ultCharge += amt;

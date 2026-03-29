@@ -5,7 +5,7 @@
     <!-- 手机端核心适配：禁用缩放、强制全屏、适配所有设备 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, shrink-to-fit=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>2D沙盒游戏</title>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -18,9 +18,11 @@
         <div id="hp-fill"></div>
     </div>
 
-    <!-- 设置面板 -->
+    <!-- 设置面板 + 重置布局 + 全屏按钮 -->
     <div class="setting-panel" id="settingPanel">
         <div>按键大小 <input type="range" id="btnSize" min="40" max="90" value="60"></div>
+        <button class="reset-layout" id="resetLayoutBtn">重置布局</button>
+        <button class="fullscreen-btn" id="fullscreenBtn">全屏游戏</button>
     </div>
 
     <!-- 背包切换按钮 -->
@@ -43,9 +45,23 @@
 
 <script src="game.js"></script>
 <script>
+// 所有可拖动元素的ID和默认百分比位置（统一管理，方便重置）
+const draggableElements = [
+    { id: "hpBar", defaultX: 0.02, defaultY: 0.02 },
+    { id: "settingPanel", defaultX: 0.7, defaultY: 0.02 },
+    { id: "toggleBackpack", defaultX: 0.2, defaultY: 0.02 },
+    { id: "hotbar", defaultX: 0.05, defaultY: 0.85 },
+    { id: "leftBtn", defaultX: 0.05, defaultY: 0.7 },
+    { id: "rightBtn", defaultX: 0.2, defaultY: 0.7 },
+    { id: "jumpBtn", defaultX: 0.05, defaultY: 0.85 },
+    { id: "digBtn", defaultX: 0.75, defaultY: 0.7 },
+    { id: "placeBtn", defaultX: 0.75, defaultY: 0.85 }
+];
+
 // 拖动功能核心：支持任意元素单独拖动+位置本地保存+屏幕适配
-function makeDraggable(elId, defaultXPercent, defaultYPercent) {
-    const el = document.getElementById(elId);
+function makeDraggable(config) {
+    const { id, defaultX, defaultY } = config;
+    const el = document.getElementById(id);
     if(!el) return;
     let isDrag = false, offsetX = 0, offsetY = 0;
 
@@ -59,14 +75,14 @@ function makeDraggable(elId, defaultXPercent, defaultYPercent) {
         const w = window.innerWidth;
         const h = window.innerHeight;
         return {
-            x: w * defaultXPercent,
-            y: h * defaultYPercent
+            x: w * defaultX,
+            y: h * defaultY
         };
     }
 
     // 初始化位置：优先本地保存，无则按百分比计算
     function initPos() {
-        const saved = localStorage.getItem("drag_"+elId);
+        const saved = localStorage.getItem("drag_"+id);
         const defaultPos = calcDefaultPos();
         if(saved) {
             let [lx, ly] = saved.split("|");
@@ -119,26 +135,95 @@ function makeDraggable(elId, defaultXPercent, defaultYPercent) {
         isDrag = false;
         el.style.zIndex = 998; // 恢复层级
         // 保存位置到本地存储
-        localStorage.setItem("drag_"+elId, el.style.left + "|" + el.style.top);
+        localStorage.setItem("drag_"+id, el.style.left + "|" + el.style.top);
     }
 
-    // 屏幕尺寸变化时，重新初始化位置（适配横竖屏）
+    // 屏幕尺寸变化时，重新初始化位置（适配横竖屏/全屏切换）
     window.addEventListener('resize', initPos);
     window.addEventListener('orientationchange', initPos);
+    window.addEventListener('fullscreenchange', initPos); // 全屏切换时适配
+
+    // 返回重置该元素的方法
+    return {
+        reset: () => {
+            localStorage.removeItem("drag_"+id);
+            const defaultPos = calcDefaultPos();
+            el.style.left = defaultPos.x + "px";
+            el.style.top = defaultPos.y + "px";
+        }
+    };
 }
 
-// ********** 按屏幕百分比设置默认位置（0-1之间，适配所有手机）**********
-// 基础UI：按百分比定位，永不消失
-makeDraggable("hpBar", 0.02, 0.02);          // 血条：左2% 上2%
-makeDraggable("settingPanel", 0.7, 0.02);    // 设置面板：左70% 上2%
-makeDraggable("toggleBackpack", 0.2, 0.02);  // 背包按钮：左20% 上2%
-makeDraggable("hotbar", 0.05, 0.85);         // 快捷栏：左5% 上85%（底部）
-// 独立按键：按屏幕百分比定位，手机端必见
-makeDraggable("leftBtn", 0.05, 0.7);         // 左键：左5% 上70%
-makeDraggable("rightBtn", 0.2, 0.7);         // 右键：左20% 上70%
-makeDraggable("jumpBtn", 0.05, 0.85);        // 跳键：左5% 上85%（独立，永不消失）
-makeDraggable("digBtn", 0.75, 0.7);          // 挖键：左75% 上70%
-makeDraggable("placeBtn", 0.75, 0.85);       // 放键：左75% 上85%
+// 初始化所有可拖动元素，并存储重置方法
+const resetMethods = {};
+draggableElements.forEach(config => {
+    const { reset } = makeDraggable(config);
+    resetMethods[config.id] = reset;
+});
+
+// 一键重置布局逻辑
+const resetLayoutBtn = document.getElementById('resetLayoutBtn');
+resetLayoutBtn.addEventListener('click', () => {
+    // 重置所有元素位置
+    Object.values(resetMethods).forEach(reset => reset());
+    // 提示重置成功
+    alert("布局已重置为默认状态！");
+});
+
+// ********** 核心：手机端全屏功能 **********
+const fullscreenBtn = document.getElementById('fullscreenBtn');
+const gameContainer = document.getElementById('gameContainer');
+let isFullscreen = false;
+
+// 全屏切换逻辑
+function toggleFullscreen() {
+    if (!isFullscreen) {
+        // 进入全屏
+        if (gameContainer.requestFullscreen) {
+            gameContainer.requestFullscreen();
+        } else if (gameContainer.webkitRequestFullscreen) { // Safari
+            gameContainer.webkitRequestFullscreen();
+        } else if (gameContainer.msRequestFullscreen) { // IE/Edge
+            gameContainer.msRequestFullscreen();
+        } else if (gameContainer.mozRequestFullScreen) { // Firefox
+            gameContainer.mozRequestFullScreen();
+        }
+        // iOS 特殊处理：隐藏状态栏
+        document.documentElement.style.setProperty('--webkit-full-screen', 'true');
+        alert("已进入全屏模式！退出全屏可再次点击按钮或使用手机返回键/手势。");
+    } else {
+        // 退出全屏
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) {
+            document.msExitFullscreen();
+        } else if (document.mozCancelFullScreen) {
+            document.mozCancelFullScreen();
+        }
+        document.documentElement.style.setProperty('--webkit-full-screen', 'false');
+    }
+}
+
+// 绑定全屏按钮点击事件
+fullscreenBtn.addEventListener('click', toggleFullscreen);
+
+// 监听全屏状态变化
+function handleFullscreenChange() {
+    isFullscreen = !!document.fullscreenElement || 
+                   !!document.webkitFullscreenElement || 
+                   !!document.msFullscreenElement || 
+                   !!document.mozFullScreenElement;
+    // 更新按钮文本
+    fullscreenBtn.innerText = isFullscreen ? "退出全屏" : "全屏游戏";
+    // 全屏切换后重新适配布局
+    resizeCanvas();
+}
+document.addEventListener('fullscreenchange', handleFullscreenChange);
+document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+document.addEventListener('msfullscreenchange', handleFullscreenChange);
+document.addEventListener('mozfullscreenchange', handleFullscreenChange);
 
 // 按键大小调节（适配所有屏幕，默认60更适合手机）
 const btnSize = document.getElementById('btnSize');

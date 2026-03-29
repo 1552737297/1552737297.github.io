@@ -13,8 +13,10 @@ html, body {
     overflow: hidden !important;
     touch-action: none;
     background: #111;
+    /* iOS 全屏适配变量 */
+    --webkit-full-screen: false;
 }
-/* 游戏容器：强制全屏，占满整个手机屏幕 */
+/* 游戏容器：强制全屏，占满整个手机屏幕（含全屏模式） */
 .game-container {
     position: relative;
     width: 100vw !important;
@@ -30,6 +32,29 @@ html, body {
     height: 100vh !important;
     display: block;
     z-index: 1;
+}
+
+/* 全屏模式下：隐藏body边距，适配手机状态栏 */
+:-webkit-full-screen body,
+:fullscreen body,
+:-ms-fullscreen body,
+:-moz-full-screen body {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+:-webkit-full-screen .game-container,
+:fullscreen .game-container,
+:-ms-fullscreen .game-container,
+:-moz-full-screen .game-container {
+    width: 100% !important;
+    height: 100% !important;
+}
+:-webkit-full-screen #gameCanvas,
+:fullscreen #gameCanvas,
+:-ms-fullscreen #gameCanvas,
+:-moz-full-screen #gameCanvas {
+    width: 100% !important;
+    height: 100% !important;
 }
 
 /* 血条样式：适配小屏，缩小宽度 */
@@ -227,6 +252,46 @@ html, body {
     accent-color: #ffd700;
 }
 
+/* 重置布局按钮样式：与设置面板风格统一 */
+.reset-layout {
+    width: 100%;
+    margin-top: 8px;
+    padding: 6px 0;
+    background: linear-gradient(180deg, #3498db, #2980b9);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    box-shadow: 0 2px 6px rgba(52,152,219,0.3);
+    transition: all 0.2s ease;
+}
+.reset-layout:hover, .reset-layout:active {
+    background: linear-gradient(180deg, #2980b9, #1c6da3);
+    box-shadow: 0 3px 8px rgba(52,152,219,0.5);
+}
+
+/* 全屏按钮样式：与设置面板风格统一 */
+.fullscreen-btn {
+    width: 100%;
+    margin-top: 6px;
+    padding: 6px 0;
+    background: linear-gradient(180deg, #2ecc71, #27ae60);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    box-shadow: 0 2px 6px rgba(46,204,113,0.3);
+    transition: all 0.2s ease;
+}
+.fullscreen-btn:hover, .fullscreen-btn:active {
+    background: linear-gradient(180deg, #27ae60, #21995e);
+    box-shadow: 0 3px 8px rgba(46,204,113,0.5);
+}
+
 /* 独立按键：核心！适配手机，防消失，触屏优化 */
 .single-btn {
     pointer-events: all;
@@ -259,6 +324,7 @@ html, body {
     .inv-slot::before { width: 26px; height: 26px; }
     .backpack { padding: 10px; max-height: 65vh; }
     .backpack-grid { gap: 4px; }
+    .reset-layout, .fullscreen-btn { padding: 5px 0; font-size: 11px; }
 }
 
 /* 横屏手机专属适配（屏幕高度<400px） */
@@ -267,4 +333,22 @@ html, body {
     .single-btn { transform: scale(0.85); }
     .inventory { padding: 6px; gap: 4px; }
     .inv-slot { width: 30px; height: 30px; }
+}
+
+/* iOS 全屏适配：隐藏底部安全区 */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+    body {
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+    .game-container {
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+    :-webkit-full-screen body,
+    :fullscreen body {
+        padding-bottom: 0 !important;
+    }
+    :-webkit-full-screen .game-container,
+    :fullscreen .game-container {
+        padding-bottom: 0 !important;
+    }
 }

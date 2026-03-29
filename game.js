@@ -2,15 +2,17 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const gameContainer = document.getElementById('gameContainer');
 
-// Canvas全屏自适应核心：防抖处理，适配横竖屏，像素级重绘
+// Canvas全屏自适应核心：防抖处理，适配横竖屏/全屏切换，像素级重绘
 let resizeTimer = null;
 function resizeCanvas() {
-    // 防抖：避免横竖屏切换多次触发
+    // 防抖：避免多次触发
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => {
-        // 强制Canvas占满整个容器（手机全屏）
-        canvas.width = gameContainer.clientWidth;
-        canvas.height = gameContainer.clientHeight;
+        // 强制Canvas占满容器（普通模式+全屏模式）
+        const containerWidth = gameContainer.clientWidth;
+        const containerHeight = gameContainer.clientHeight;
+        canvas.width = containerWidth;
+        canvas.height = containerHeight;
         // 重置画布变换，防止错乱
         ctx.resetTransform();
         // 重新生成世界（适配新尺寸）
@@ -19,9 +21,13 @@ function resizeCanvas() {
 }
 // 初始化Canvas全屏
 resizeCanvas();
-// 监听屏幕尺寸变化+旋转，实时适配
+// 监听所有尺寸变化事件
 window.addEventListener('resize', resizeCanvas);
 window.addEventListener('orientationchange', resizeCanvas);
+window.addEventListener('fullscreenchange', resizeCanvas); // 全屏切换监听
+window.addEventListener('webkitfullscreenchange', resizeCanvas);
+window.addEventListener('msfullscreenchange', resizeCanvas);
+window.addEventListener('mozfullscreenchange', resizeCanvas);
 // 移动端窗口聚焦/恢复时，重新适配
 window.addEventListener('focus', resizeCanvas);
 
@@ -88,7 +94,7 @@ const keys = {
 
 // 生成世界：适配全屏Canvas，动态计算基础高度
 function genWorld() {
-    // 按Canvas高度动态计算地面基础Y，适配横竖屏
+    // 按Canvas高度动态计算地面基础Y，适配横竖屏/全屏
     let baseY = Math.floor(canvas.height / TILE / 2) + 6;
     world = {}; // 清空原有世界
     for (let x = -60; x < 180; x++) {

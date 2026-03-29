@@ -64,24 +64,38 @@ body {
     background: #555;
 }
 
+/* 移动端控制按钮 - 左侧固定布局 */
 .mobile-controls {
-    position: absolute;
-    bottom: 20px;
-    left: 0;
-    right: 0;
+    position: fixed;  /* 固定在屏幕上不随画面滚动 */
+    bottom: 20px;     /* 距离底部20px */
+    left: 20px;      /* 距离左侧20px（完全避开边缘） */
     display: flex;
-    justify-content: space-between;
-    padding: 0 20px;
+    flex-direction: column;  /* 竖排：上下排列 */
+    gap: 12px;       /* 按钮间距 */
+    z-index: 999;    /* 确保在最上层 */
     pointer-events: none;
 }
+
+/* 右侧单独放 挖/放 按钮 */
+.mobile-controls-right {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    z-index: 999;
+    pointer-events: none;
+}
+
 .btn {
-    width: 60px;
-    height: 60px;
-    background: rgba(0,0,0,0.4);
+    width: 64px;
+    height: 64px;
+    background: rgba(0,0,0,0.5);
     border: 2px solid white;
     border-radius: 50%;
     color: white;
-    font-size: 20px;
+    font-size: 22px;
     display: flex;
     align-items: center;
     justify-content: center;

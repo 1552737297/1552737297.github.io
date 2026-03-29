@@ -16,14 +16,18 @@
 
         <div class="inventory" id="inv"></div>
 
-        <div class="mobile-controls">
-            <div class="btn" id="leftBtn">←</div>
-            <div class="btn" id="rightBtn">→</div>
-            <div class="btn" id="jumpBtn">跳</div>
-            <div class="btn" id="digBtn">挖</div>
-            <div class="btn" id="placeBtn">放</div>
-        </div>
-    </div>
+        <!-- 左侧：方向 + 跳跃 -->
+<div class="mobile-controls">
+    <div class="btn" id="leftBtn">←</div>
+    <div class="btn" id="rightBtn">→</div>
+    <div class="btn" id="jumpBtn">跳</div>
+</div>
+
+<!-- 右侧：挖掘 / 放置 -->
+<div class="mobile-controls-right">
+    <div class="btn" id="digBtn">挖</div>
+    <div class="btn" id="placeBtn">放</div>
+</div>
     <script src="game.js"></script>
 </body>
 </html>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>太空雷霆战机 - 3D科幻版</title>
+<title>太空雷霆战机 - 3D旋转终极版</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{
@@ -11,13 +11,13 @@ body{
 display:flex;justify-content:center;align-items:center;
 height:100vh;overflow:hidden;touch-action:none;
 color:#fff;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto;
-perspective: 1200px;
+perspective: 1500px;
 }
 #game{
 border:2px solid #0ef;
-background:linear-gradient(#000,#0a0b1e);
+background:linear-gradient(#000,#050612);
 display:block;
-box-shadow: 0 0 50px rgba(0,200,255,0.4), 0 0 100px rgba(0,100,255,0.2);
+box-shadow: 0 0 60px rgba(0,200,255,0.5), 0 0 120px rgba(0,100,255,0.25);
 border-radius: 8px;
 }
 .ui{
@@ -213,7 +213,7 @@ transform: scale(0.94);
 </head>
 <body>
 <div id="logo">太空雷霆战机</div>
-<div id="author">3D 科幻战机 · BOSS解锁皮肤</div>
+<div id="author">3D旋转战机 · 粒子尾焰 · 金属质感</div>
 <div id="score" class="ui">分数：0</div>
 <div id="level" class="ui">关卡：1</div>
 <div id="bossHp" class="ui">BOSS 血量：</div>
@@ -274,6 +274,10 @@ let ulting = false;
 let ultFrame = 0;
 const ultDuration = 60;
 
+// 3D 旋转 & 粒子
+let shipRotate = 0;
+let particles = [];
+
 const player = {
   x: canvas.width/2-25, y: canvas.height*0.8, w:50, h:60,
   shieldCount: 1, shieldMax: 3,
@@ -307,6 +311,39 @@ function generateRandomSkinColor() {
   const c3 = randomHexColor();
   const c4 = randomHexColor();
   return { body: c1, bodyDark: c2, wing: c3, shield: c4 };
+}
+
+// 粒子系统
+function addParticle(x, y, color) {
+  particles.push({
+    x, y,
+    vx: (Math.random()-0.5)*1.2,
+    vy: Math.random()*2+1.5,
+    life: 30+Math.random()*20,
+    maxLife: 50,
+    color
+  });
+}
+
+function drawParticles() {
+  for (let i = particles.length-1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.life--;
+    if (p.life <= 0) {
+      particles.splice(i,1);
+      continue;
+    }
+    const a = p.life / p.maxLife;
+    const s = 2 + a*3;
+    ctx.globalAlpha = a;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, s, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
 }
 
 function showItemText(x, y, text) {
@@ -434,8 +471,16 @@ canvas.addEventListener('touchmove', e=>{
   e.preventDefault();
   const t = e.touches[0];
   const r = canvas.getBoundingClientRect();
+  const oldX = player.x;
   player.x = t.clientX - r.left - player.w/2;
   player.y = t.clientY - r.top - player.h/2;
+  
+  // 移动时产生旋转
+  const diff = player.x - oldX;
+  shipRotate = diff * 0.12;
+  if (shipRotate > 0.25) shipRotate = 0.25;
+  if (shipRotate < -0.25) shipRotate = -0.25;
+
   if(player.x < 0) player.x = 0;
   if(player.x + player.w > canvas.width) player.x = canvas.width - player.w;
   if(player.y < 0) player.y = 0;
@@ -484,7 +529,7 @@ function useUltimate(){
 }
 
 function doUltimateDamage(){
-  for(let e of enemies) boom(e.x+e.w/2, e.y+e.h/2);
+  for(let e of enemies) boom(e.x+e.w/2, e.y+e.y/2);
   enemies = [];
   bossBullets = [];
   if(boss) boss.hp -= 25 + level*5;
@@ -596,79 +641,96 @@ function applySkinEffect() {
   }
 }
 
-// ====================== 3D 战机绘制 ======================
+// ====================== 3D 旋转战机 + 粒子尾焰 ======================
 function drawPlayer(){
   if(player.invincibleTime>0 && Math.floor(Date.now()/120)%2==0) return;
   const cx = player.x + 25;
   const cy = player.y + 30;
   const colors = skinColors[currentSkin];
 
-  // 3D 机身渐变
-  let grd = ctx.createLinearGradient(cx, player.y, cx, player.y + 60);
-  grd.addColorStop(0, colors.body);
+  // 持续喷粒子尾焰
+  addParticle(cx-8, player.y+55, colors.body);
+  addParticle(cx+8, player.y+55, colors.body);
+  addParticle(cx, player.y+58, '#fff');
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(shipRotate); // 左右倾斜旋转
+  ctx.translate(-cx, -cy);
+
+  // 3D 金属渐变
+  let grd = ctx.createLinearGradient(cx, player.y-10, cx, player.y + 70);
+  grd.addColorStop(0, '#fff');
+  grd.addColorStop(0.05, colors.body);
   grd.addColorStop(0.6, colors.bodyDark);
   grd.addColorStop(1, '#000');
 
-  // 3D 立体机头
+  // 3D 机身
   ctx.fillStyle = grd;
   ctx.beginPath();
-  ctx.moveTo(cx, player.y);
-  ctx.lineTo(player.x + 8, player.y + 30);
-  ctx.lineTo(player.x + 12, player.y + 52);
-  ctx.lineTo(cx, player.y + 60);
-  ctx.lineTo(player.x + 38, player.y + 52);
-  ctx.lineTo(player.x + 42, player.y + 30);
+  ctx.moveTo(cx, player.y - 8);
+  ctx.lineTo(player.x + 6, player.y + 28);
+  ctx.lineTo(player.x + 10, player.y + 56);
+  ctx.lineTo(cx, player.y + 64);
+  ctx.lineTo(player.x + 40, player.y + 56);
+  ctx.lineTo(player.x + 44, player.y + 28);
   ctx.closePath();
   ctx.fill();
 
-  // 3D 侧翼发光
+  // 3D 立体侧翼
   ctx.fillStyle = colors.wing;
   ctx.beginPath();
-  ctx.moveTo(player.x + 10, player.y + 20);
-  ctx.lineTo(player.x - 18, player.y + 38);
-  ctx.lineTo(player.x - 14, player.y + 54);
-  ctx.lineTo(player.x + 14, player.y + 34);
+  ctx.moveTo(player.x + 12, player.y + 18);
+  ctx.lineTo(player.x - 22, player.y + 36);
+  ctx.lineTo(player.x - 18, player.y + 58);
+  ctx.lineTo(player.x + 16, player.y + 32);
   ctx.closePath();
   ctx.fill();
 
   ctx.beginPath();
-  ctx.moveTo(player.x + 40, player.y + 20);
-  ctx.lineTo(player.x + 68, player.y + 38);
-  ctx.lineTo(player.x + 64, player.y + 54);
-  ctx.lineTo(player.x + 36, player.y + 34);
+  ctx.moveTo(player.x + 38, player.y + 18);
+  ctx.lineTo(player.x + 72, player.y + 36);
+  ctx.lineTo(player.x + 68, player.y + 58);
+  ctx.lineTo(player.x + 34, player.y + 32);
   ctx.closePath();
   ctx.fill();
 
-  // 3D 引擎光效
-  ctx.fillStyle = colors.body;
-  ctx.fillRect(cx - 4, player.y + 54, 8, 6);
+  // 引擎光效
   ctx.fillStyle = '#fff';
-  ctx.fillRect(cx - 2, player.y + 55, 4, 4);
+  ctx.fillRect(cx - 5, player.y + 58, 10, 4);
+  ctx.fillStyle = colors.body;
+  ctx.fillRect(cx - 4, player.y + 54, 8, 4);
 
-  // 3D 护盾球面
+  // 3D 球面护盾
   if(player.shieldCount > 0){
     let op = player.shieldCount / player.shieldMax;
-    ctx.globalAlpha = op * 0.8;
+    ctx.globalAlpha = op * 0.9;
     ctx.strokeStyle = colors.shield;
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.arc(cx, cy, 42, 0, Math.PI*2);
+    ctx.arc(cx, cy, 46, 0, Math.PI*2);
     ctx.stroke();
 
-    ctx.globalAlpha = op * 0.4;
+    ctx.globalAlpha = op * 0.3;
     ctx.strokeStyle = '#fff';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(cx, cy, 38, 0, Math.PI*2);
+    ctx.arc(cx, cy, 42, 0, Math.PI*2);
     ctx.stroke();
     ctx.globalAlpha = 1;
   }
+
+  ctx.restore();
+
+  // 旋转自动回弹
+  if (shipRotate > 0) shipRotate -= 0.01;
+  if (shipRotate < 0) shipRotate += 0.01;
 }
 
 function drawUltimate(){
   let a = ultFrame / ultDuration;
-  let r = 320 * a;
-  ctx.fillStyle = `rgba(255,0,255,${0.5 - a*0.5})`;
+  let r = 350 * a;
+  ctx.fillStyle = `rgba(255,0,255,${0.6 - a*0.6})`;
   ctx.beginPath();
   ctx.arc(canvas.width/2, canvas.height/2, r, 0, Math.PI*2);
   ctx.fill();
@@ -735,7 +797,7 @@ function drawItem(it){
 }
 
 function drawEffect(ef){
-  let s = ef.t * 3.5;
+  let s = ef.t * 3.8;
   ctx.fillStyle = '#ff6600';
   ctx.beginPath();
   ctx.arc(ef.x, ef.y, s, 0, Math.PI*2);
@@ -768,6 +830,8 @@ function loop(){
     if(!gameRunning) return;
     ctx.fillStyle = '#000';
     ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    drawParticles(); // 粒子渲染
 
     if(ulting){
       ultFrame++;
@@ -962,10 +1026,10 @@ function unlockSkinByLevel(bossLevel){
   let skinId = null;
   let tip = '';
   switch(bossLevel){
-    case 1: skinId=2; tip='3D炫彩战机 · 射速更快'; break;
-    case 2: skinId=3; tip='3D炫彩战机 · 大招充能加速'; break;
-    case 3: skinId=4; tip='3D炫彩战机 · 护盾不破'; break;
-    case 4: skinId=5; tip='3D炫彩战机 · 分数翻倍'; break;
+    case 1: skinId=2; tip='3D旋转战机 · 射速更快'; break;
+    case 2: skinId=3; tip='3D旋转战机 · 大招充能加速'; break;
+    case 3: skinId=4; tip='3D旋转战机 · 护盾不破'; break;
+    case 4: skinId=5; tip='3D旋转战机 · 分数翻倍'; break;
   }
   if(skinId && !unlockedSkins.includes(skinId)){
     unlockedSkins.push(skinId);
@@ -1007,6 +1071,7 @@ function start(){
   bombText.innerText = '炸弹：0';
   ultText.innerText = '大招能量：0/100';
   
+  particles = [];
   bullets = []; enemies = []; effects = []; items = [];
   textEffects = [];
   followMissiles = []; boss = null; bossBullets = [];

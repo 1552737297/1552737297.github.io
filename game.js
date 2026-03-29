@@ -19,7 +19,9 @@ const BLOCK_COLOR = {
     3: "#808080",
     4: "#a0522d"
 };
-
+// 人物动画计时器&帧
+let animTimer = 0;
+let walkFrame = 0;
 let player = {
     x: 200, y: 200, w: 28, h: 32,
     vx: 0, vy: 0, onGround: false,
@@ -173,7 +175,12 @@ function update() {
         player.invTime--;
         if (player.invTime <= 0) player.invincible = false;
     }
-
+// 更新走路动画
+animTimer++;
+if(animTimer >= 8){
+    animTimer = 0;
+    walkFrame = (walkFrame + 1) % 2;
+}
     player.vx = 0;
     if (keys.left) player.vx = -SPD;
     if (keys.right) player.vx = SPD;
@@ -242,47 +249,73 @@ function draw() {
         ctx.fillRect(mx, my, m.w, m.h);
     });
 
-    // ========== 绘制泰拉风格人形角色 ==========
+   // ========== 泰拉人形 走路/跳跃 像素动画绘制 ==========
 let px = player.x - camera.x;
 let py = player.y - camera.y;
 
-// 无敌闪烁透明度
+// 无敌闪烁透明
 if (player.invincible && Math.floor(Date.now() / 80) % 2 === 0) {
     ctx.globalAlpha = 0.5;
 } else {
     ctx.globalAlpha = 1;
 }
 
-// 1. 头部 肤色
+// 判断是否在移动
+let isMoving = Math.abs(player.vx) > 0;
+
+// 头部-皮肤
 ctx.fillStyle = "#ffd6b9";
 ctx.fillRect(px + 4, py, 20, 12);
 
-// 2. 眼睛
-ctx.fillStyle = "#000000";
-ctx.fillRect(px + 8, py + 4, 3, 3);
-ctx.fillRect(px + 14, py + 4, 3, 3);
-
-// 3. 头发
+// 头发
 ctx.fillStyle = "#603813";
 ctx.fillRect(px + 4, py, 20, 4);
 
-// 4. 身体上衣（红色）
+// 眼睛
+ctx.fillStyle = "#000";
+ctx.fillRect(px + 8, py + 4, 3, 3);
+ctx.fillRect(px + 14, py + 4, 3, 3);
+
+// 身体红衣
 ctx.fillStyle = "#e74c3c";
 ctx.fillRect(px + 3, py + 12, 22, 10);
 
-// 5. 裤子
+// 手臂
+ctx.fillStyle = "#ffd6b9";
+if(isMoving && player.onGround){
+    // 走路摆动手臂
+    if(walkFrame === 0){
+        ctx.fillRect(px, py + 12, 4, 8);
+        ctx.fillRect(px + 24, py + 14, 4, 8);
+    }else{
+        ctx.fillRect(px, py + 14, 4, 8);
+        ctx.fillRect(px + 24, py + 12, 4, 8);
+    }
+}else{
+    // 站立垂手
+    ctx.fillRect(px, py + 12, 4, 10);
+    ctx.fillRect(px + 24, py + 12, 4, 10);
+}
+
+// 腿部&走路动画 / 跳跃姿态
 ctx.fillStyle = "#34495e";
-ctx.fillRect(px + 4, py + 22, 8, 10);
-ctx.fillRect(px + 16, py + 22, 8, 10);
+if(!player.onGround){
+    // 跳跃：双腿张开
+    ctx.fillRect(px + 4, py + 22, 7, 9);
+    ctx.fillRect(px + 17, py + 22, 7, 9);
+}else if(isMoving){
+    // 地面走路交替抬脚
+    if(walkFrame === 0){
+        ctx.fillRect(px + 4, py + 22, 8, 10);
+        ctx.fillRect(px + 16, py + 24, 8, 8);
+    }else{
+        ctx.fillRect(px + 4, py + 24, 8, 8);
+        ctx.fillRect(px + 16, py + 22, 8, 10);
+    }
+}else{
+    // 站立并拢
+    ctx.fillRect(px + 4, py + 22, 8, 10);
+    ctx.fillRect(px + 16, py + 22, 8, 10);
+}
 
 ctx.globalAlpha = 1;
-}
-
-function loop() {
-    update();
-    draw();
-    requestAnimationFrame(loop);
-}
-
-genWorld();
-loop();

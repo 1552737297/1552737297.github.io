@@ -3,176 +3,236 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>迷你泰拉瑞亚 - 2D生存建造</title>
+<title>泰拉瑞亚 顶配光影人物+手持矿镐终极版</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;user-select:none;}
+*{margin:0;padding:0;box-sizing:border-box;user-select:none;touch-action:none;}
 body{background:#000;overflow:hidden;}
-#gameCanvas{display:block;margin:0 auto;background:#87CEEB;}
-/*手机触控按钮*/
-.ctrl{position:fixed;z-index:10;}
-.left-ctrl{bottom:30px;left:20px;display:flex;gap:10px;}
-.right-ctrl{bottom:30px;right:20px;display:flex;flex-direction:column;gap:10px;}
-.btn{width:60px;height:60px;background:rgba(255,255,255,0.2);border-radius:50%;color:#fff;text-align:center;line-height:60px;font-size:22px;border:2px solid #fff;}
+#gameCanvas{display:block;}
+
+.ctrl{z-index:20;}
+.left-ctrl{position:fixed;bottom:120px;left:20px;display:flex;gap:15px;}
+.right-ctrl{position:fixed;bottom:120px;right:20px;display:flex;flex-direction:column;gap:15px;}
+.btn{
+  width:70px;height:70px;background:rgba(0,0,0,0.55);
+  border-radius:50%;color:#fff;text-align:center;
+  line-height:70px;font-size:22px;border:2px solid #ffffff88;
+  backdrop-filter: blur(4px);
+}
+
+.inventory-bar{
+    position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+    background:rgba(15,15,15,0.75);backdrop-filter:blur(6px);
+    padding:12px 18px;border-radius:16px;border:1px solid #ffffff22;
+    display:flex;gap:10px;z-index:30;
+}
+.inv-slot{
+    width:58px;height:58px;background:#2b2b2b;border:2px solid #444;
+    border-radius:12px;color:#fff;font-size:14px;padding:4px;text-align:right;
+}
+.inv-slot.active{border-color:#ffd700;box-shadow:0 0 10px #ffd70088;}
+
+.hp-ui{position:fixed;top:15px;left:15px;display:flex;gap:5px;z-index:40;}
+.heart{width:30px;height:30px;background:#e74c3c;border-radius:50%;box-shadow:0 0 6px #e74c3c66;}
+.heart.empty{background:#333;box-shadow:none;}
+
+.top-info{
+  position:fixed;top:18px;left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,0.6);color:#ffd700;padding:6px 16px;
+  border-radius:20px;font-size:16px;z-index:40;backdrop-filter:blur(4px);
+}
+
+.save-btn, .shop-btn, .music-btn{
+  position:fixed;top:15px;z-index:40;padding:8px 14px;border-radius:12px;
+  border:none;color:#fff;font-size:15px;backdrop-filter:blur(4px);
+}
+.save-btn{right:15px;background:#27ae6099;}
+.shop-btn{right:95px;background:#3498db99;}
+.music-btn{right:175px;background:#9b59b699;}
+
+.night-cover{position:fixed;inset:0;background:rgba(0,0,20,0);pointer-events:none;z-index:5;transition:background 1.5s;}
 </style>
 </head>
 <body>
 <canvas id="gameCanvas"></canvas>
+<div class="night-cover" id="nightCover"></div>
+<div class="top-info" id="goldUI">金币：0</div>
 
-<!-- 手机虚拟按键 -->
-<div class="ctrl left-ctrl">
-<div class="btn" id="btnLeft">←</div>
-<div class="btn" id="btnRight">→</div>
+<div class="left-ctrl">
+<div class="btn" id="btnL">←</div>
+<div class="btn" id="btnR">→</div>
 </div>
-<div class="ctrl right-ctrl">
-<div class="btn" id="btnJump">跳</div>
-<div class="btn" id="btnDig">挖</div>
+<div class="right-ctrl">
+<div class="btn" id="btnJ">跳跃</div>
+<div class="btn" id="btnAtk">攻击</div>
+</div>
+
+<div class="hp-ui" id="hpUI"></div>
+<button class="save-btn" id="saveBtn">存档</button>
+<button class="shop-btn" id="shopBtn">商店</button>
+<button class="music-btn" id="musicBtn">音乐开关</button>
+
+<div class="inventory-bar">
+    <div class="inv-slot active" data-id="0"></div>
+    <div class="inv-slot" data-id="2"></div>
+    <div class="inv-slot" data-id="1"></div>
+    <div class="inv-slot" data-id="3"></div>
 </div>
 
 <script>
-// ===== 基础配置 =====
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-// 适配手机全屏
-function resize(){
-canvas.width = Math.min(window.innerWidth,800);
-canvas.height = Math.min(window.innerHeight,500);
-}
-resize();window.addEventListener('resize',resize);
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+const nightCover = document.getElementById("nightCover");
+const goldUI = document.getElementById("goldUI");
+const musicBtn = document.getElementById("musicBtn");
 
-const TILE_SIZE = 32;
-const WORLD_W = 80;
-const WORLD_H = 30;
-
-// 方块ID：0空气 1泥土 2草地 3石头
-let world = [];
-// 生成随机地形
-function generateWorld(){
-world = [];
-for(let y=0;y<WORLD_H;y++){
-let row = [];
-for(let x=0;x<WORLD_W;x++){
-// 地表起伏
-let groundH =  Math.floor(WORLD_H/2 + Math.sin(x*0.15)*4);
-if(y < groundH) row.push(0);
-else if(y === groundH) row.push(2);
-else if(y < groundH+8) row.push(1);
-else row.push(3);
-}
-world.push(row);
-}
-}
-generateWorld();
-
-// 玩家属性
-let player = {
-x:WORLD_W/2*TILE_SIZE,
-y:WORLD_H/2*TILE_SIZE,
-vx:0,vy:0,
-speed:4,gravity:0.6,jumpPower:-14,
-onGround:false
+let musicOn = false;
+musicBtn.onclick = function(){
+    musicOn = !musicOn;
+    musicBtn.innerText = musicOn ? "已开启音效" : "音乐开关";
 };
 
-// 按键控制
-const key = {left:false,right:false,jump:false,dig:false};
-// 桌面键盘
-window.addEventListener('keydown',e=>{
-if(e.key==='ArrowLeft')key.left=true;
-if(e.key==='ArrowRight')key.right=true;
-if(e.key===' '&&player.onGround)key.jump=true;
+function resize(){
+  canvas.width = innerWidth;
+  canvas.height = innerHeight;
+}
+resize();
+window.onresize = resize;
+
+const TILE = 32;
+const WORLD_W = 80;
+const WORLD_H = 40;
+
+let world = [];
+let mobs = [];
+let fruits = [];
+let chests = [];
+let particles = [];
+let fireFlies = [];
+
+let animTime = 0;
+
+function initFireFly(){
+    for(let i=0;i<20;i++){
+        fireFlies.push({
+            x: Math.random()*WORLD_W*TILE,
+            y: Math.random()*WORLD_H*TILE*0.6,
+            vx: (Math.random()-0.5)*0.8,
+            vy: (Math.random()-0.5)*0.8,
+            alpha: Math.random()
+        });
+    }
+}
+
+function spawnParticle(x,y,color,num){
+  for(let i=0;i<num;i++){
+    particles.push({
+      x,y,
+      vx:(Math.random()-0.5)*4,
+      vy:(Math.random()-0.5)*4,
+      life:25,
+      color
+    });
+  }
+}
+
+function initFreshWorld(){
+    world = [];
+    for(let y = 0; y < WORLD_H; y++){
+        world[y] = [];
+        for(let x = 0; x < WORLD_W; x++){
+            let groundH = Math.floor(WORLD_H/3 + Math.sin(x * 0.12) * 4);
+            if(y < groundH) world[y][x] = 0;
+            else if(y === groundH) world[y][x] = 2;
+            else if(y < groundH + 8) world[y][x] = 1;
+            else if(y < WORLD_H - 5) world[y][x] = 3;
+            else world[y][x] = 0;
+        }
+    }
+    chests = [];
+    for(let i=0;i<8;i++){
+        chests.push({
+            x: Math.random() * WORLD_W * TILE,
+            y: (WORLD_H/2 + Math.random()*6) * TILE
+        });
+    }
+    initFireFly();
+}
+
+let player = {
+    x: WORLD_W / 2 * TILE,
+    y: 12 * TILE,
+    w:24, h:32,
+    vx:0, vy:0,
+    speed:3.5,
+    gravity:0.5,
+    jumpPower:-13,
+    onGround:false,
+    hp:5, maxHp:5,
+    coin:50,
+    jumpTwice:false,
+    atkCd:0,
+    facing:1
+};
+
+let dayTime = 0;
+let key = {left:false, right:false, jump:false};
+
+document.getElementById("btnL").ontouchstart=e=>{e.preventDefault();key.left=true;};
+document.getElementById("btnL").ontouchend=()=>key.left=false;
+document.getElementById("btnR").ontouchstart=e=>{e.preventDefault();key.right=true;};
+document.getElementById("btnR").ontouchend=()=>key.right=false;
+
+document.getElementById("btnJ").addEventListener("touchstart",e=>{
+    e.preventDefault();
+    if(player.onGround){
+        player.jumpTwice = true;
+        player.vy = player.jumpPower;
+    }else if(player.jumpTwice){
+        player.vy = -10;
+        player.jumpTwice = false;
+    }
 });
-window.addEventListener('keyup',e=>{
-if(e.key==='ArrowLeft')key.left=false;
-if(e.key==='ArrowRight')key.right=false;
+document.getElementById("btnAtk").ontouchstart=e=>{
+    e.preventDefault();
+    if(player.atkCd <= 0){
+        player.atkCd = 25;
+        for(let i=mobs.length-1;i>=0;i--){
+            if(Math.abs(mobs[i].x - player.x) < 70){
+                spawnParticle(mobs[i].x,mobs[i].y,"#ff6644",12);
+                mobs.splice(i,1);
+                player.coin +=6;
+            }
+        }
+    }
+};
+
+let bag = {1:10,2:5,3:8};
+let selectItem = 0;
+const slots = document.querySelectorAll(".inv-slot");
+slots.forEach(slot=>{
+    slot.addEventListener("touchstart",e=>{
+        e.preventDefault();
+        slots.forEach(s=>s.classList.remove("active"));
+        slot.classList.add("active");
+        selectItem = Number(slot.dataset.id);
+    });
 });
 
-// 手机触控按钮
-document.getElementById('btnLeft').addEventListener('touchstart',()=>key.left=true);
-document.getElementById('btnLeft').addEventListener('touchend',()=>key.left=false);
-document.getElementById('btnRight').addEventListener('touchstart',()=>key.right=true);
-document.getElementById('btnRight').addEventListener('touchend',()=>key.right=false);
-document.getElementById('btnJump').addEventListener('touchstart',()=>{if(player.onGround)key.jump=true});
-
-// 挖矿点击
-canvas.addEventListener('touchstart',e=>{
-let rect = canvas.getBoundingClientRect();
-let mx = e.touches[0].clientX - rect.left;
-let my = e.touches[0].clientY - rect.top;
-let tileX = Math.floor(mx/TILE_SIZE + player.x/TILE_SIZE - canvas.width/2/TILE_SIZE);
-let tileY = Math.floor(my/TILE_SIZE + player.y/TILE_SIZE - canvas.height/2/TILE_SIZE);
-if(world[tileY] && world[tileY][tileX] >0) world[tileY][tileX] = 0;
-});
-
-// 碰撞检测
-function isSolid(x,y){
-let tx = Math.floor(x/TILE_SIZE);
-let ty = Math.floor(y/TILE_SIZE);
-if(tx<0||tx>=WORLD_W||ty<0||ty>=WORLD_H) return true;
-return world[ty][tx] > 0;
+function isSolid(px,py){
+    let tx = Math.floor(px / TILE);
+    let ty = Math.floor(py / TILE);
+    if(tx <0||tx>=WORLD_W||ty<0||ty>=WORLD_H) return true;
+    return world[ty][tx] > 0;
+}
+function checkCollision(x,y,w,h){
+    return isSolid(x,y)||isSolid(x+w,y)||isSolid(x,y+h)||isSolid(x+w,h);
 }
 
-// 游戏更新
-function update(){
-// 左右移动
-player.vx = 0;
-if(key.left)player.vx = -player.speed;
-if(key.right)player.vx = player.speed;
-
-// 重力跳跃
-player.vy += player.gravity;
-if(key.jump){
-player.vy = player.jumpPower;
-key.jump = false;
-}
-
-// 水平碰撞
-if(!isSolid(player.x+player.vx,player.y+10)) player.x += player.vx;
-// 垂直落地
-player.onGround = false;
-if(isSolid(player.x,player.y+player.vy+12)){
-player.onGround = true;
-player.vy = 0;
-}else{
-player.y += player.vy;
-}
-}
-
-// 渲染地图+玩家
-function render(){
-// 天空底色
-ctx.fillStyle="#87CEEB";
-ctx.fillRect(0,0,canvas.width,canvas.height);
-
-// 相机偏移
-let camX = player.x - canvas.width/2;
-let camY = player.y - canvas.height/2;
-
-// 绘制方块
-for(let y=0;y<WORLD_H;y++){
-for(let x=0;x<WORLD_W;x++){
-let t = world[y][x];
-if(t===0)continue;
-let sx = x*TILE_SIZE - camX;
-let sy = y*TILE_SIZE - camY;
-if(sx<-TILE_SIZE||sx>canvas.width)continue;
-// 颜色区分方块
-if(t===2)ctx.fillStyle="#4CAF50";
-if(t===1)ctx.fillStyle="#8B572A";
-if(t===3)ctx.fillStyle="#888888";
-ctx.fillRect(sx,sy,TILE_SIZE-1,TILE_SIZE-1);
-}
-}
-
-// 绘制玩家
-ctx.fillStyle="#ff3333";
-ctx.fillRect(canvas.width/2-12,canvas.height/2-24,24,36);
-}
-
-// 循环动画
-function gameLoop(){
-update();render();
-requestAnimationFrame(gameLoop);
-}
-gameLoop();
-</script>
-</body>
-</html>
+canvas.addEventListener("touchstart",e=>{
+    e.preventDefault();
+    let t = e.touches[0];
+    let rect = canvas.getBoundingClientRect();
+    let camX = player.x - canvas.width/2;
+    let camY = player.y - canvas.height/2;
+    let wx = (t.clientX - rect.left) + camX;
+    let wy = (t.clientY - rect.top

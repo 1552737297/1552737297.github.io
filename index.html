@@ -265,10 +265,14 @@ let score = 0;
 let level = 1;
 let bossSpawnTimer = null;
 
-// 皮肤系统：解锁 + 切换
+// 皮肤系统：解锁 + 切换 + 随机颜色
 let unlockedSkins = [1];
 let currentSkin = 1;
 let rainbowOffset = 0;
+// 存储每个皮肤的随机颜色
+let skinColors = {
+  1: { body: '#00d9ff', bodyDark: '#005dff', wing: '#0042bd', shield: '#00d9ff' }
+};
 
 // 大招系统
 let ultCharge = 0;
@@ -291,6 +295,24 @@ let effects = [];
 let followMissiles = [];
 let boss = null;
 let bossBullets = [];
+
+// ====================== 随机颜色生成工具 ======================
+function randomHexColor() {
+  const letters = '0123456789ABCDEF';
+  let color = '#';
+  for (let i = 0; i < 6; i++) {
+    color += letters[Math.floor(Math.random() * 16)];
+  }
+  return color;
+}
+
+function generateRandomSkinColor() {
+  const c1 = randomHexColor();
+  const c2 = randomHexColor();
+  const c3 = randomHexColor();
+  const c4 = randomHexColor();
+  return { body: c1, bodyDark: c2, wing: c3, shield: c4 };
+}
 
 // ====================== 音效系统 ======================
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -574,55 +596,21 @@ function applySkinEffect() {
   }
 }
 
-// 绘制玩家
+// 绘制玩家（全随机颜色）
 function drawPlayer(){
   if(player.invincibleTime>0 && Math.floor(Date.now()/120)%2==0) return;
   const cx = player.x + 25;
   const cy = player.y + 30;
 
-  let bodyGrd, wingColor, shieldColor;
+  // 获取当前皮肤的随机颜色
+  const colors = skinColors[currentSkin];
+  let bodyGrd = ctx.createLinearGradient(0, player.y, 0, player.y+60);
+  bodyGrd.addColorStop(0, colors.body);
+  bodyGrd.addColorStop(1, colors.bodyDark);
+  const wingColor = colors.wing;
+  const shieldColor = colors.shield;
 
-  switch(currentSkin){
-    case 1:
-      bodyGrd = ctx.createLinearGradient(0, player.y, 0, player.y+60);
-      bodyGrd.addColorStop(0, '#00d9ff'); bodyGrd.addColorStop(1, '#005dff');
-      wingColor = '#0042bd'; shieldColor = '#00d9ff'; break;
-    case 2:
-      bodyGrd = ctx.createLinearGradient(0, player.y, 0, player.y+60);
-      bodyGrd.addColorStop(0, '#ff4422'); bodyGrd.addColorStop(1, '#cc0000');
-      wingColor = '#990000'; shieldColor = '#ff4422';
-      ctx.fillStyle = 'rgba(255,60,0,0.2)';
-      ctx.beginPath(); ctx.arc(cx,cy,42,0,Math.PI*2); ctx.fill();
-      break;
-    case 3:
-      bodyGrd = ctx.createLinearGradient(0, player.y, 0, player.y+60);
-      bodyGrd.addColorStop(0, '#cc22ff'); bodyGrd.addColorStop(1, '#6600cc');
-      wingColor = '#440088'; shieldColor = '#cc22ff';
-      ctx.fillStyle = 'rgba(200,0,255,0.15)';
-      ctx.fillRect(player.x-10, player.y-10, player.w+20, player.h+20);
-      break;
-    case 4:
-      bodyGrd = ctx.createLinearGradient(0, player.y, 0, player.y+60);
-      bodyGrd.addColorStop(0, '#1a1a1a'); bodyGrd.addColorStop(0.5, '#000'); bodyGrd.addColorStop(1, '#222');
-      wingColor = '#333'; shieldColor = '#ffcc00';
-      ctx.fillStyle = 'rgba(255,200,0,0.1)';
-      ctx.beginPath(); ctx.arc(cx,cy,44,0,Math.PI*2); ctx.fill();
-      break;
-    case 5:
-      rainbowOffset += 0.015;
-      if(rainbowOffset > 1) rainbowOffset = 0;
-      bodyGrd = ctx.createLinearGradient(0, player.y, 0, player.y+60);
-      const rainbow = ['#ff0000','#ff9900','#ffff00','#00ff00','#0099ff','#6633ff','#ff00ff'];
-      rainbow.forEach((c,i)=>{
-        let pos = (i/rainbow.length + rainbowOffset) % 1;
-        bodyGrd.addColorStop(pos, c);
-      });
-      wingColor = '#444'; shieldColor = '#fff';
-      ctx.fillStyle = 'rgba(255,255,255,0.1)';
-      ctx.beginPath(); ctx.arc(cx,cy,46,0,Math.PI*2); ctx.fill();
-      break;
-  }
-
+  // 绘制战机主体
   ctx.fillStyle = bodyGrd;
   ctx.beginPath();
   ctx.moveTo(cx, player.y);
@@ -639,6 +627,7 @@ function drawPlayer(){
   ctx.fillStyle = '#fff';
   ctx.fillRect(cx - 1, player.y + 54, 2, 4);
 
+  // 绘制机翼
   if(player.wing1){
     ctx.fillStyle = wingColor;
     ctx.beginPath();
@@ -664,6 +653,7 @@ function drawPlayer(){
     ctx.fillRect(player.x + 56, player.y + 50, 6, 6);
   }
 
+  // 绘制护盾
   if(player.shield){
     ctx.strokeStyle = shieldColor; ctx.lineWidth=2;
     ctx.beginPath(); ctx.arc(cx, cy, 40, 0, Math.PI*2); ctx.stroke();
@@ -927,18 +917,20 @@ function loop(){
   }
 }
 
-// BOSS解锁皮肤
+// BOSS解锁皮肤 + 生成随机颜色
 function unlockSkinByLevel(bossLevel){
   let skinId = null;
   let tip = '';
   switch(bossLevel){
-    case 1: skinId=2; tip='红焰战机 · 射速更快'; break;
-    case 2: skinId=3; tip='紫电战机 · 大招充能加速'; break;
-    case 3: skinId=4; tip='暗金战机 · 护盾不破'; break;
-    case 4: skinId=5; tip='彩虹战机 · 分数翻倍'; break;
+    case 1: skinId=2; tip='随机炫彩战机 · 射速更快'; break;
+    case 2: skinId=3; tip='随机炫彩战机 · 大招充能加速'; break;
+    case 3: skinId=4; tip='随机炫彩战机 · 护盾不破'; break;
+    case 4: skinId=5; tip='随机炫彩战机 · 分数翻倍'; break;
   }
   if(skinId && !unlockedSkins.includes(skinId)){
     unlockedSkins.push(skinId);
+    // 生成随机颜色
+    skinColors[skinId] = generateRandomSkinColor();
     playSound('unlock');
     unlockTip.textContent = '击败BOSS！解锁：' + tip;
     unlockTip.style.display = 'block';

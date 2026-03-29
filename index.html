@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>战地枪战 - 三角洲行动 升级版</title>
+<!-- 3D引擎 -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"></script>
+<style>
+* {
+margin: 0;
+padding: 0;
+box-sizing: border-box;
+-webkit-user-select: none;
+user-select: none;
+}
+body {
+overflow: hidden;
+background: #050505;
+touch-action: none;
+width: 100vw;
+height: 100vh;
+font-family: "Microsoft YaHei",sans-serif;
+}
+/* 3D画布 */
+#gameCanvas {
+display: block;
+width: 100%;
+height: 100%;
+}
+
+/* ========== 高端战术UI美化 ========== */
+/* 全息战术准星 复刻端游三角洲 */
+.crosshair {
+position: fixed;
+top: 50%;
+left: 50%;
+transform: translate(-50%, -50%);
+width: 40px;
+height: 40px;
+z-index: 9;
+pointer-events:none;
+}
+.crosshair::before,.crosshair::after{
+content:"";position:absolute;background:rgba(0,220,255,0.8);
+}
+.crosshair::before{width:2px;height:12px;left:50%;top:0;transform:translateX(-50%);}
+.crosshair::after{width:12px;height:2px;top:50%;left:0;transform:translateY(-50%);}
+
+/* 左上角战术状态栏 护甲+血量+分数 */
+.top-hud{
+position:fixed;top:20px;left:20px;
+background:rgba(0,0,0,0.55);
+border:1px solid rgba(0,200,255,0.3);
+border-radius:10px;
+padding:12px 16px;
+color:#fff;
+z-index:10;
+backdrop-filter: blur(6px);
+}
+.bar-line{
+width:160px;height:10px;background:#222;border-radius:5px;margin:6px 0 10px;overflow:hidden;
+}
+.hp-bar{height:100%;width:100%;background:linear-gradient(90deg,#ff3333,#ff6666);transition:0.2s;}
+.armor-bar{height:100%;width:100%;background:linear-gradient(90deg,#3399ff,#66ccff);transition:0.2s;}
+
+/* 左侧虚拟摇杆 金属磨砂质感 */
+.joystick {
+position: fixed;
+bottom: 60px;
+left: 30px;
+width: 130px;
+height: 130px;
+background: rgba(20,25,35,0.65);
+border: 2px solid rgba(0,180,255,0.4);
+border-radius: 50%;
+z-index: 10;
+backdrop-filter: blur(4px);
+box-shadow: 0 0 20px rgba(0,150,255,0.2) inset;
+}
+.joystick-inner {
+position: absolute;
+top: 32px;
+left: 32px;
+width: 66px;
+height: 66px;
+background: linear-gradient(145deg,#cccccc,#888888);
+border-radius: 50%;
+box-shadow: 0 3px 10px #000;
+}
+
+/* 右下角开火按键 战术红色爆发特效 */
+.shoot-btn {
+position: fixed;
+bottom: 85px;
+right: 35px;
+width: 86px;
+height: 86px;
+background: radial-gradient(circle,#ff2b2b,#aa0000);
+border: none;
+border-radius: 50%;
+color: #fff;
+font-size:17px;
+font-weight:bold;
+z-index: 10;
+box-shadow: 0 0 25px rgba(255,30,30,0.6);
+}
+
+/* 游戏结束 暗黑全息弹窗 */
+.game-over {
+position: fixed;
+top: 0;left: 0;
+width: 100%;height: 100%;
+background: rgba(0,0,0,0.88);
+display: none;
+flex-direction: column;
+justify-content: center;
+align-items: center;
+z-index: 20;
+backdrop-filter: blur(8px);
+}
+.game-over h2 {
+font-size: 44px;
+color: #ff4444;
+margin-bottom: 20px;
+text-shadow:0 0 15px #ff0000;
+}
+.game-over p {
+font-size: 24px;
+color:#ddd;
+margin-bottom: 30px;
+}
+.restart-btn {
+padding:16px 45px;
+background:linear-gradient(135deg,#0077cc,#00aaff);
+border: none;border-radius:12px;
+color: #fff;font-size:22px;
+box-shadow:0 0 20px rgba(0,150,255,0.4);
+}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+
+<!-- 高精度战术准星 -->
+<div class="crosshair"></div>
+
+<!-- 顶部HUD 血量护甲面板 -->
+<div class="top-hud">
+<div>❤️ 生命值</div>
+<div class="bar-line"><div class="hp-bar" id="hpFill"></div></div>
+<div>🛡️ 护甲耐久</div>
+<div class="bar-line"><div class="armor-bar" id="armorFill"></div></div>
+<div>🎯 击杀分数：<span id="score">0</span></div>
+</div>
+
+<!-- 移动摇杆 -->
+<div class="joystick" id="joystick">
+<div class="joystick-inner" id="joystickInner"></div>
+</div>
+
+<!-- 开火按钮 -->
+<button class="shoot-btn" id="shootBtn">开火</button>
+
+<!-- 结算弹窗 -->
+<div class="game-over" id="gameOver">
+<h2>任务阵亡</h2>
+<p>最终战绩：<span id="finalScore">0</span> 分</p >
+<button class="restart-btn" id="restartBtn">重新空降</button>
+</div>
+
+<script>
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('gameCanvas'), antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setClearColor(0x0f1419);
+
+camera.position.set(0, 2, 5);
+camera.rotation.order = 'YXZ';
+
+// 游戏核心变量
+let score = 0;
+let hp = 100;
+let armor = 100;
+let gameActive = true;
+const moveSpeed = 0.15;
+let moveX = 0, moveZ = 0;
+let enemies = [];
+let bullets = [];
+
+// 地面战场
+const groundGeometry = new THREE.PlaneGeometry(50, 50);
+const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x202830 });
+const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+ground.rotation.x = -Math.PI / 2;
+scene.add(ground);
+
+// 光影
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+scene.add(ambientLight);
+const directionalLight = new THREE.DirectionalLight(0xb0c8e8, 0.9);
+directionalLight.position.set(8,12,6);
+scene.add(directionalLight);
+
+// 生成敌人
+function createEnemy() {
+if (!gameActive) return;
+const enemyGeo = new THREE.BoxGeometry(1, 2, 1);
+const enemyMat = new THREE.MeshLambertMaterial({ color: 0xc82020 });
+const enemy = new THREE.Mesh(enemyGeo, enemyMat);
+enemy.position.set(
+(Math.random() - 0.5) * 40,1,(Math.random() - 0.5) * 40 - 20
+);
+enemy.userData = { hp: 2, speed: 0.055 };
+scene.add(enemy);
+enemies.push(enemy);
+}
+
+// 生成子弹
+function createBullet() {
+if (!gameActive) return;
+const bulletGeo = new THREE.SphereGeometry(0.12, 8, 8);
+const bulletMat = new THREE.MeshLambertMaterial({ color: 0xffff44 });
+const bullet = new THREE.Mesh(bulletGeo, bulletMat);
+bullet.position.copy(camera.position);
+bullet.rotation.copy(camera.rotation);
+bullet.userData = { speed: 1.1 };
+scene.add(bullet);
+bullets.push(bullet);
+}
+
+// 摇杆逻辑
+const joystick = document.getElementById('joystick');
+const joystickInner = document.getElementById('joystickInner');
+let joystickStartX = 0, joystickStartY = 0;
+let isJoystickMoving = false;
+
+joystick.addEventListener('touchstart', e=>{
+e.preventDefault();isJoystickMoving=true;
+let t = e.touches[0];
+joystickStartX=t.clientX;joystickStartY=t.clientY;
+});
+window.addEventListener('touchmove',e=>{
+if(!isJoystickMoving||!gameActive)return;
+let t = e.touches[0];
+let dx=t.clientX-joystickStartX;
+let dy=t.clientY-joystickStartY;
+let dist=Math.min(Math.hypot(dx,dy),42);
+let ang=Math.atan2(dy,dx);
+joystickInner.style.transform=`translate(${Math.cos(ang)*dist}px,${Math.sin(ang)*dist}px)`;
+moveX=Math.cos(ang)*dist/42*moveSpeed;
+moveZ=Math.sin(ang)*dist/42*moveSpeed;
+});
+window.addEventListener('touchend',()=>{
+isJoystickMoving=false;
+joystickInner.style.transform='translate(0,0)';
+moveX=0;moveZ=0;
+});
+
+// 视角滑动瞄准
+let tx=0,ty=0;
+window.addEventListener('touchstart',e=>{
+if(e.target.id==='joystick'||e.target.id==='shootBtn')return;
+let t=e.touches[0];tx=t.clientX;ty=t.clientY;
+});
+window.addEventListener('touchmove',e=>{
+if(!gameActive)return;
+if(e.target.id==='joystick'||e.target.id==='shootBtn')return;
+let t=e.touches[0];
+camera.rotation.y-=(t.clientX-tx)*0.0032;
+camera.rotation.x-=(t.clientY-ty)*0.0032;
+camera.rotation.x=Math.max(-Math.PI/3,Math.min(Math.PI/3,camera.rotation.

@@ -106,7 +106,6 @@ box-shadow:0 0 40px #0ff;
 transform:translate(-50%,-50%) scale(0.96);
 }
 
-/* 全部移到右侧 */
 #bombBtn{
 position:absolute;bottom:30px;right:30px;
 width:76px;height:76px;
@@ -125,8 +124,9 @@ transform: scale(0.92);
 box-shadow:0 0 12px #f30;
 }
 
+/* 大招按钮 */
 #ultBtn{
-position:absolute;bottom:30px;right:118px;
+position:absolute;bottom:30px;left:110px;
 width:76px;height:76px;
 border-radius:50%;
 background:linear-gradient(135deg,#90f,#f0f);
@@ -148,8 +148,9 @@ transform: scale(0.92);
 box-shadow:0 0 40px #f0f;
 }
 
+/* 换肤按钮 */
 #skinSwitchBtn{
-position:absolute;bottom:30px;right:206px;
+position:absolute;bottom:30px;left:30px;
 width:60px;height:60px;
 border-radius:50%;
 font-size:14px;
@@ -291,6 +292,121 @@ let followMissiles = [];
 let boss = null;
 let bossBullets = [];
 
+// ====================== 音效系统 ======================
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+let bgMusicLoop = null;
+let musicGain = null;
+
+function initAudio() {
+  if (musicGain) return;
+  musicGain = audioCtx.createGain();
+  musicGain.gain.value = 0.25;
+  musicGain.connect(audioCtx.destination);
+  createBgMusic();
+}
+
+function createBgMusic() {
+  if (bgMusicLoop) return;
+  bgMusicLoop = audioCtx.createBufferSource();
+  bgMusicLoop.loop = true;
+  const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 2, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < buffer.length; i++) {
+    const t = i / audioCtx.sampleRate;
+    const note = 440 * Math.pow(2, (Math.floor(t * 2) % 4) / 12);
+    data[i] = Math.sin(2 * Math.PI * note * t) * Math.exp(-t * 0.5) * 0.3;
+  }
+  bgMusicLoop.buffer = buffer;
+  bgMusicLoop.connect(musicGain);
+}
+
+function playSound(type) {
+  if (!audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gainNode = audioCtx.createGain();
+  gainNode.gain.value = 0.2;
+  osc.connect(gainNode);
+  gainNode.connect(audioCtx.destination);
+
+  switch (type) {
+    case 'shoot':
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(660, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(220, audioCtx.currentTime + 0.12);
+      gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.15);
+      break;
+    case 'boom':
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(20, audioCtx.currentTime + 0.3);
+      gainNode.gain.setValueAtTime(0.4, audioCtx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.35);
+      break;
+    case 'item':
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(330, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(660, audioCtx.currentTime + 0.15);
+      gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.2);
+      break;
+    case 'ult':
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(80, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(320, audioCtx.currentTime + 0.4);
+      gainNode.gain.setValueAtTime(0.4, audioCtx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.5);
+      break;
+    case 'bomb':
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(60, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(10, audioCtx.currentTime + 0.5);
+      gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.6);
+      break;
+    case 'gameover':
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(110, audioCtx.currentTime + 0.8);
+      gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.9);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.9);
+      break;
+    case 'unlock':
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+      osc.frequency.setValueAtTime(550, audioCtx.currentTime + 0.1);
+      osc.frequency.setValueAtTime(660, audioCtx.currentTime + 0.2);
+      gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.3);
+      break;
+  }
+}
+
+function playBgMusic() {
+  if (!bgMusicLoop) createBgMusic();
+  try { bgMusicLoop.start(); } catch (e) {}
+}
+function stopBgMusic() {
+  try { if (bgMusicLoop) bgMusicLoop.stop(); } catch (e) {}
+  bgMusicLoop = null;
+}
+
+// =======================================================
+
 canvas.addEventListener('touchmove', e=>{
   if(!gameRunning || ulting) return;
   e.preventDefault();
@@ -330,6 +446,7 @@ bombBtn.onclick = () => {
   if(player.bombCount <= 0) return;
   player.bombCount--;
   bombText.innerText = '炸弹：'+player.bombCount;
+  playSound('bomb');
   for(let i=0;i<enemies.length;i++) boom(enemies[i].x+enemies[i].w/2, enemies[i].y+enemies[i].h/2);
   enemies = [];
   bossBullets = [];
@@ -344,6 +461,7 @@ function useUltimate(){
   ulting = true;
   ultFrame = 0;
   player.invincibleTime = 2000;
+  playSound('ult');
 }
 
 function doUltimateDamage(){
@@ -355,6 +473,7 @@ function doUltimateDamage(){
 
 function shoot(){
   if(!gameRunning || ulting) return;
+  playSound('shoot');
   if(player.laserTime>0){
     bullets.push({
       type:'laser',
@@ -437,6 +556,7 @@ function collide(a,b){
 
 function boom(x,y){
   effects.push({x,y,t:0,max:14});
+  playSound('boom');
 }
 
 function dropItem(x,y){
@@ -694,6 +814,7 @@ function loop(){
       }
       drawItem(it);
       if(collide(player,it)){
+        playSound('item');
         if(it.type==='weapon'){ if(player.weaponLevel<3) player.weaponLevel++; }
         if(it.type==='shield') player.shield = true;
         if(it.type==='laser') player.laserTime = 5500;
@@ -818,6 +939,7 @@ function unlockSkinByLevel(bossLevel){
   }
   if(skinId && !unlockedSkins.includes(skinId)){
     unlockedSkins.push(skinId);
+    playSound('unlock');
     unlockTip.textContent = '击败BOSS！解锁：' + tip;
     unlockTip.style.display = 'block';
     setTimeout(()=>{ unlockTip.style.display='none'; }, 3000);
@@ -834,6 +956,11 @@ function addUltCharge(amt){
 }
 
 function start(){
+  initAudio();
+  stopBgMusic();
+  createBgMusic();
+  playBgMusic();
+
   gameRunning = true;
   score = 0; level = 1;
   player.weaponLevel = 1; player.laserTime = 0; player.shield = true;
@@ -875,6 +1002,8 @@ function start(){
 
 function gameOver(){
   gameRunning = false;
+  stopBgMusic();
+  playSound('gameover');
   if(bossSpawnTimer) clearTimeout(bossSpawnTimer);
   clearInterval(window.shootInterval);
   clearInterval(window.enemyInterval);

@@ -419,17 +419,63 @@ function drawEnemy(e){
   ctx.fillRect(e.x + e.w/2 - 2, e.y + 10, 4, 6);
 }
 
+// ====================== 纯代码金色机甲BOSS ======================
 function drawBoss(){
   if(!boss) return;
+  
+  // 金色机甲配色
+  const goldBody = '#ffcc00';
+  const goldLight = '#ffdd66';
+  const goldDark = '#cc9900';
+  const goldGlow = '#ffff00';
+
+  // 1. 机甲主体（硬朗矩形+棱角）
   const grd = ctx.createLinearGradient(boss.x, boss.y, boss.x, boss.y + boss.h);
-  grd.addColorStop(0, '#ff8800');
-  grd.addColorStop(1, '#ff2200');
+  grd.addColorStop(0, goldBody);
+  grd.addColorStop(1, goldDark);
   ctx.fillStyle = grd;
   ctx.fillRect(boss.x, boss.y, boss.w, boss.h);
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(boss.x + boss.w/2 - 6, boss.y + 10, 12, 8);
-  ctx.fillRect(boss.x + 20, boss.y + boss.h - 20, 12, 8);
-  ctx.fillRect(boss.x + boss.w - 32, boss.y + boss.h - 20, 12, 8);
+
+  // 2. 机甲装甲分割线
+  ctx.fillStyle = goldDark;
+  ctx.fillRect(boss.x + boss.w*0.2, boss.y, 4, boss.h);
+  ctx.fillRect(boss.x + boss.w*0.8, boss.y, 4, boss.h);
+  ctx.fillRect(boss.x, boss.y + boss.h*0.3, boss.w, 4);
+  ctx.fillRect(boss.x, boss.y + boss.h*0.7, boss.w, 4);
+
+  // 3. 顶部主炮台（发光核心）
+  ctx.fillStyle = goldGlow;
+  ctx.beginPath();
+  ctx.arc(boss.x + boss.w/2, boss.y + 20, 10, 0, Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // 4. 左右侧副炮台
+  ctx.fillStyle = goldLight;
+  ctx.fillRect(boss.x + 25, boss.y + boss.h - 30, 20, 15);
+  ctx.fillRect(boss.x + boss.w - 45, boss.y + boss.h - 30, 20, 15);
+  
+  ctx.fillStyle = goldGlow;
+  ctx.fillRect(boss.x + 30, boss.y + boss.h - 26, 10, 7);
+  ctx.fillRect(boss.x + boss.w - 40, boss.y + boss.h - 26, 10, 7);
+
+  // 5. 机甲翅膀/侧翼装饰
+  ctx.fillStyle = goldBody;
+  ctx.beginPath();
+  ctx.moveTo(boss.x, boss.y + boss.h*0.5);
+  ctx.lineTo(boss.x - 20, boss.y + boss.h*0.3);
+  ctx.lineTo(boss.x - 20, boss.y + boss.h*0.7);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(boss.x + boss.w, boss.y + boss.h*0.5);
+  ctx.lineTo(boss.x + boss.w + 20, boss.y + boss.h*0.3);
+  ctx.lineTo(boss.x + boss.w + 20, boss.y + boss.h*0.7);
+  ctx.closePath();
+  ctx.fill();
 }
 
 function drawBullet(b){

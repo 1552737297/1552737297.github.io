@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>太空雷霆战机 - 等级炫彩版</title>
+<title>太空雷霆战机 - 对称进化版</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{
@@ -77,7 +77,7 @@ animation: glowPulse 2s infinite alternate;
 position:absolute;top:30%;left:50%;transform:translateX(-50%);
 font-size:16px;color:#ccc;
 opacity:0.9;
-background:rgba(0,15,30,0.4);
+background:rgba(0,10,25,0.4);
 padding: 6px 16px;
 border-radius: 20px;
 backdrop-filter: blur(4px);
@@ -207,7 +207,7 @@ transform: scale(0.94);
 </head>
 <body>
 <div id="logo">太空雷霆战机</div>
-<div id="author">BOSS解锁皮肤 · 战机等级进化</div>
+<div id="author">BOSS解锁皮肤 · 对称进化编队</div>
 <div id="score" class="ui">分数：0</div>
 <div id="level" class="ui">关卡：1</div>
 <div id="playerLevelUi" class="ui">战机 Lv.1</div>
@@ -258,7 +258,6 @@ let score = 0;
 let level = 1;
 let bossSpawnTimer = null;
 
-// 战机等级系统
 let playerLevel = 1;
 const playerMaxLevel = 10;
 let levelExp = 0;
@@ -320,7 +319,6 @@ function showItemText(x, y, text) {
   });
 }
 
-// ====================== 等级升级逻辑 ======================
 function addExp(amt) {
   if (playerLevel >= playerMaxLevel) return;
   levelExp += amt;
@@ -333,19 +331,17 @@ function addExp(amt) {
   }
 }
 
-// 修复后的颜色生成函数
+// Lv6 开启彩虹流光
 function getPlayerColor() {
-  if (playerLevel >= 10) {
+  if (playerLevel >= 6) {
     rainbowOffset += 2;
     const hue = rainbowOffset % 360;
     return `hsl(${hue}, 100%, 60%)`;
   }
   
-  // 基础颜色随等级变亮
   const baseColor = skinColors[currentSkin].body;
   const brightness = Math.min(100, 50 + playerLevel * 5);
   
-  // 转换为HSL并调整亮度
   const r = parseInt(baseColor.slice(1, 3), 16);
   const g = parseInt(baseColor.slice(3, 5), 16);
   const b = parseInt(baseColor.slice(5, 7), 16);
@@ -645,21 +641,22 @@ function applySkinEffect() {
   if (currentSkin === 4) player.shieldCount = player.shieldMax;
 }
 
-// ====================== 修复后的战机绘制 ======================
+// ===================== 对称进化 + 机翼 + 无BUG =====================
 function drawPlayer(){
   if(player.invincibleTime>0 && Math.floor(Date.now()/120)%2==0) return;
 
   const cx = player.x + 25;
   const cy = player.y + 30;
   let bodyColor = getPlayerColor();
-  let glow = Math.min(30, 10 + playerLevel * 2);
+  let glow = Math.min(25, 8 + playerLevel * 2);
 
   ctx.shadowBlur = 0;
   ctx.shadowColor = bodyColor;
   ctx.shadowBlur = glow;
 
-  // 画一架小飞机
+  // 对称飞机 + 完整机翼
   function drawJet(x, y, scale){
+    // 机身
     ctx.beginPath();
     ctx.moveTo(x + 25*scale, y);
     ctx.lineTo(x + 10*scale, y + 40*scale);
@@ -670,35 +667,46 @@ function drawPlayer(){
     ctx.closePath();
     ctx.fillStyle = bodyColor;
     ctx.fill();
+
+    // 左翼
+    ctx.beginPath();
+    ctx.moveTo(x + 12*scale, y + 38*scale);
+    ctx.lineTo(x - 18*scale, y + 48*scale);
+    ctx.lineTo(x - 18*scale, y + 58*scale);
+    ctx.lineTo(x + 12*scale, y + 48*scale);
+    ctx.closePath();
+    ctx.fill();
+
+    // 右翼
+    ctx.beginPath();
+    ctx.moveTo(x + 38*scale, y + 38*scale);
+    ctx.lineTo(x + 68*scale, y + 48*scale);
+    ctx.lineTo(x + 68*scale, y + 58*scale);
+    ctx.lineTo(x + 38*scale, y + 48*scale);
+    ctx.closePath();
+    ctx.fill();
   }
 
-  // ========== 外观等级：1 → 2 → 3 → 4 架，非常稳定 ==========
-  let stage = 1;
-  if (playerLevel >= 3) stage = 2;
-  if (playerLevel >= 5) stage = 3;
-  if (playerLevel >= 7) stage = 4;
+  // 对称形态：1 → 2 → 3 → 4 架
+  let form = 1;
+  if (playerLevel >= 2) form = 2;
+  if (playerLevel >= 3) form = 3;
+  if (playerLevel >= 4) form = 4;
 
-  // 主机
   drawJet(player.x, player.y, 1);
 
-  // 2阶段：左右2架
-  if (stage >= 2) {
-    drawJet(player.x - 40, player.y + 10, 0.7);
-    drawJet(player.x + 40, player.y + 10, 0.7);
+  if (form >= 2) {
+    drawJet(player.x - 50, player.y + 10, 0.7);
+    drawJet(player.x + 50, player.y + 10, 0.7);
   }
-
-  // 3阶段：前2架
-  if (stage >= 3) {
-    drawJet(player.x - 20, player.y - 12, 0.6);
-    drawJet(player.x + 20, player.y - 12, 0.6);
+  if (form >= 3) {
+    drawJet(player.x - 30, player.y - 12, 0.6);
+    drawJet(player.x + 30, player.y - 12, 0.6);
   }
-
-  // 4阶段：菱形编队
-  if (stage >= 4) {
-    drawJet(player.x - 55, player.y + 18, 0.5);
-    drawJet(player.x + 55, player.y + 18, 0.5);
+  if (form >= 4) {
+    drawJet(player.x - 65, player.y + 20, 0.55);
+    drawJet(player.x + 65, player.y + 20, 0.55);
   }
-  // ==========================================================
 
   // 护盾
   if(player.shieldCount > 0){
@@ -713,6 +721,7 @@ function drawPlayer(){
 
   ctx.shadowBlur = 0;
 }
+// ==================================================================
 
 function drawUltimate(){
   let a = ultFrame / ultDuration;

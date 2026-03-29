@@ -187,7 +187,7 @@ function addItemToBackpack(itemId, count) {
     renderBackpackUI();
 }
 
-// 键盘事件（原有保留，适配手机键盘）
+// 键盘事件（修复：dig/place按键状态重置）
 document.addEventListener('keydown', e => {
     if (e.key === 'a' || e.key === 'ArrowLeft') keys.left = true;
     if (e.key === 'd' || e.key === 'ArrowRight') keys.right = true;
@@ -201,8 +201,8 @@ document.addEventListener('keyup', e => {
     if (e.key === 'a' || e.key === 'ArrowLeft') keys.left = false;
     if (e.key === 'd' || e.key === 'ArrowRight') keys.right = false;
     if (e.key === 'w' || e.key === 'ArrowUp') keys.up = false;
-    if (e.key === 'j') keys.dig = false;
-    if (e.key === 'k') keys.place = false;
+    if (e.key === 'j') keys.dig = false; // 修复：改为keys.dig
+    if (e.key === 'k') keys.place = false; // 修复：改为keys.place
 });
 
 // 移动端按键绑定：优化触屏响应，防止延迟

@@ -173,6 +173,7 @@ resetLayoutBtn.addEventListener('click', () => {
 // ********** 核心：手机端全屏功能 **********
 const fullscreenBtn = document.getElementById('fullscreenBtn');
 const gameContainer = document.getElementById('gameContainer');
+const sPanel = document.getElementById('settingPanel');
 let isFullscreen = false;
 
 // 全屏切换逻辑
@@ -217,6 +218,8 @@ function handleFullscreenChange() {
                    !!document.mozFullScreenElement;
     // 更新按钮文本
     fullscreenBtn.innerText = isFullscreen ? "退出全屏" : "全屏游戏";
+    // 修复：全屏切换时恢复设置面板显示
+    sPanel.style.opacity = "1";
     // 全屏切换后重新适配布局
     resizeCanvas();
 }
@@ -241,7 +244,6 @@ updateBtnSize();
 
 // 设置面板自动隐藏（原有功能保留）
 let hideTimer;
-const sPanel = document.getElementById('settingPanel');
 document.addEventListener('touchstart',()=>{
     clearTimeout(hideTimer);
     sPanel.style.opacity = "1";

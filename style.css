@@ -96,7 +96,7 @@ html, body {
     transform: scale(1.05);
 }
 
-/* 快捷栏：适配小屏，宽度100%，底部显示永不消失 */
+/* 快捷栏：适配小屏+iOS安全区，底部显示永不消失 */
 .inventory {
     display: flex;
     gap: 6px;
@@ -110,6 +110,9 @@ html, body {
     width: 90% !important;
     max-width: none !important;
     justify-content: center;
+    /* 修复iOS安全区遮挡：添加底部内边距 */
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+    margin-bottom: env(safe-area-inset-bottom);
 }
 
 /* 背包面板：适配手机，缩小内边距，居中显示 */
@@ -309,6 +312,8 @@ html, body {
     /* 触屏优化：增加点击区域 */
     -webkit-tap-highlight-color: transparent;
     tap-highlight-color: transparent;
+    /* iOS安全区适配：下方按键添加底部间距 */
+    margin-bottom: env(safe-area-inset-bottom);
 }
 .single-btn:active {
     background: rgba(255,255,255,0.2);
@@ -330,12 +335,12 @@ html, body {
 /* 横屏手机专属适配（屏幕高度<400px） */
 @media (max-height: 400px) {
     .hp-bar { width: 120px; height: 20px; }
-    .single-btn { transform: scale(0.85); }
-    .inventory { padding: 6px; gap: 4px; }
+    .single-btn { transform: scale(0.85); margin-bottom: 0; }
+    .inventory { padding: 6px; gap: 4px; padding-bottom: 6px; margin-bottom: 0; }
     .inv-slot { width: 30px; height: 30px; }
 }
 
-/* iOS 全屏适配：隐藏底部安全区 */
+/* iOS 安全区适配：全局兼容 */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
     body {
         padding-bottom: env(safe-area-inset-bottom);

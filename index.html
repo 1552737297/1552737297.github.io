@@ -7,27 +7,79 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="game-container">
-        <canvas id="gameCanvas"></canvas>
+<div class="game-container">
+    <canvas id="gameCanvas"></canvas>
 
-        <div class="hp-bar">
-            <div id="hp-fill"></div>
-        </div>
+    <div class="hp-bar">
+        <div id="hp-fill"></div>
+    </div>
 
-        <div class="inventory" id="inv"></div>
+    <!-- 设置面板 -->
+    <div class="setting-panel">
+        <div>按键大小 <input type="range" id="btnSize" min="40" max="90" value="64"></div>
+        <div>左边距 <input type="range" id="leftGap" min="0" max="80" value="20"></div>
+        <div>右边距 <input type="range" id="rightGap" min="0" max="80" value="20"></div>
+        <div>底部距离 <input type="range" id="botGap" min="0" max="120" value="20"></div>
+    </div>
 
-        <!-- 左侧：方向 + 跳跃 -->
-<div class="mobile-controls">
-    <div class="btn" id="leftBtn">←</div>
-    <div class="btn" id="rightBtn">→</div>
-    <div class="btn" id="jumpBtn">跳</div>
+    <div class="inventory" id="inv"></div>
+
+    <!-- 左侧移动按键 -->
+    <div class="mobile-controls">
+        <div class="btn" id="leftBtn">←</div>
+        <div class="btn" id="rightBtn">→</div>
+        <div class="btn" id="jumpBtn">跳</div>
+    </div>
+
+    <!-- 右侧操作按键 -->
+    <div class="mobile-controls-right">
+        <div class="btn" id="digBtn">挖</div>
+        <div class="btn" id="placeBtn">放</div>
+    </div>
 </div>
+<script src="game.js"></script>
+<script>
+// 实时调节控制器
+const sPanel = document.querySelector('.setting-panel');
+const btnSize = document.getElementById('btnSize');
+const leftGap = document.getElementById('leftGap');
+const rightGap = document.getElementById('rightGap');
+const botGap = document.getElementById('botGap');
+const mL = document.querySelector('.mobile-controls');
+const mR = document.querySelector('.mobile-controls-right');
+const btns = document.querySelectorAll('.btn');
 
-<!-- 右侧：挖掘 / 放置 -->
-<div class="mobile-controls-right">
-    <div class="btn" id="digBtn">挖</div>
-    <div class="btn" id="placeBtn">放</div>
-</div>
-    <script src="game.js"></script>
+function updateUI(){
+    let sz = btnSize.value;
+    let l = leftGap.value;
+    let r = rightGap.value;
+    let b = botGap.value;
+
+    mL.style.left = l+'px';
+    mR.style.right = r+'px';
+    mL.style.bottom = b+'px';
+    mR.style.bottom = b+'px';
+
+    btns.forEach(el=>{
+        el.style.width = sz+'px';
+        el.style.height = sz+'px';
+        el.style.fontSize = sz/2.8+'px';
+    });
+}
+btnSize.oninput = leftGap.oninput = rightGap.oninput = botGap.oninput = updateUI;
+updateUI();
+
+// 长按隐藏设置(避免遮挡)
+let hideTimer;
+document.addEventListener('touchstart',()=>{
+    clearTimeout(hideTimer);
+    sPanel.style.opacity = "1";
+});
+document.addEventListener('touchend',()=>{
+    hideTimer = setTimeout(()=>{
+        sPanel.style.opacity = "0.15";
+    },2500);
+});
+</script>
 </body>
 </html>

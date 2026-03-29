@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>太空雷霆战机 - 3D旋转终极版</title>
+<title>太空雷霆战机 - 3D旋转终极版 + 抽奖系统</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{
@@ -160,6 +160,101 @@ display:none;
 cursor:pointer;
 }
 
+/* ====================== 抽奖系统按钮 ====================== */
+#luckyBtn{
+position:absolute;bottom:120px;right:30px;
+width:60px;height:60px;
+border-radius:50%;
+font-size:14px;
+font-weight:bold;
+border:2px solid #fc0;
+background:#112;
+color:#fc0;
+box-shadow:0 0 15px #f90;
+display:none;
+cursor:pointer;
+transition: all 0.3s ease;
+z-index:8;
+}
+#luckyBtn:hover{
+transform: scale(1.08);
+box-shadow:0 0 25px #fc0;
+}
+#luckyBtn:active{
+transform: scale(0.94);
+}
+
+/* ====================== 抽奖弹窗 ====================== */
+#luckyPopup{
+position:fixed;top:0;left:0;width:100%;height:100%;
+background:rgba(0,0,0,0.75);
+display:flex;justify-content:center;align-items:center;
+z-index:999;
+backdrop-filter: blur(8px);
+display:none;
+}
+.lucky-box{
+background:rgba(10,15,35,0.9);
+padding:30px 24px;
+border-radius:20px;
+border:2px solid #fc0;
+box-shadow:0 0 50px rgba(255,200,0,0.4);
+width:320px;
+text-align:center;
+}
+.lucky-title{
+font-size:26px;
+background:linear-gradient(90deg,#fc0,#fa0);
+-webkit-background-clip:text;background-clip:text;color:transparent;
+font-weight:bold;margin-bottom:20px;
+}
+#wheel{
+width:240px;height:240px;
+margin:0 auto 20px;
+position:relative;
+}
+.wheel-bg{
+width:100%;height:100%;
+border-radius:50%;
+background:conic-gradient(#fc0 0% 12.5%,#f60 12.5% 25%,#f0f 25% 37.5%,#0ff 37.5% 50%,#0f6 50% 62.5%,#60f 62.5% 75%,#ff6 75% 87.5%,#f66 87.5% 100%);
+mask:radial-gradient(transparent 40%,black 40%);
+-webkit-mask:radial-gradient(transparent 40%,black 40%);
+animation:spin 6s cubic-bezier(0.2,0.8,0.2,1) forwards paused;
+}
+.wheel-arrow{
+position:absolute;top:-10px;left:50%;transform:translateX(-50%);
+width:24px;height:36px;
+background:#fff;
+clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+box-shadow:0 0 12px #fc0;
+}
+#spinBtn{
+padding:12px 30px;
+font-size:18px;font-weight:bold;
+background:linear-gradient(90deg,#fc0,#fa0);
+color:#000;border:none;border-radius:30px;
+box-shadow:0 0 20px #fc0;
+cursor:pointer;
+transition:all 0.3s;
+}
+#spinBtn:disabled{
+background:#444;box-shadow:none;color:#888;
+}
+#spinResult{
+margin-top:16px;font-size:18px;color:#fff;
+min-height:27px;
+}
+#closeLucky{
+margin-top:12px;padding:8px 20px;
+background:#223;color:#fff;border:none;
+border-radius:20px;cursor:pointer;
+opacity:0.7;
+}
+@keyframes spin{
+0%{transform:rotate(0deg)}
+100%{transform:rotate(2160deg)}
+}
+
 #defeat{
 position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
 text-align:center;
@@ -225,6 +320,21 @@ transform: scale(0.94);
 <button id="bombBtn">全屏炸弹</button>
 <button id="ultBtn">星际湮灭</button>
 <button id="skinSwitchBtn">换肤</button>
+<button id="luckyBtn">抽奖</button>
+
+<!-- 抽奖弹窗 -->
+<div id="luckyPopup">
+  <div class="lucky-box">
+    <div class="lucky-title">星际抽奖</div>
+    <div id="wheel">
+      <div class="wheel-arrow"></div>
+      <div class="wheel-bg" id="wheelBg"></div>
+    </div>
+    <button id="spinBtn">开始抽奖 (300分)</button>
+    <div id="spinResult"></div>
+    <button id="closeLucky">关闭</button>
+  </div>
+</div>
 
 <div id="defeat">
   <div id="defeatTitle">战 败</div>
@@ -253,6 +363,14 @@ const defeatTitle = document.getElementById('defeatTitle');
 const defeatInfo = document.getElementById('defeatInfo');
 const restartBtn = document.getElementById('restartBtn');
 const unlockTip = document.getElementById('unlockTip');
+
+// 抽奖元素
+const luckyBtn = document.getElementById('luckyBtn');
+const luckyPopup = document.getElementById('luckyPopup');
+const spinBtn = document.getElementById('spinBtn');
+const wheelBg = document.getElementById('wheelBg');
+const spinResult = document.getElementById('spinResult');
+const closeLucky = document.getElementById('closeLucky');
 
 canvas.width = 375;
 canvas.height = 667;
@@ -295,6 +413,18 @@ let followMissiles = [];
 let boss = null;
 let bossBullets = [];
 let textEffects = [];
+
+// 奖池配置
+const prizes = [
+  {name:'护盾+1',color:'#0ef'},
+  {name:'武器升级',color:'#fc0'},
+  {name:'激光满级',color:'#f0f'},
+  {name:'僚机满级',color:'#0f6'},
+  {name:'炸弹+2',color:'#f60'},
+  {name:'无敌10秒',color:'#ff6'},
+  {name:'磁铁10秒',color:'#60f'},
+  {name:'分数+500',color:'#f66'}
+];
 
 function randomHexColor() {
   const letters = '0123456789ABCDEF';
@@ -453,6 +583,15 @@ function playSound(type) {
       gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
       osc.start();
       osc.stop(audioCtx.currentTime + 0.3);
+      break;
+    case 'lucky':
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(523, audioCtx.currentTime);
+      osc.frequency.setValueAtTime(659, audioCtx.currentTime+0.1);
+      osc.frequency.setValueAtTime(784, audioCtx.currentTime+0.2);
+      gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+0.4);
+      osc.start();osc.stop(audioCtx.currentTime+0.4);
       break;
   }
 }
@@ -825,6 +964,86 @@ function drawTextEffects() {
   }
 }
 
+// ====================== 抽奖核心逻辑 ======================
+function openLucky(){
+  if(!gameRunning) return;
+  luckyPopup.style.display = 'flex';
+  spinBtn.disabled = false;
+  spinResult.innerText = '';
+  wheelBg.style.animation = 'none';
+  wheelBg.offsetHeight;
+}
+function closeLuckyPopup(){
+  luckyPopup.style.display = 'none';
+}
+
+function spinWheel(){
+  if(score < 300){
+    spinResult.innerText = '❌ 分数不足，需要300分';
+    return;
+  }
+  if(spinBtn.disabled) return;
+  spinBtn.disabled = true;
+
+  score -= 300;
+  scoreText.innerText = '分数：'+score;
+
+  wheelBg.style.animation = 'spin 6s cubic-bezier(0.2,0.8,0.2,1) forwards';
+  playSound('lucky');
+
+  setTimeout(()=>{
+    const idx = Math.floor(Math.random()*prizes.length);
+    const prize = prizes[idx];
+    spinResult.innerText = `✅ 获得：${prize.name}`;
+    givePrize(prize.name);
+    spinBtn.disabled = false;
+  },6000);
+}
+
+function givePrize(name){
+  switch(name){
+    case '护盾+1':
+      if(player.shieldCount < player.shieldMax) player.shieldCount++;
+      showItemText(player.x+25,player.y,'护盾+1');
+      break;
+    case '武器升级':
+      player.weaponLevel = player.weaponMax;
+      showItemText(player.x+25,player.y,'武器满级');
+      break;
+    case '激光满级':
+      player.laserLevel = player.laserMax;
+      player.laserTime = 999999;
+      showItemText(player.x+25,player.y,'激光满级');
+      break;
+    case '僚机满级':
+      player.wingLevel = player.wingMax;
+      showItemText(player.x+25,player.y,'僚机满级');
+      break;
+    case '炸弹+2':
+      player.bombCount +=2;
+      bombText.innerText='炸弹：'+player.bombCount;
+      showItemText(player.x+25,player.y,'炸弹+2');
+      break;
+    case '无敌10秒':
+      player.invincibleTime = 10000;
+      showItemText(player.x+25,player.y,'无敌10秒');
+      break;
+    case '磁铁10秒':
+      player.magnetTime = 10000;
+      showItemText(player.x+25,player.y,'磁铁10秒');
+      break;
+    case '分数+500':
+      score +=500;
+      scoreText.innerText='分数：'+score;
+      showItemText(player.x+25,player.y,'分数+500');
+      break;
+  }
+}
+
+luckyBtn.onclick = openLucky;
+closeLucky.onclick = closeLuckyPopup;
+spinBtn.onclick = spinWheel;
+
 function loop(){
   try {
     if(!gameRunning) return;
@@ -1087,6 +1306,7 @@ function start(){
   bombBtn.style.display = 'block';
   skinSwitchBtn.style.display = 'block';
   ultBtn.style.display = 'block';
+  luckyBtn.style.display = 'block'; // 显示抽奖按钮
   ultBtn.disabled = true;
   defeat.style.display = 'none';
 
@@ -1114,6 +1334,8 @@ function gameOver(){
   bombBtn.style.display = 'none';
   skinSwitchBtn.style.display = 'none';
   ultBtn.style.display = 'none';
+  luckyBtn.style.display = 'none'; // 隐藏抽奖
+  closeLuckyPopup();
 }
 
 restartBtn.onclick = start;

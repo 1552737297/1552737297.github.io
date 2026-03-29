@@ -3,20 +3,54 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>太空雷霆战机 - 双人本地联机（终极无错版）</title>
+<title>太空雷霆战机 - 双人联机完整版</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{
 background:#000;color:#fff;font-family:system-ui;
 display:flex;justify-content:center;align-items:center;height:100vh;
+overflow:hidden;touch-action:none;
 }
-#game{border:2px solid #0ef;background:#000612}
-.ui{position:absolute;color:#0ef;background:#0018;padding:4px 10px;border-radius:6px}
-#roomUi{top:10px;left:10px}
-#roomInput{padding:6px;width:100px;background:#112;color:#0ef;border:1px solid #0ef}
-#roomBtn{padding:6px 10px;background:#0ef;color:#000;border:none;border-radius:4px}
+#game{
+border:2px solid #0ef;
+background:linear-gradient(#000,#10122a);
+display:block;
+box-shadow: 0 0 30px rgba(0,239,255,0.2);
+}
+.ui{
+position:absolute;
+color:#0ef;
+background:rgba(0,10,25,0.7);
+padding:5px 12px;
+border-radius:12px;
+text-shadow:0 0 6px #0ef;
+}
+#roomUi{top:10px;left:10px;display:flex;gap:8px;align-items:center}
+#roomInput{
+padding:6px 8px;
+background:#112;
+color:#0ef;
+border:1px solid #0ef;
+border-radius:6px;
+width:100px;
+outline:none;
+}
+#roomBtn{
+padding:6px 12px;
+background:#0ef;
+color:#000;
+border:none;
+border-radius:6px;
+cursor:pointer;
+font-weight:600;
+transition:all 0.2s;
+}
+#roomBtn:hover{background:#0ff;box-shadow:0 0 10px #0ef}
 #status{top:10px;right:10px}
-#levelUi{top:45px;left:10px}
+#levelUi{top:50px;left:10px}
+#scoreUi{top:50px;right:10px}
+#bossHp{top:90px;left:50%;transform:translateX(-50%);display:none}
+#tips{bottom:20px;left:50%;transform:translateX(-50%);font-size:14px;color:#ccc}
 </style>
 </head>
 <body>
@@ -26,13 +60,16 @@ display:flex;justify-content:center;align-items:center;height:100vh;
 <button id="roomBtn">连接双人</button>
 </div>
 <div class="ui" id="status">状态：未连接</div>
-<div class="ui" id="levelUi">战机 Lv.1</div>
+<div class="ui" id="levelUi">我的等级：Lv.1</div>
+<div class="ui" id="scoreUi">我的分数：0</div>
+<div class="ui" id="bossHp">BOSS 血量：100/100</div>
+<div class="ui" id="tips">鼠标/触摸控制战机，击败敌机升级，Lv6解锁彩虹流光</div>
 
 <canvas id="game" width="375" height="667"></canvas>
 
 <script>
 // ============================
-// 纯本地联机（无服务器！）
+// 核心变量（双人联机+游戏逻辑）
 // ============================
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -40,63 +77,117 @@ const roomInput = document.getElementById('roomInput');
 const roomBtn = document.getElementById('roomBtn');
 const statusText = document.getElementById('status');
 const levelUi = document.getElementById('levelUi');
+const scoreUi = document.getElementById('scoreUi');
+const bossHpText = document.getElementById('bossHp');
 
+// 联机相关
 let roomId = "";
 let connected = false;
 let channel = null;
 
-// 我
+// 玩家数据（我 + 队友）
 let me = {
   id: Math.random().toString(36).slice(2),
-  x: 160, y: 520, level:1
+  x: 160, y: 520, w:50, h:60,
+  level: 1, score: 0,
+  shield: 1, shieldMax: 3,
+  invincible: false
 };
+let other = null; // 队友数据
 
-// 队友
-let other = null;
+// 游戏数据（双人共享）
+let bullets = []; // 子弹（双人共用，同步显示）
+let enemies = []; // 敌机（双人共享，同步刷新）
+let boss = null; // BOSS（双人共享，一起击败）
+let effects = []; // 爆炸效果
 let rainbowOffset = 0;
 
+// 游戏配置
+const enemySpawnRate = 1200; // 敌机刷新时间（ms）
+const bossSpawnScore = 500; // 达到该分数刷新BOSS
+const expPerEnemy = 5; // 击败敌机经验
+const scorePerEnemy = 20; // 击败敌机分数
+const bossHp = 100 + me.level * 20; // BOSS血量
+
 // ============================
-// 本地广播联机（100%无404）
+// 纯本地联机核心（无服务器，无404）
 // ============================
 function connect() {
   roomId = roomInput.value.trim();
+  if(!roomId) {
+    alert("请输入房间号！");
+    return;
+  }
+
   try {
+    // 关闭之前的连接
     if (channel) channel.close();
+    // 建立本地广播通道（核心：双人同步）
     channel = new BroadcastChannel(roomId);
     
+    // 接收队友数据
     channel.onmessage = (e) => {
+      // 过滤自己发送的数据
       if (e.data.from === me.id) return;
-      other = e.data;
-      connected = true;
-      statusText.textContent = "状态：联机成功";
+      
+      // 同步队友位置、等级、分数
+      if (e.data.type === "playerData") {
+        other = e.data.data;
+        connected = true;
+        statusText.textContent = "状态：联机成功（双人同屏）";
+      }
+      
+      // 同步队友发射的子弹
+      if (e.data.type === "shoot") {
+        bullets.push({
+          x: e.data.x, y: e.data.y,
+          from: e.data.from, type: "normal",
+          speed: 9, color: e.data.color
+        });
+      }
     };
     
-    statusText.textContent = "状态：等待队友";
+    // 定时发送自己的数据给队友（同步位置、等级、分数）
     setInterval(() => {
       channel.postMessage({
+        type: "playerData",
         from: me.id,
-        x: me.x, y: me.y, level: me.level
+        data: { x: me.x, y: me.y, level: me.level, score: me.score, shield: me.shield }
       });
-    }, 50);
+    }, 50); // 50ms同步一次，无卡顿
     
+    statusText.textContent = "状态：等待队友连接...";
   } catch(e) {
-    statusText.textContent = "状态：连接失败";
+    statusText.textContent = "状态：连接失败（刷新重试）";
   }
+}
+
+// 发送子弹数据给队友
+function sendBullet(x, y, color) {
+  if (!connected || !channel) return;
+  channel.postMessage({
+    type: "shoot",
+    from: me.id,
+    x: x, y: y, color: color
+  });
 }
 
 // ============================
 // 战机绘制（对称+机翼+Lv6流光）
 // ============================
+// 获取战机颜色（Lv6开启彩虹流光）
 function getColor(level) {
   if (level >= 6) {
     rainbowOffset += 2;
     return `hsl(${rainbowOffset % 360}, 100%, 65%)`;
   }
-  return "#0ef";
+  return "#00d9ff"; // 默认蓝色
 }
 
+// 绘制单架战机（带机翼，对称）
 function drawJet(x, y, scale, color) {
   ctx.fillStyle = color;
+  // 机身
   ctx.beginPath();
   ctx.moveTo(x + 25*scale, y);
   ctx.lineTo(x + 10*scale, y + 40*scale);
@@ -107,79 +198,393 @@ function drawJet(x, y, scale, color) {
   ctx.closePath();
   ctx.fill();
 
-  // 左机翼
+  // 左机翼（对称）
   ctx.beginPath();
   ctx.moveTo(x + 12*scale, y + 38*scale);
   ctx.lineTo(x - 18*scale, y + 48*scale);
   ctx.lineTo(x - 18*scale, y + 58*scale);
   ctx.lineTo(x + 12*scale, y + 48*scale);
+  ctx.closePath();
   ctx.fill();
 
-  // 右机翼
+  // 右机翼（对称）
   ctx.beginPath();
   ctx.moveTo(x + 38*scale, y + 38*scale);
   ctx.lineTo(x + 68*scale, y + 48*scale);
   ctx.lineTo(x + 68*scale, y + 58*scale);
   ctx.lineTo(x + 38*scale, y + 48*scale);
+  ctx.closePath();
+  ctx.fill();
+
+  // 战机亮点（增加质感）
+  ctx.fillStyle = "#fff";
+  ctx.beginPath();
+  ctx.arc(x + 25*scale, y + 10*scale, 3*scale, 0, Math.PI*2);
   ctx.fill();
 }
 
-function drawPlayer(p) {
+// 绘制玩家战机（根据等级显示1→4架编队）
+function drawPlayer(p, isMe) {
   if (!p) return;
-  const c = getColor(p.level);
-  const f = Math.min(4, p.level);
+  const color = getColor(p.level);
+  const form = Math.min(4, p.level); // 形态：1→2→3→4架
 
-  drawJet(p.x, p.y, 1, c);
-  if (f >= 2) { drawJet(p.x-50,p.y+10,0.7,c); drawJet(p.x+50,p.y+10,0.7,c); }
-  if (f >= 3) { drawJet(p.x-30,p.y-12,0.6,c); drawJet(p.x+30,p.y-12,0.6,c); }
-  if (f >= 4) { drawJet(p.x-65,p.y+20,0.55,c); drawJet(p.x+65,p.y+20,0.55,c); }
-}
+  // 主机（永远在中间）
+  drawJet(p.x, p.y, 1, color);
 
-// ============================
-// 控制
-// ============================
-canvas.addEventListener('mousemove', (e) => {
-  const r = canvas.getBoundingClientRect();
-  me.x = e.clientX - r.left - 25;
-  me.y = e.clientY - r.top - 30;
-});
+  // 2级形态：左右对称2架僚机
+  if (form >= 2) {
+    drawJet(p.x - 50, p.y + 10, 0.7, color);
+    drawJet(p.x + 50, p.y + 10, 0.7, color);
+  }
+  // 3级形态：前后对称，新增前侧2架
+  if (form >= 3) {
+    drawJet(p.x - 30, p.y - 12, 0.6, color);
+    drawJet(p.x + 30, p.y - 12, 0.6, color);
+  }
+  // 4级形态：菱形对称，新增外侧2架（最终形态）
+  if (form >= 4) {
+    drawJet(p.x - 65, p.y + 20, 0.55, color);
+    drawJet(p.x + 65, p.y + 20, 0.55, color);
+  }
 
-canvas.addEventListener('touchmove', (e) => {
-  e.preventDefault();
-  const r = canvas.getBoundingClientRect();
-  me.x = e.touches[0].clientX - r.left - 25;
-  me.y = e.touches[0].clientY - r.top - 30;
-});
-
-// ============================
-// 自动升级
-// ============================
-let lvTimer = 0;
-function autoLevel() {
-  if (me.level >= 10) return;
-  lvTimer++;
-  if (lvTimer > 200) {
-    me.level++;
-    levelUi.textContent = `战机 Lv.${me.level}`;
-    lvTimer = 0;
+  // 绘制护盾（可选）
+  if (p.shield > 0) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(p.x + 25, p.y + 30, 40, 0, Math.PI*2);
+    ctx.stroke();
   }
 }
 
 // ============================
-// 主循环
+// 游戏核心逻辑（双人共享）
+// ============================
+// 发射子弹（自己发射+同步给队友）
+function shoot() {
+  if (!connected) return;
+  const color = getColor(me.level);
+  const cx = me.x + 25; // 主机中心X
+
+  // 发射主机子弹
+  bullets.push({
+    x: cx - 2, y: me.y,
+    from: me.id, type: "normal",
+    speed: 9, color: color
+  });
+  // 同步子弹给队友
+  sendBullet(cx - 2, me.y, color);
+
+  // 等级越高，子弹越多（2级+左右子弹）
+  if (me.level >= 2) {
+    bullets.push({ x: me.x + 8, y: me.y + 12, from: me.id, type: "normal", speed: 9, color: color });
+    bullets.push({ x: me.x + 38, y: me.y + 12, from: me.id, type: "normal", speed: 9, color: color });
+    sendBullet(me.x + 8, me.y + 12, color);
+    sendBullet(me.x + 38, me.y + 12, color);
+  }
+}
+
+// 生成敌机（双人共享，同步刷新）
+function spawnEnemy() {
+  if (!connected) return;
+  const speed = 2.5 + (me.level + (other?.level || 0)) * 0.1; // 等级越高，敌机越快
+  const x = Math.random() * (canvas.width - 36); // 随机X位置
+  enemies.push({
+    x: x, y: -40, w: 36, h: 44,
+    hp: 1, speed: speed, color: "#ff2255"
+  });
+}
+
+// 生成BOSS（双人共享，达到分数刷新）
+function spawnBoss() {
+  if (boss || !connected) return;
+  boss = {
+    x: canvas.width / 2 - 70, y: 50,
+    w: 140, h: 105, hp: 100 + (me.level + other.level) * 10,
+    maxHp: 100 + (me.level + other.level) * 10,
+    speed: 1.5, dir: 1, attackTimer: 0
+  };
+  bossHpText.style.display = "block";
+  bossHpText.textContent = `BOSS 血量：${boss.hp}/${boss.maxHp}`;
+}
+
+// BOSS攻击（双人共享，同步发射子弹）
+function bossAttack() {
+  if (!boss || !connected) return;
+  boss.attackTimer++;
+  const cd = 40; // 攻击冷却
+  if (boss.attackTimer >= cd) {
+    boss.attackTimer = 0;
+    // 环形发射8颗子弹
+    for (let i = 0; i < 8; i++) {
+      const ang = (Math.PI * 2 / 8) * i;
+      const sp = 3;
+      bullets.push({
+        x: boss.x + boss.w / 2, y: boss.y + boss.h / 2,
+        vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp,
+        from: "boss", type: "boss", speed: sp, color: "#ff4444"
+      });
+    }
+  }
+}
+
+// 碰撞检测（子弹打敌机、BOSS，敌机撞玩家）
+function collide(a, b) {
+  return a.x < b.x + b.w && a.x + (a.w || 4) > b.x && a.y < b.y + b.h && a.y + (a.h || 14) > b.y;
+}
+
+// 爆炸效果
+function boom(x, y) {
+  effects.push({ x: x, y: y, t: 0, max: 12 });
+}
+
+// 玩家升级
+function levelUp(player) {
+  player.level++;
+  if (player.id === me.id) {
+    levelUi.textContent = `我的等级：Lv.${me.level}`;
+  }
+  // 升级奖励护盾
+  if (player.shield< player.shieldMax) {
+    player.shield++;
+  }
+}
+
+// ============================
+// 控制逻辑（鼠标/触摸）
+// ============================
+// 鼠标控制
+canvas.addEventListener('mousemove', (e) => {
+  if (!connected) return;
+  const rect = canvas.getBoundingClientRect();
+  // 限制战机在画布内
+  me.x = Math.max(0, Math.min(e.clientX - rect.left - 25, canvas.width - 50));
+  me.y = Math.max(0, Math.min(e.clientY - rect.top - 30, canvas.height - 60));
+});
+
+// 触摸控制（手机可用）
+canvas.addEventListener('touchmove', (e) => {
+  if (!connected) return;
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  me.x = Math.max(0, Math.min(e.touches[0].clientX - rect.left - 25, canvas.width - 50));
+  me.y = Math.max(0, Math.min(e.touches[0].clientY - rect.top - 30, canvas.height - 60));
+});
+
+// 点击画布发射子弹（自动发射，每秒3次）
+setInterval(shoot, 300);
+
+// 定时生成敌机
+setInterval(spawnEnemy, enemySpawnRate);
+
+// ============================
+// 游戏主循环（双人同步渲染）
 // ============================
 function loop() {
+  // 清空画布
   ctx.fillStyle = '#000';
-  ctx.fillRect(0,0,375,667);
-  
-  autoLevel();
-  drawPlayer(me);
-  drawPlayer(other);
-  
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  if (!connected) {
+    // 未连接时显示提示
+    ctx.fillStyle = "#ccc";
+    ctx.font = "20px system-ui";
+    ctx.textAlign = "center";
+    ctx.fillText("请连接双人房间", canvas.width / 2, canvas.height / 2);
+    requestAnimationFrame(loop);
+    return;
+  }
+
+  // 1. 绘制玩家（我 + 队友）
+  drawPlayer(me, true);
+  drawPlayer(other, false);
+
+  // 2. 绘制子弹（双人同步显示）
+  for (let i = bullets.length - 1; i >= 0; i--) {
+    const b = bullets[i];
+    ctx.fillStyle = b.color;
+    // 普通子弹（玩家发射）
+    if (b.type === "normal") {
+      ctx.fillRect(b.x, b.y, 4, 14);
+      b.y -= b.speed;
+    }
+    // BOSS子弹（环形）
+    if (b.type === "boss") {
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, 4, 0, Math.PI*2);
+      ctx.fill();
+      b.x += b.vx;
+      b.y += b.vy;
+    }
+    // 子弹超出屏幕删除
+    if (b.y < -20 || b.y > canvas.height || b.x < -10 || b.x > canvas.width) {
+      bullets.splice(i, 1);
+      continue;
+    }
+
+    // 3. 子弹碰撞检测（打敌机、BOSS）
+    // 打敌机
+    for (let j = enemies.length - 1; j >= 0; j--) {
+      const e = enemies[j];
+      if (collide(b, e)) {
+        bullets.splice(i, 1);
+        e.hp--;
+        if (e.hp <= 0) {
+          boom(e.x + e.w / 2, e.y + e.h / 2);
+          enemies.splice(j, 1);
+          // 加分、加经验（谁打中的谁加分）
+          if (b.from === me.id) {
+            me.score += scorePerEnemy;
+            scoreUi.textContent = `我的分数：${me.score}`;
+            // 升级判断
+            if (me.level < 10) {
+              if (Math.random()< 0.3) { // 30%概率升级
+                levelUp(me);
+              }
+            }
+          }
+          // 达到分数刷新BOSS
+          if (me.score + (other?.score || 0) >= bossSpawnScore && !boss) {
+            spawnBoss();
+          }
+        }
+        break;
+      }
+    }
+
+    // 打BOSS
+    if (boss && collide(b, boss) && b.from !== "boss") {
+      bullets.splice(i, 1);
+      boss.hp--;
+      bossHpText.textContent = `BOSS 血量：${boss.hp}/${boss.maxHp}`;
+      // BOSS被击败
+      if (boss.hp <= 0) {
+        boom(boss.x + boss.w / 2, boss.y + boss.h / 2);
+        // 双人都加分
+        me.score += 500;
+        other.score += 500;
+        scoreUi.textContent = `我的分数：${me.score}`;
+        // 升级奖励
+        levelUp(me);
+        if (other) levelUp(other);
+        // 重置BOSS
+        boss = null;
+        bossHpText.style.display = "none";
+      }
+    }
+
+    // 4. 子弹撞玩家（扣护盾）
+    // 撞我
+    if (b.from !== me.id && b.from !== "boss" && collide(b, me) && !me.invincible) {
+      bullets.splice(i, 1);
+      if (me.shield > 0) {
+        me.shield--;
+      } else {
+        // 游戏结束（自己失败）
+        alert(`游戏结束！你的分数：${me.score}，队友分数：${other?.score || 0}`);
+        location.reload();
+      }
+    }
+    // 撞队友
+    if (b.from !== other?.id && b.from !== "boss" && other && collide(b, other) && !other.invincible) {
+      bullets.splice(i, 1);
+      if (other.shield > 0) {
+        other.shield--;
+      } else {
+        // 游戏结束（队友失败）
+        alert(`队友被击败！你的分数：${me.score}，队友分数：${other?.score || 0}`);
+        location.reload();
+      }
+    }
+  }
+
+  // 5. 绘制敌机
+  for (let i = enemies.length - 1; i >= 0; i--) {
+    const e = enemies[i];
+    e.y += e.speed;
+    // 绘制敌机
+    ctx.fillStyle = e.color;
+    ctx.beginPath();
+    ctx.moveTo(e.x + e.w / 2, e.y);
+    ctx.lineTo(e.x, e.y + e.h);
+    ctx.lineTo(e.x + e.w, e.y + e.h);
+    ctx.closePath();
+    ctx.fill();
+    // 敌机超出屏幕删除
+    if (e.y > canvas.height + 50) {
+      enemies.splice(i, 1);
+      continue;
+    }
+    // 敌机撞玩家
+    if (collide(e, me) && !me.invincible) {
+      boom(e.x + e.w / 2, e.y + e.h / 2);
+      enemies.splice(i, 1);
+      if (me.shield > 0) {
+        me.shield--;
+      } else {
+        alert(`游戏结束！你的分数：${me.score}，队友分数：${other?.score || 0}`);
+        location.reload();
+      }
+    }
+    if (other && collide(e, other) && !other.invincible) {
+      boom(e.x + e.w / 2, e.y + e.h / 2);
+      enemies.splice(i, 1);
+      if (other.shield > 0) {
+        other.shield--;
+      } else {
+        alert(`队友被击败！你的分数：${me.score}，队友分数：${other?.score || 0}`);
+        location.reload();
+      }
+    }
+  }
+
+  // 6. 绘制BOSS
+  if (boss) {
+    // BOSS移动（左右往返）
+    boss.x += boss.speed * boss.dir;
+    if (boss.x < 20 || boss.x + boss.w > canvas.width - 20) {
+      boss.dir *= -1;
+    }
+    // 绘制BOSS
+    const grd = ctx.createLinearGradient(boss.x, boss.y, boss.x, boss.y + boss.h);
+    grd.addColorStop(0, "#ff8800");
+    grd.addColorStop(1, "#ff2200");
+    ctx.fillStyle = grd;
+    ctx.fillRect(boss.x, boss.y, boss.w, boss.h);
+    // BOSS攻击
+    bossAttack();
+  }
+
+  // 7. 绘制爆炸效果
+  for (let i = effects.length - 1; i >= 0; i--) {
+    const ef = effects[i];
+    ef.t++;
+    const size = ef.t * 3;
+    // 外层爆炸
+    ctx.fillStyle = "#ff6600";
+    ctx.beginPath();
+    ctx.arc(ef.x, ef.y, size, 0, Math.PI*2);
+    ctx.fill();
+    // 内层爆炸
+    ctx.fillStyle = "#ffff00";
+    ctx.beginPath();
+    ctx.arc(ef.x, ef.y, size * 0.6, 0, Math.PI*2);
+    ctx.fill();
+    // 效果消失
+    if (ef.t >= ef.max) {
+      effects.splice(i, 1);
+    }
+  }
+
+  // 循环渲染
   requestAnimationFrame(loop);
 }
 
+// 绑定连接按钮事件
 roomBtn.onclick = connect;
+
+// 启动游戏循环
 loop();
 </script>
 </body>

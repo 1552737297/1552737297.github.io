@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>太空雷霆战机 - 无限闯关版</title>
+<title>太空雷霆战机 - 无限闯关修复版</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{
@@ -50,7 +50,7 @@ display:none
 </head>
 <body>
 <div id="logo">太空雷霆战机</div>
-<div id="author">小伙伴专属 · v4.0 无限闯关</div>
+<div id="author">小伙伴专属 · v4.1 无限闯关修复版</div>
 <div id="score" class="ui">分数：0</div>
 <div id="level" class="ui">关卡：1</div>
 <div id="bossHp" class="ui">BOSS 血量：</div>
@@ -77,6 +77,7 @@ canvas.height = 667;
 let gameRunning = false;
 let score = 0;
 let level = 1;
+let bossSpawnTimer = null; // 统一管理BOSS生成定时器
 
 const player = {
   x: canvas.width/2-25, y: canvas.height*0.8, w:50, h:60,
@@ -118,6 +119,7 @@ bombBtn.onclick = () => {
 }
 
 function shoot(){
+  if(!gameRunning) return;
   if(player.laserTime > 0){
     bullets.push({
       type:'laser',
@@ -143,20 +145,20 @@ function shoot(){
 }
 
 function fireFollowMissile(){
-  if(enemies.length === 0) return;
+  if(!gameRunning || enemies.length === 0) return;
   let t = enemies[Math.floor(Math.random()*enemies.length)];
   followMissiles.push({x:player.x+player.w/2,y:player.y,target:t,w:8,h:12,speed:6,color:'#f80'});
 }
 
 function createEnemy(){
-  if(boss) return;
+  if(!gameRunning || boss) return;
   let speed = 2.6 + level*0.3 + Math.random()*1.8;
   enemies.push({x:Math.random()*(canvas.width-36),y:-40,w:36,h:44,speed:speed,hp:1});
 }
 
 // 生成更强的BOSS
 function spawnBoss(){
-  if(boss) return;
+  if(!gameRunning || boss) return;
   let hp = 40 + level*25;
   let size = 140 + level*12;
   if(size > 210) size = 210;
@@ -174,7 +176,7 @@ function spawnBoss(){
 }
 
 function bossAttack(){
-  if(!boss) return;
+  if(!gameRunning || !boss) return;
   boss.attackTimer++;
   let cd = Math.max(18, 55 - level*9);
   if(boss.attackTimer >= cd){
@@ -345,7 +347,9 @@ function loop(){
           bossHpText.style.display = 'none';
           level++; // 关卡+1
           levelText.innerText = '关卡：'+level;
-          setTimeout(spawnBoss, 9000); // 9秒后刷新下一个BOSS
+          // 清除旧定时器，避免重复
+          if(bossSpawnTimer) clearTimeout(bossSpawnTimer);
+          bossSpawnTimer = setTimeout(spawnBoss, 9000); // 9秒后刷新下一个BOSS
         }
       }
     }
@@ -402,6 +406,10 @@ function start(){
   player.x = canvas.width/2-25;
   player.y = canvas.height*0.8;
 
+  // 清除可能残留的定时器
+  if(bossSpawnTimer) clearTimeout(bossSpawnTimer);
+  bossSpawnTimer = setTimeout(spawnBoss, 30000); // 30秒后第一个BOSS
+
   logo.style.display = 'none';
   author.style.display = 'none';
   startBtn.style.display = 'none';
@@ -410,12 +418,12 @@ function start(){
   setInterval(shoot, 220);
   setInterval(createEnemy, 1100);
   setInterval(fireFollowMissile, 1200);
-  setTimeout(spawnBoss, 30000); // 30秒后第一个BOSS
   loop();
 }
 
 function gameOver(){
   gameRunning = false;
+  if(bossSpawnTimer) clearTimeout(bossSpawnTimer); // 清理定时器
   alert(`游戏结束！\n关卡：${level}\n得分：${score}\n分享给小伙伴挑战吧！`);
   logo.style.display = 'block';
   author.style.display = 'block';

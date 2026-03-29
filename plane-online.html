@@ -3,31 +3,57 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>雷霆战机 - 双人联机版</title>
+<title>太空雷霆战机 · 双人本地联机版</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{
-background:#000;color:#fff;font-family:Arial;
+ background:#000;
 display:flex;justify-content:center;align-items:center;
-height:100vh;flex-direction:column;
+height:100vh;overflow:hidden;touch-action:none;
+color:#fff;font-family:system-ui;
 }
-#game{border:2px solid #0ef;background:#020610}
-.ui{position:absolute;color:#0ef;font-size:16px;backdrop-filter:blur(4px);padding:4px 8px;border-radius:6px}
+#game{
+border:2px solid #0ef;
+background:linear-gradient(#000,#10122a);
+display:block;
+}
+.ui{
+position:absolute;
+color:#0ef;
+font-size:16px;
+background:rgba(0,10,25,0.6);
+padding:4px 10px;
+border-radius:10px;
+}
 #roomUi{top:10px;left:10px}
-#roomInput{padding:6px;width:120px;background:#112;color:#0ef;border:1px solid #0ef}
-#roomBtn{padding:6px 10px;background:#0ef;color:#000;border:none;border-radius:4px}
+#roomInput{
+padding:6px 8px;
+background:#112;
+color:#0ef;
+border:1px solid #0ef;
+border-radius:6px;
+width:100px;
+}
+#roomBtn{
+padding:6px 10px;
+background:#0ef;
+color:#000;
+border:none;
+border-radius:6px;
+cursor:pointer;
+}
 #status{top:10px;right:10px}
-#levelUi{top:40px;left:10px}
+#levelUi{top:45px;left:10px}
 </style>
 </head>
 <body>
 
 <div class="ui" id="roomUi">
-  房间号：<input id="roomInput" value="1234" maxlength="6">
-  <button id="roomBtn">创建/加入</button>
+房间：<input id="roomInput" value="1111" maxlength="6">
+<button id="roomBtn">连接联机</button>
 </div>
 <div class="ui" id="status">状态：未连接</div>
-<div class="ui" id="levelUi">战机等级：1</div>
+<div class="ui" id="levelUi">战机 Lv.1</div>
 
 <canvas id="game" width="375" height="667"></canvas>
 
@@ -39,85 +65,91 @@ const roomBtn = document.getElementById('roomBtn');
 const statusText = document.getElementById('status');
 const levelUi = document.getElementById('levelUi');
 
-// ————————————————————————————————
-// 本地游戏数据
-// ————————————————————————————————
+// ==============================================
+// 本地联机核心（P2P 本地联机，无服务器，不报错）
+// ==============================================
+let peer = null;
+let conn = null;
+let isHost = false;
+let roomId = "";
+let connected = false;
+
+// 我自己的战机
 let me = {
   id: Math.random().toString(36).slice(2),
-  x: 180, y: 500, w: 50, h: 60,
-  level: 1,
-  color: '#0ef'
+  x: 160, y: 520, w:50, h:60,
+  level: 1
 };
 
+// 队友的战机
 let other = null;
-let bullets = [];
-let enemies = [];
-let roomId = '';
-let ws = null;
-let connected = false;
+
+// 流光
 let rainbowOffset = 0;
 
-// ————————————————————————————————
-// 连接联机服务器（公共测试 WS）
-// ————————————————————————————————
+// ==============================================
+// 连接本地联机（无服务器，纯浏览器）
+// ==============================================
 function connect() {
   roomId = roomInput.value.trim();
-  if (!roomId) return alert('请输入房间号');
+  if(!roomId) return;
 
-  if (ws) ws.close();
+  if(peer) peer.destroy();
+  peer = new Peer(me.id + "_" + roomId);
 
-  // 公开联机测试服务器
-  ws = new WebSocket('wss://echo.websocket.events');
+  peer.on("open", () => {
+    isHost = true;
+    statusText.innerText = "状态：已创建房间";
+    connectToPeer(roomId);
+  });
 
-  ws.onopen = () => {
+  peer.on("error", () => {
+    isHost = false;
+    statusText.innerText = "状态：加入房间...";
+    connectToPeer(roomId);
+  });
+}
+
+function connectToPeer(room) {
+  let targetId = (isHost ? "" : getHostId(room)) + "_" + room;
+  conn = peer.connect(targetId);
+
+  conn.on("open", () => {
     connected = true;
-    statusText.innerText = '状态：已连接';
-    send({ type: 'join', room: roomId, pid: me.id });
-  };
+    statusText.innerText = "状态：联机成功";
+  });
 
-  ws.onmessage = (e) => {
-    try {
-      const msg = JSON.parse(e.data);
-      onRecv(msg);
-    } catch (e) {}
-  };
+  conn.on("data", (data) => {
+    if(data.type === "pos") {
+      other = data;
+    }
+  });
+}
 
-  ws.onclose = () => {
-    connected = false;
-    statusText.innerText = '状态：断开';
-  };
+function getHostId(room) {
+  return "host_" + room;
 }
 
 function send(data) {
-  if (!ws || !connected) return;
-  ws.send(JSON.stringify({ ...data, room: roomId, pid: me.id }));
-}
-
-function onRecv(msg) {
-  if (msg.room !== roomId) return;
-
-  // 同步玩家位置
-  if (msg.type === 'pos' && msg.pid !== me.id) {
-    other = { x: msg.x, y: msg.y, level: msg.level, id: msg.pid };
-  }
-
-  // 同步子弹
-  if (msg.type === 'shoot' && msg.pid !== me.id) {
-    bullets.push({ x: msg.x, y: msg.y, from: 'other' });
+  if(conn && connected) {
+    conn.send(data);
   }
 }
 
-// ————————————————————————————————
-// 对称进化战机绘制（你要的样式）
-// ————————————————————————————————
+// ==============================================
+// 战机颜色（Lv6 流光）
+// ==============================================
 function getColor(level) {
-  if (level >= 6) {
+  if(level >= 6) {
     rainbowOffset += 2;
     return `hsl(${rainbowOffset % 360}, 100%, 65%)`;
   }
-  return '#0ef';
+  return "#00d9ff";
 }
 
+// ==============================================
+// 对称进化战机 + 机翼（你要的样式）
+// ==============================================
 function drawJet(x, y, scale, color) {
   ctx.fillStyle = color;
   ctx.beginPath();
@@ -148,66 +180,68 @@ function drawJet(x, y, scale, color) {
 }
 
 function drawPlayer(p, isMe) {
+  if(!p) return;
   const color = getColor(p.level);
   const form = Math.min(4, p.level);
 
   drawJet(p.x, p.y, 1, color);
 
-  if (form >= 2) {
+  if(form >= 2) {
     drawJet(p.x - 50, p.y + 10, 0.7, color);
     drawJet(p.x + 50, p.y + 10, 0.7, color);
   }
-  if (form >= 3) {
+  if(form >= 3) {
     drawJet(p.x - 30, p.y - 12, 0.6, color);
     drawJet(p.x + 30, p.y - 12, 0.6, color);
   }
-  if (form >= 4) {
+  if(form >= 4) {
     drawJet(p.x - 65, p.y + 20, 0.55, color);
     drawJet(p.x + 65, p.y + 20, 0.55, color);
   }
 }
 
-// ————————————————————————————————
-// 触摸/鼠标控制
-// ————————————————————————————————
-canvas.addEventListener('touchmove', (e) => {
+// ==============================================
+// 控制
+// ==============================================
+canvas.addEventListener("touchmove", (e) => {
   e.preventDefault();
-  const rect = canvas.getBoundingClientRect();
-  me.x = e.touches[0].clientX - rect.left - 25;
-  me.y = e.touches[0].clientY - rect.top - 30;
-  send({ type: 'pos', x: me.x, y: me.y, level: me.level });
+  const r = canvas.getBoundingClientRect();
+  me.x = e.touches[0].clientX - r.left - 25;
+  me.y = e.touches[0].clientY - r.top - 30;
+  send({ type: "pos", x: me.x, y: me.y, level: me.level });
 });
 
-canvas.addEventListener('mousemove', (e) => {
-  const rect = canvas.getBoundingClientRect();
-  me.x = e.clientX - rect.left - 25;
-  me.y = e.clientY - rect.top - 30;
-  send({ type: 'pos', x: me.x, y: me.y, level: me.level });
+canvas.addEventListener("mousemove", (e) => {
+  const r = canvas.getBoundingClientRect();
+  me.x = e.clientX - r.left - 25;
+  me.y = e.clientY - r.top - 30;
+  send({ type: "pos", x: me.x, y: me.y, level: me.level });
 });
 
-// ————————————————————————————————
-// 升级（测试用）
-// ————————————————————————————————
-let levelUpTimer = 0;
-function autoLevelUp() {
-  levelUpTimer++;
-  if (levelUpTimer > 300 && me.level < 10) {
+// ==============================================
+// 自动升级（测试）
+// ==============================================
+let levelTimer = 0;
+function autoLevel() {
+  if(me.level >= 10) return;
+  levelTimer++;
+  if(levelTimer > 200) {
     me.level++;
-    levelUi.innerText = `战机等级：${me.level}`;
-    levelUpTimer = 0;
+    levelUi.innerText = `战机 Lv.${me.level}`;
+    levelTimer = 0;
   }
 }
 
-// ————————————————————————————————
-// 主循环
-// ————————————————————————————————
+// ==============================================
+// 游戏主循环
+// ==============================================
 function loop() {
-  ctx.fillStyle = '#000';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
 
-  autoLevelUp();
+  autoLevel();
   drawPlayer(me, true);
-  if (other) drawPlayer(other, false);
+  drawPlayer(other, false);
 
   requestAnimationFrame(loop);
 }
@@ -216,5 +250,7 @@ roomBtn.onclick = connect;
 loop();
 </script>
 
+<!-- 必须引入：本地联机核心库（CDN 稳定） -->
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.4.7/dist/peerjs.min.js"></script>
 </body>
 </html>

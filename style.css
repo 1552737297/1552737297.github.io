@@ -1,28 +1,40 @@
+/* 全局样式：重置margin/padding，禁止滚动 */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
     user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
 }
-body {
-    background: #111;
-    overflow: hidden;
-}
-.game-container {
-    position: relative;
+html, body {
     width: 100vw;
     height: 100vh;
+    overflow: hidden !important;
+    touch-action: none;
+    background: #111;
 }
+/* 游戏容器：强制全屏，占满整个手机屏幕 */
+.game-container {
+    position: relative;
+    width: 100vw !important;
+    height: 100vh !important;
+    overflow: hidden;
+}
+/* Canvas：强制全屏，适配所有屏幕尺寸，横竖屏都占满 */
 #gameCanvas {
-    width: 100%;
-    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw !important;
+    height: 100vh !important;
     display: block;
+    z-index: 1;
 }
 
-/* 血条样式 */
+/* 血条样式：适配小屏，缩小宽度 */
 .hp-bar {
-    position: absolute;
-    width: 180px;
+    width: 150px;
     height: 24px;
     background: #222;
     border: 2px solid #444;
@@ -39,10 +51,9 @@ body {
     border-radius: 10px;
 }
 
-/* 背包按钮 */
+/* 背包按钮：适配小屏，缩小内边距 */
 .toggle-backpack {
-    position: absolute;
-    padding: 8px 16px;
+    padding: 6px 12px;
     background: linear-gradient(180deg, #444, #222);
     color: #fff;
     border: 2px solid #666;
@@ -51,7 +62,7 @@ body {
     z-index: 999;
     box-shadow: 0 0 8px rgba(0,0,0,0.8);
     transition: all 0.2s ease;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 600;
 }
 .toggle-backpack:hover, .toggle-backpack:active {
@@ -60,25 +71,23 @@ body {
     transform: scale(1.05);
 }
 
-/* 快捷栏 */
+/* 快捷栏：适配小屏，宽度100%，底部显示永不消失 */
 .inventory {
-    position: absolute;
     display: flex;
-    gap: 8px;
+    gap: 6px;
     background: rgba(0,0,0,0.7);
     backdrop-filter: blur(8px);
-    padding: 10px;
+    padding: 8px;
     border-radius: 16px;
     z-index: 999;
     box-shadow: 0 4px 16px rgba(0,0,0,0.8);
     border: 1px solid rgba(255,255,255,0.1);
-    flex-wrap: nowrap;
-    width: calc(100% - 40px);
-    max-width: 600px;
+    width: 90% !important;
+    max-width: none !important;
     justify-content: center;
 }
 
-/* 背包面板 */
+/* 背包面板：适配手机，缩小内边距，居中显示 */
 .backpack {
     position: absolute;
     top: 50%;
@@ -86,15 +95,15 @@ body {
     transform: translate(-50%, -50%);
     background: rgba(0,0,0,0.85);
     backdrop-filter: blur(12px);
-    padding: 20px;
-    border-radius: 20px;
+    padding: 15px;
+    border-radius: 16px;
     border: 2px solid rgba(255,255,255,0.2);
     display: none;
     z-index: 1000;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.9), inset 0 0 0 1px rgba(255,255,255,0.1);
-    min-width: 300px;
-    max-width: 90vw;
-    max-height: 80vh;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.9);
+    width: 90vw !important;
+    max-width: none !important;
+    max-height: 70vh !important;
     overflow-y: auto;
 }
 .backpack::-webkit-scrollbar {
@@ -118,12 +127,12 @@ body {
 }
 .backpack-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
-    gap: 8px;
-    margin-bottom: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(36px, 1fr));
+    gap: 6px;
+    margin-bottom: 15px;
 }
 .close-backpack {
-    padding: 10px 24px;
+    padding: 8px 20px;
     background: linear-gradient(180deg, #e74c3c, #c0392b);
     color: #fff;
     border: none;
@@ -131,7 +140,7 @@ body {
     cursor: pointer;
     display: block;
     margin: 0 auto;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 600;
     box-shadow: 0 2px 8px rgba(231,76,60,0.3);
     transition: all 0.2s ease;
@@ -141,10 +150,10 @@ body {
     box-shadow: 0 4px 12px rgba(231,76,60,0.5);
 }
 
-/* 物品槽通用样式 */
+/* 物品槽：适配手机，缩小尺寸 */
 .inv-slot {
-    width: 44px;
-    height: 44px;
+    width: 36px;
+    height: 36px;
     background: linear-gradient(180deg, #333, #222);
     border: 2px solid #555;
     border-radius: 8px;
@@ -152,7 +161,7 @@ body {
     align-items: center;
     justify-content: center;
     color: #fff;
-    font-size: 12px;
+    font-size: 10px;
     font-weight: 700;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -162,8 +171,8 @@ body {
 .inv-slot::before {
     content: '';
     position: absolute;
-    width: 36px;
-    height: 36px;
+    width: 30px;
+    height: 30px;
     background: inherit;
     border-radius: 4px;
     z-index: -1;
@@ -178,14 +187,14 @@ body {
 .inv-slot.selected {
     border-color: #ffd700;
     background: linear-gradient(180deg, #444, #333);
-    box-shadow: inset 0 1px 0 rgba(255,215,0,0.2), 0 0 10px rgba(255,215,0,0.4), 0 2px 4px rgba(0,0,0,0.5);
+    box-shadow: inset 0 1px 0 rgba(255,215,0,0.2), 0 0 8px rgba(255,215,0,0.4);
     transform: scale(1.08);
     z-index: 1;
 }
 .inv-slot:not(.empty):hover {
     border-color: #888;
     transform: scale(1.05);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 0 8px rgba(255,255,255,0.2);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 0 6px rgba(255,255,255,0.2);
 }
 .inv-slot span {
     position: absolute;
@@ -194,46 +203,47 @@ body {
     text-shadow: 0 1px 2px rgba(0,0,0,0.8);
 }
 
-/* 设置面板 */
+/* 设置面板：适配手机，缩小尺寸 */
 .setting-panel{
-    position: absolute;
-    padding: 12px;
+    padding: 10px;
     border-radius: 12px;
     background:rgba(0,0,0,0.65);
     backdrop-filter: blur(8px);
     color:#fff;
-    font-size:14px;
+    font-size: 12px;
     z-index:9999;
     transition:opacity .4s;
     border:1px solid rgba(255,255,255,0.1);
     box-shadow:0 4px 16px rgba(0,0,0,0.8);
 }
 .setting-panel>div{
-    margin:6px 0;
+    margin:4px 0;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
 }
 .setting-panel input[type="range"] {
-    width: 120px;
+    width: 100px;
     accent-color: #ffd700;
 }
 
-/* 独立按键样式：核心！取消分组，全部单独 */
+/* 独立按键：核心！适配手机，防消失，触屏优化 */
 .single-btn {
-    z-index: 998;
     pointer-events: all;
     touch-action: manipulation;
-    background: rgba(0,0,0,0.5);
+    background: rgba(0,0,0,0.6);
     backdrop-filter: blur(8px);
-    border: 2px solid rgba(255,255,255,0.2);
+    border: 2px solid rgba(255,255,255,0.3);
     border-radius: 50%;
     color: white;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
     box-shadow: 0 4px 12px rgba(0,0,0,0.8);
+    /* 触屏优化：增加点击区域 */
+    -webkit-tap-highlight-color: transparent;
+    tap-highlight-color: transparent;
 }
 .single-btn:active {
     background: rgba(255,255,255,0.2);
@@ -241,10 +251,20 @@ body {
     border-color: #ffd700;
 }
 
-/* 小屏幕自适应 */
-@media (max-width: 480px) {
-    .inv-slot { width: 38px; height: 38px; }
-    .inv-slot::before { width: 30px; height: 30px; }
-    .toggle-backpack { padding: 6px 12px; font-size: 12px; }
-    .hp-bar { width: 150px; }
+/* 小屏手机专属适配（屏幕宽度<375px） */
+@media (max-width: 375px) {
+    .hp-bar { width: 120px; height: 20px; }
+    .toggle-backpack { padding: 4px 8px; font-size: 10px; }
+    .inv-slot { width: 32px; height: 32px; }
+    .inv-slot::before { width: 26px; height: 26px; }
+    .backpack { padding: 10px; max-height: 65vh; }
+    .backpack-grid { gap: 4px; }
+}
+
+/* 横屏手机专属适配（屏幕高度<400px） */
+@media (max-height: 400px) {
+    .hp-bar { width: 120px; height: 20px; }
+    .single-btn { transform: scale(0.85); }
+    .inventory { padding: 6px; gap: 4px; }
+    .inv-slot { width: 30px; height: 30px; }
 }

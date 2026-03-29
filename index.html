@@ -2,12 +2,15 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <!-- 手机端核心适配：禁用缩放、强制全屏、适配所有设备 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, shrink-to-fit=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <title>2D沙盒游戏</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="game-container">
+<div class="game-container" id="gameContainer">
     <canvas id="gameCanvas"></canvas>
 
     <!-- 血条 -->
@@ -17,7 +20,7 @@
 
     <!-- 设置面板 -->
     <div class="setting-panel" id="settingPanel">
-        <div>按键大小 <input type="range" id="btnSize" min="40" max="90" value="64"></div>
+        <div>按键大小 <input type="range" id="btnSize" min="40" max="90" value="60"></div>
     </div>
 
     <!-- 背包切换按钮 -->
@@ -30,7 +33,7 @@
         <button class="close-backpack" id="closeBackpack">关闭背包</button>
     </div>
 
-    <!-- 独立按键：左、右、跳、挖、放（全部单独） -->
+    <!-- 独立按键：左、右、跳、挖、放（全部单独可拖） -->
     <div class="btn single-btn" id="leftBtn">←</div>
     <div class="btn single-btn" id="rightBtn">→</div>
     <div class="btn single-btn" id="jumpBtn">跳</div>
@@ -40,29 +43,45 @@
 
 <script src="game.js"></script>
 <script>
-// 拖动功能核心：支持任意元素单独拖动+位置本地保存
-function makeDraggable(elId, defaultX, defaultY) {
+// 拖动功能核心：支持任意元素单独拖动+位置本地保存+屏幕适配
+function makeDraggable(elId, defaultXPercent, defaultYPercent) {
     const el = document.getElementById(elId);
     if(!el) return;
     let isDrag = false, offsetX = 0, offsetY = 0;
 
-    // 设置初始定位
+    // 设置初始定位：按屏幕百分比定位，适配所有尺寸
     el.style.position = "absolute";
     el.style.cursor = "move";
-    // 读取本地保存的位置，无则用默认值
-    const saved = localStorage.getItem("drag_"+elId);
-    if(saved) {
-        let [lx, ly] = saved.split("|");
-        el.style.left = lx;
-        el.style.top = ly;
-    } else {
-        el.style.left = defaultX + "px";
-        el.style.top = defaultY + "px";
+    el.style.zIndex = 998;
+
+    // 计算默认位置（按屏幕百分比，永不消失）
+    function calcDefaultPos() {
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        return {
+            x: w * defaultXPercent,
+            y: h * defaultYPercent
+        };
     }
+
+    // 初始化位置：优先本地保存，无则按百分比计算
+    function initPos() {
+        const saved = localStorage.getItem("drag_"+elId);
+        const defaultPos = calcDefaultPos();
+        if(saved) {
+            let [lx, ly] = saved.split("|");
+            el.style.left = lx;
+            el.style.top = ly;
+        } else {
+            el.style.left = defaultPos.x + "px";
+            el.style.top = defaultPos.y + "px";
+        }
+    }
+    initPos();
 
     // 鼠标拖动
     el.addEventListener('mousedown', start);
-    // 触屏拖动（移动端适配）
+    // 触屏拖动（移动端适配，阻止默认行为）
     el.addEventListener('touchstart', (e) => {
         start(e.touches[0]);
         e.preventDefault();
@@ -75,6 +94,7 @@ function makeDraggable(elId, defaultX, defaultY) {
         el.style.zIndex = 99999; // 拖动时置顶
     }
 
+    // 鼠标/触屏移动
     document.addEventListener('mousemove', move);
     document.addEventListener('touchmove', (e) => {
         move(e.touches[0]);
@@ -84,10 +104,14 @@ function makeDraggable(elId, defaultX, defaultY) {
         if(!isDrag) return;
         let x = e.clientX - offsetX;
         let y = e.clientY - offsetY;
+        // 限制边界：防止拖出屏幕外
+        x = Math.max(0, Math.min(x, window.innerWidth - el.offsetWidth));
+        y = Math.max(0, Math.min(y, window.innerHeight - el.offsetHeight));
         el.style.left = x + "px";
         el.style.top = y + "px";
     }
 
+    // 结束拖动
     document.addEventListener('mouseup', stop);
     document.addEventListener('touchend', stop);
 
@@ -97,22 +121,26 @@ function makeDraggable(elId, defaultX, defaultY) {
         // 保存位置到本地存储
         localStorage.setItem("drag_"+elId, el.style.left + "|" + el.style.top);
     }
+
+    // 屏幕尺寸变化时，重新初始化位置（适配横竖屏）
+    window.addEventListener('resize', initPos);
+    window.addEventListener('orientationchange', initPos);
 }
 
-// ********** 自定义初始位置：可自行修改px数值调整默认位置 **********
-// 基础UI拖动
-makeDraggable("hpBar", 15, 15);          // 血条默认位置
-makeDraggable("settingPanel", window.innerWidth - 180, 15); // 设置面板默认位置
-makeDraggable("toggleBackpack", 200, 15);// 背包按钮默认位置
-makeDraggable("hotbar", (window.innerWidth - 600)/2, window.innerHeight - 80); // 快捷栏默认位置
-// 独立按键拖动：默认保留原布局位置，可自行修改x/y数值
-makeDraggable("leftBtn", 20, window.innerHeight - 150);    // 左键默认
-makeDraggable("rightBtn", 92, window.innerHeight - 150);   // 右键默认
-makeDraggable("jumpBtn", 20, window.innerHeight - 70);     // 跳键默认（独立）
-makeDraggable("digBtn", window.innerWidth - 92, window.innerHeight - 150);  // 挖键默认
-makeDraggable("placeBtn", window.innerWidth - 92, window.innerHeight - 70); // 放键默认
+// ********** 按屏幕百分比设置默认位置（0-1之间，适配所有手机）**********
+// 基础UI：按百分比定位，永不消失
+makeDraggable("hpBar", 0.02, 0.02);          // 血条：左2% 上2%
+makeDraggable("settingPanel", 0.7, 0.02);    // 设置面板：左70% 上2%
+makeDraggable("toggleBackpack", 0.2, 0.02);  // 背包按钮：左20% 上2%
+makeDraggable("hotbar", 0.05, 0.85);         // 快捷栏：左5% 上85%（底部）
+// 独立按键：按屏幕百分比定位，手机端必见
+makeDraggable("leftBtn", 0.05, 0.7);         // 左键：左5% 上70%
+makeDraggable("rightBtn", 0.2, 0.7);         // 右键：左20% 上70%
+makeDraggable("jumpBtn", 0.05, 0.85);        // 跳键：左5% 上85%（独立，永不消失）
+makeDraggable("digBtn", 0.75, 0.7);          // 挖键：左75% 上70%
+makeDraggable("placeBtn", 0.75, 0.85);       // 放键：左75% 上85%
 
-// 按键大小调节（原有功能保留）
+// 按键大小调节（适配所有屏幕，默认60更适合手机）
 const btnSize = document.getElementById('btnSize');
 const allBtns = document.querySelectorAll('.btn');
 function updateBtnSize(){
@@ -120,7 +148,7 @@ function updateBtnSize(){
     allBtns.forEach(el=>{
         el.style.width = sz+'px';
         el.style.height = sz+'px';
-        el.style.fontSize = sz/2.8+'px';
+        el.style.fontSize = (sz/3)+'px';
     });
 }
 btnSize.oninput = updateBtnSize;

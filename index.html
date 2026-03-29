@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>迷你泰拉瑞亚-挖矿修复版</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-user-select:none;user-select:none;touch-action:none;}
+body{background:#000;overflow:hidden;}
+#gameCanvas{display:block;margin:0 auto;background:#87CEEB;}
+.ctrl{position:fixed;z-index:15;pointer-events:auto;}
+.left-ctrl{bottom:30px;left:20px;display:flex;gap:15px;}
+.right-ctrl{bottom:30px;right:20px;display:flex;flex-direction:column;gap:15px;}
+.btn{width:70px;height:70px;background:rgba(0,0,0,0.4);border-radius:50%;color:#fff;text-align:center;line-height:70px;font-size:24px;border:2px solid #ffffff80;}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+
+<div class="ctrl left-ctrl">
+<div class="btn" id="btnLeft">←</div>
+<div class="btn" id="btnRight">→</div>
+</div>
+<div class="ctrl right-ctrl">
+<div class="btn" id="btnJump">跳跃</div>
+<div class="btn" id="btnDig">挖矿</div>
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+function resize(){
+    canvas.width = Math.min(window.innerWidth, 900);
+    canvas.height = Math.min(window.innerHeight, 550);
+}
+resize();
+window.addEventListener('resize', resize);
+
+const TILE_SIZE = 32;
+const WORLD_W = 100;
+const WORLD_H = 35;
+
+let world = [];
+function generateWorld(){
+    world = [];
+    for(let y = 0; y < WORLD_H; y++){
+        let row = [];
+        for(let x = 0; x < WORLD_W; x++){
+            let groundHeight = Math.floor(WORLD_H/2 + Math.sin(x * 0.12) * 5);
+            if(y < groundHeight) row.push(0);
+            else if(y === groundHeight) row.push(2);
+            else if(y < groundHeight + 10) row.push(1);
+            else row.push(3);
+        }
+        world.push(row);
+    }
+}
+generateWorld();
+
+let player = {
+    x: WORLD_W / 2 * TILE_SIZE,
+    y: WORLD_H / 3 * TILE_SIZE,
+    w:24, h:36,
+    vx:0, vy:0,
+    speed:3.8,
+    gravity:0.55,
+    jumpPower:-13,
+    onGround:false
+};
+
+const key = {left:false, right:false, jump:false};
+
+window.addEventListener('keydown',e=>{
+    if(e.key === 'ArrowLeft') key.left = true;
+    if(e.key === 'ArrowRight') key.right = true;
+    if(e.key === ' ' && player.onGround) key.jump = true;
+});
+window.addEventListener('keyup',e=>{
+    if(e.key === 'ArrowLeft') key.left = false;
+    if(e.key === 'ArrowRight') key.right = false;
+});
+
+const btnLeft = document.getElementById('btnLeft');
+const btnRight = document.getElementById('btnRight');
+const btnJump = document.getElementById('btnJump');
+
+btnLeft.addEventListener('touchstart',(e)=>{e.preventDefault();key.left=true;});
+btnLeft.addEventListener('touchend',()=>{key.left=false;});
+btnRight.addEventListener('touchstart',(e)=>{e.preventDefault();key.right=true;});
+btnRight.addEventListener('touchend',()=>{key.right=false;});
+btnJump.addEventListener('touchstart',(e)=>{
+    e.preventDefault();
+    if(player.onGround) key.jump=true;
+});
+
+function isSolid(px, py){
+    let tx = Math.floor(px / TILE_SIZE);
+    let ty = Math.floor(py / TILE_SIZE);
+    if(tx < 0 || tx >= WORLD_W || ty <0 || ty >= WORLD_H) return true;
+    return world[ty][tx] > 0;
+}
+
+function checkCollision(x,y,w,h){
+    return isSolid(x, y) 
+        || isSolid(x + w, y)
+        || isSolid(x, y + h)
+        || isSolid(x + w, y + h);
+}
+
+// ========== 修复挖矿核心逻辑 ==========
+function digBlock(clientX, clientY){
+    let rect = canvas.getBoundingClientRect();
+    // 点击相对于画布坐标
+    let mx = clientX - rect.left;
+    let my = clientY - rect.top;
+
+    // 相机偏移
+    let camX = player.x - canvas.width / 2;
+    let camY = player.y - canvas.height / 2;
+
+    // 世界真实方块坐标
+    let tileX = Math.floor( (mx + camX) / TILE_SIZE );
+    let tileY = Math.floor( (my + camY) / TILE_SIZE );
+
+    // 边界保护+删除方块
+    if(tileX >= 0 && tileX < WORLD_W && tileY >=0 && tileY < WORLD_H){
+        if(world[tileY][tileX] > 0){
+            world[tileY][tileX] = 0;
+        }
+    }
+}
+
+// 手机屏幕点击挖矿
+canvas.addEventListener('touchstart',e=>{
+    e.preventDefault();
+    let t = e.touches[0];
+    digBlock(t.clientX, t.clientY);
+});
+// 电脑鼠标点击挖矿
+canvas.addEventListener('mousedown',e=>{
+    digBlock(e.clientX, e.clientY);
+});
+
+function update(){
+    player.vx = 0;
+    if(key.left) player.vx = -player.speed;
+    if(key.right) player.vx = player.speed;
+
+    if(!checkCollision(player.x + player.vx, player.y, player.w, player.h)){
+        player.x += player.vx;
+    }
+
+    player.vy += player.gravity;
+
+    player.onGround = false;
+    if(checkCollision(player.x, player.y + player.vy, player.w, player.h)){
+        player.onGround = true;
+        player.vy = 0;
+    }else{
+        player.y += player.vy;
+    }
+
+    if(key.jump && player.onGround){
+        player.vy = player.jumpPower;
+        key.jump = false;
+    }
+
+    player.x = Math.max(0, Math.min(player.x, WORLD_W*TILE_SIZE - player.w));
+}
+
+function render(){
+    ctx.fillStyle="#87CEEB";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    let camX = player.x - canvas.width/2;
+    let camY = player.y - canvas.height/2;
+
+    for(let y=0;y<WORLD_H;y++){
+        for(let x=0;x<WORLD_W;x++){
+            let t = world[y][x];
+            if(t === 0) continue;
+            let sx = x * TILE_SIZE - camX;
+            let sy = y * TILE_SIZE - camY;
+            if(sx < -TILE_SIZE || sx > canvas.width) continue;
+
+            if(t === 2) ctx.fillStyle = "#3e9c35";
+            if(t === 1) ctx.fillStyle = "#a0522d";
+            if(t === 3) ctx.fillStyle = "#777777";
+            ctx.fillRect(sx, sy, TILE_SIZE-1, TILE_SIZE-1);
+        }
+    }
+
+    ctx.fillStyle="#e74c3c";
+    ctx.fillRect(canvas.width/2, canvas.height/2, player.w, player.h);
+}
+
+function gameLoop(){
+    update();
+    render();
+    requestAnimationFrame(gameLoop);
+}
+gameLoop();
+</script>
+</body>
+</html>

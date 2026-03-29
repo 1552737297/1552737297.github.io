@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>雷霆战机 · 完整版</title>
+    <title>雷霆战机 · 道具增强版</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -73,14 +73,16 @@ const player = {
     w: 50,
     h: 60,
     shield: true,
-    invincible: false
+    weaponLevel: 1,   // 1=单 2=双 3=三发散射
+    laserTime: 0      // 激光剩余时间
 };
 
-// 子弹、敌机、BOSS、特效
+// 子弹、敌机、BOSS、特效、道具
 let bullets = [];
 let enemies = [];
 let boss = null;
 let effects = [];
+let items = [];
 
 // 触摸控制
 canvas.addEventListener('touchmove', e => {
@@ -93,18 +95,33 @@ canvas.addEventListener('touchmove', e => {
     if (player.x + player.w > canvas.width) player.x = canvas.width - player.w;
 });
 
-// 射击（双发）
+// 射击
 function shoot() {
-    // 左
-    bullets.push({ x: player.x + 12, y: player.y, w: 3, h: 12, speed: 9, color: '#0ff' });
-    // 右
-    bullets.push({ x: player.x + 35, y: player.y, w: 3, h: 12, speed: 9, color: '#0ff' });
+    if (player.laserTime > 0) {
+        // 激光
+        bullets.push({
+            type: 'laser', x: player.x + 15, y: player.y, w: 20, h: canvas.height, speed: 0, color: '#f0f'
+        });
+    } else {
+        // 普通子弹
+        if (player.weaponLevel >= 1) {
+            bullets.push({ type: 'normal', x: player.x + 23, y: player.y, w: 4, h: 14, speed: 9, color: '#0ff' });
+        }
+        if (player.weaponLevel >= 2) {
+            bullets.push({ type: 'normal', x: player.x + 5, y: player.y + 10, w: 4, h: 14, speed: 9, color: '#0ff' });
+            bullets.push({ type: 'normal', x: player.x + 41, y: player.y + 10, w: 4, h: 14, speed: 9, color: '#0ff' });
+        }
+        if (player.weaponLevel >= 3) {
+            bullets.push({ type: 'normal', x: player.x - 5, y: player.y + 20, w: 4, h: 14, speed: 8, color: '#0ff' });
+            bullets.push({ type: 'normal', x: player.x + 50, y: player.y + 20, w: 4, h: 14, speed: 8, color: '#0ff' });
+        }
+    }
     playSound('shoot');
 }
 
 // 普通敌机
 function createEnemy() {
-    if (boss) return; // BOSS出场时不刷小怪
+    if (boss) return;
     enemies.push({
         x: Math.random() * (canvas.width - 36),
         y: -40,
@@ -123,8 +140,8 @@ function spawnBoss() {
         y: 60,
         w: 160,
         h: 120,
-        hp: 30,
-        maxHp: 30,
+        hp: 40,
+        maxHp: 40,
         speed: 1.5,
         dir: 1
     };
@@ -142,7 +159,17 @@ function boom(x, y) {
     playSound('boom');
 }
 
-// 简易音效（网页自动播放兼容）
+// 掉落道具
+function dropItem(x, y) {
+    const r = Math.random();
+    let type;
+    if (r < 0.4) type = 'weapon';    // 武器升级
+    else if (r < 0.7) type = 'shield';// 护盾
+    else type = 'laser';              // 激光
+    items.push({ x, y, w: 26, h: 26, type, speed: 2 });
+}
+
+// 音效
 function playSound(type) {
     try {
         let o = new Audio();
@@ -169,6 +196,11 @@ function drawPlayer() {
         ctx.arc(player.x + 25, player.y + 30, 40, 0, Math.PI*2);
         ctx.stroke();
     }
+    if (player.laserTime > 0) {
+        ctx.fillStyle = '#f0f';
+        ctx.font = '16px bold';
+        ctx.fillText('激光', player.x, player.y - 10);
+    }
 }
 
 // 游戏主循环
@@ -177,15 +209,37 @@ function loop() {
     ctx.fillStyle = '#000';
     ctx.fillRect(0,0,canvas.width,canvas.height);
 
+    // 激光计时
+    if (player.laserTime > 0) player.laserTime -= 16;
+
     drawPlayer();
 
     // 子弹
     for (let i=bullets.length-1; i>=0; i--) {
         let b = bullets[i];
-        b.y -= b.speed;
+        if (b.type === 'normal') b.y -= b.speed;
         ctx.fillStyle = b.color;
         ctx.fillRect(b.x, b.y, b.w, b.h);
-        if (b.y < -20) bullets.splice(i,1);
+        if (b.y < -20 && b.type === 'normal') bullets.splice(i,1);
+    }
+
+    // 道具
+    for (let i=items.length-1; i>=0; i--) {
+        let it = items[i];
+        it.y += it.speed;
+        if (it.type === 'weapon') ctx.fillStyle = '#ff0';
+        if (it.type === 'shield') ctx.fillStyle = '#0ff';
+        if (it.type === 'laser') ctx.fillStyle = '#f0f';
+        ctx.fillRect(it.x, it.y, it.w, it.h);
+        if (collide(player, it)) {
+            if (it.type === 'weapon') {
+                if (player.weaponLevel < 3) player.weaponLevel++;
+            }
+            if (it.type === 'shield') player.shield = true;
+            if (it.type === 'laser') player.laserTime = 5000;
+            items.splice(i,1);
+        }
+        if (it.y > canvas.height) items.splice(i,1);
     }
 
     // 敌机
@@ -213,21 +267,19 @@ function loop() {
         ctx.fillStyle = '#f80';
         ctx.fillRect(boss.x, boss.y, boss.w, boss.h);
 
-        // 子弹打BOSS
         for (let i=bullets.length-1; i>=0; i--) {
             if (boss && collide(bullets[i], boss)) {
-                bullets.splice(i,1);
+                if (bullets[i].type === 'normal') bullets.splice(i,1);
                 boss.hp--;
                 if (boss.hp <= 0) {
                     boom(boss.x + boss.w/2, boss.y + boss.h/2);
-                    score += 200;
+                    score += 300;
                     scoreText.innerText = `分数：${score}`;
                     boss = null;
                     hpText.innerText = 'BOSS：-';
                 }
             }
         }
-
         if (collide(player, boss)) { gameOver(); return; }
     } else {
         hpText.innerText = 'BOSS：-';
@@ -237,15 +289,16 @@ function loop() {
     for (let i=bullets.length-1; i>=0; i--) {
         for (let j=enemies.length-1; j>=0; j--) {
             if (collide(bullets[i], enemies[j])) {
-                boom(enemies[j].x, enemies[j].y);
-                bullets.splice(i,1);
+                if (bullets[i].type === 'normal') bullets.splice(i,1);
                 enemies[j].hp--;
                 if (enemies[j].hp <= 0) {
+                    boom(enemies[j].x, enemies[j].y);
+                    if (Math.random() < 0.35) dropItem(enemies[j].x, enemies[j].y);
                     enemies.splice(j,1);
                     score += 20;
                     scoreText.innerText = `分数：${score}`;
+                    break;
                 }
-                break;
             }
         }
     }
@@ -269,19 +322,16 @@ function loop() {
 function start() {
     gameRunning = true;
     score = 0;
+    player.weaponLevel = 1;
+    player.laserTime = 0;
     scoreText.innerText = `分数：${score}`;
-    bullets = [];
-    enemies = [];
-    effects = [];
-    boss = null;
+    bullets = []; enemies = []; effects = []; items = []; boss = null;
     player.x = canvas.width/2 - 25;
     player.shield = true;
     startBtn.style.display = 'none';
 
     setInterval(shoot, 200);
     setInterval(createEnemy, 1200);
-
-    // 30秒出BOSS
     setTimeout(spawnBoss, 30000);
     loop();
 }

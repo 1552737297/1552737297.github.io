@@ -269,7 +269,6 @@ let bossSpawnTimer = null;
 let unlockedSkins = [1];
 let currentSkin = 1;
 let rainbowOffset = 0;
-// 存储每个皮肤的随机颜色
 let skinColors = {
   1: { body: '#00d9ff', bodyDark: '#005dff', wing: '#0042bd', shield: '#00d9ff' }
 };
@@ -281,11 +280,14 @@ let ulting = false;
 let ultFrame = 0;
 const ultDuration = 60;
 
+// 玩家属性升级系统
 const player = {
   x: canvas.width/2-25, y: canvas.height*0.8, w:50, h:60,
-  shield:true, weaponLevel:1, laserTime:0,
-  invincibleTime:0, bombCount:0,
-  wing1:false, wing2:false, magnetTime:0
+  shieldCount: 1, shieldMax: 3, // 护盾层数
+  weaponLevel:1, weaponMax:3,
+  laserLevel:0, laserMax:3, laserTime:0,
+  wingLevel:0, wingMax:3, // 僚机等级
+  invincibleTime:0, bombCount:0, magnetTime:0
 };
 
 let bullets = [];
@@ -295,6 +297,7 @@ let effects = [];
 let followMissiles = [];
 let boss = null;
 let bossBullets = [];
+let textEffects = []; // 道具名字文字特效
 
 // ====================== 随机颜色生成工具 ======================
 function randomHexColor() {
@@ -312,6 +315,15 @@ function generateRandomSkinColor() {
   const c3 = randomHexColor();
   const c4 = randomHexColor();
   return { body: c1, bodyDark: c2, wing: c3, shield: c4 };
+}
+
+// 显示道具拾取文字
+function showItemText(x, y, text) {
+  textEffects.push({
+    x, y, text,
+    alpha: 1, life: 60,
+    vy: -1.5
+  });
 }
 
 // ====================== 音效系统 ======================
@@ -493,31 +505,37 @@ function doUltimateDamage(){
   if(boss) boss.hp -= 25 + level*5;
 }
 
+// 射击逻辑（激光3级、僚机3级）
 function shoot(){
   if(!gameRunning || ulting) return;
   playSound('shoot');
-  if(player.laserTime>0){
-    bullets.push({
-      type:'laser',
-      x: player.x + player.w/2 - 10,
-      y: player.y,
-      w: 20, h: 60,
-      speed: 14,
-      color:'#f0f'
-    });
-  } else {
-    if(player.weaponLevel>=1) bullets.push({type:'normal',x:player.x+23,y:player.y,w:4,h:14,speed:9,color:'#0ff'});
-    if(player.weaponLevel>=2){
-      bullets.push({type:'normal',x:player.x+5,y:player.y+10,w:4,h:14,speed:9,color:'#0ff'});
-      bullets.push({type:'normal',x:player.x+41,y:player.y+10,w:4,h:14,speed:9,color:'#0ff'});
-    }
-    if(player.weaponLevel>=3){
-      bullets.push({type:'normal',x:player.x-5,y:player.y+20,w:4,h:14,speed:8,color:'#0ff'});
-      bullets.push({type:'normal',x:player.x+50,y:player.y+20,w:4,h:14,speed:8,color:'#0ff'});
-    }
+  const cx = player.x + player.w/2;
+
+  // 激光系统 1→3束
+  if(player.laserLevel > 0){
+    if(player.laserLevel >=1) bullets.push({type:'laser',x:cx-10,y:player.y,w:20,h:60,speed:14,color:'#f0f'});
+    if(player.laserLevel >=2) bullets.push({type:'laser',x:cx-22,y:player.y+10,w:16,h:50,speed:13,color:'#f0f'});
+    if(player.laserLevel >=3) bullets.push({type:'laser',x:cx+6,y:player.y+10,w:16,h:50,speed:13,color:'#f0f'});
   }
-  if(player.wing1) bullets.push({type:'normal',x:player.x-12,y:player.y+25,w:3,h:12,speed:8,color:'#0ff'});
-  if(player.wing2) bullets.push({type:'normal',x:player.x+58,y:player.y+25,w:3,h:12,speed:8,color:'#0ff'});
+
+  // 主武器
+  if(player.weaponLevel>=1) bullets.push({type:'normal',x:cx-2,y:player.y,w:4,h:14,speed:9,color:'#0ff'});
+  if(player.weaponLevel>=2){
+    bullets.push({type:'normal',x:player.x+5,y:player.y+10,w:4,h:14,speed:9,color:'#0ff'});
+    bullets.push({type:'normal',x:player.x+41,y:player.y+10,w:4,h:14,speed:9,color:'#0ff'});
+  }
+  if(player.weaponLevel>=3){
+    bullets.push({type:'normal',x:player.x-5,y:player.y+20,w:4,h:14,speed:8,color:'#0ff'});
+    bullets.push({type:'normal',x:player.x+50,y:player.y+20,w:4,h:14,speed:8,color:'#0ff'});
+  }
+
+  // 僚机 1-3级
+  if(player.wingLevel >=1) bullets.push({type:'normal',x:player.x-12,y:player.y+25,w:3,h:12,speed:8,color:'#0ff'});
+  if(player.wingLevel >=2) bullets.push({type:'normal',x:player.x+58,y:player.y+25,w:3,h:12,speed:8,color:'#0ff'});
+  if(player.wingLevel >=3){
+    bullets.push({type:'normal',x:player.x-20,y:player.y+32,w:3,h:12,speed:7,color:'#0ff'});
+    bullets.push({type:'normal',x:player.x+66,y:player.y+32,w:3,h:12,speed:7,color:'#0ff'});
+  }
 }
 
 function fireFollowMissile(){
@@ -581,8 +599,11 @@ function boom(x,y){
   playSound('boom');
 }
 
+// 道具掉落 + 升级逻辑
 function dropItem(x,y){
-  const list = ['weapon','shield','laser','wing','bomb','invincible','magnet','score'];
+  const list = [
+    'weapon','shield','laser','wing','bomb','invincible','magnet','score'
+  ];
   let type = list[Math.floor(Math.random()*list.length)];
   items.push({x,y,w:26,h:26,type,speed:2});
 }
@@ -591,18 +612,17 @@ function dropItem(x,y){
 function applySkinEffect() {
   switch (currentSkin) {
     case 4:
-      if (!player.shield) player.shield = true;
+      player.shieldCount = player.shieldMax;
       break;
   }
 }
 
-// 绘制玩家（全随机颜色）
+// 绘制玩家
 function drawPlayer(){
   if(player.invincibleTime>0 && Math.floor(Date.now()/120)%2==0) return;
   const cx = player.x + 25;
   const cy = player.y + 30;
 
-  // 获取当前皮肤的随机颜色
   const colors = skinColors[currentSkin];
   let bodyGrd = ctx.createLinearGradient(0, player.y, 0, player.y+60);
   bodyGrd.addColorStop(0, colors.body);
@@ -610,7 +630,6 @@ function drawPlayer(){
   const wingColor = colors.wing;
   const shieldColor = colors.shield;
 
-  // 绘制战机主体
   ctx.fillStyle = bodyGrd;
   ctx.beginPath();
   ctx.moveTo(cx, player.y);
@@ -627,38 +646,40 @@ function drawPlayer(){
   ctx.fillStyle = '#fff';
   ctx.fillRect(cx - 1, player.y + 54, 2, 4);
 
-  // 绘制机翼
-  if(player.wing1){
+  // 僚机渲染
+  if(player.wingLevel >=1){
     ctx.fillStyle = wingColor;
     ctx.beginPath();
     ctx.moveTo(player.x + 12, player.y + 38);
     ctx.lineTo(player.x - 16, player.y + 48);
     ctx.lineTo(player.x - 16, player.y + 58);
     ctx.lineTo(player.x + 12, player.y + 48);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = shieldColor;
-    ctx.fillRect(player.x - 12, player.y + 50, 6, 6);
+    closePath(); fill();
   }
-  if(player.wing2){
+  if(player.wingLevel >=2){
     ctx.fillStyle = wingColor;
     ctx.beginPath();
     ctx.moveTo(player.x + 38, player.y + 38);
     ctx.lineTo(player.x + 66, player.y + 48);
     ctx.lineTo(player.x + 66, player.y + 58);
     ctx.lineTo(player.x + 38, player.y + 48);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = shieldColor;
-    ctx.fillRect(player.x + 56, player.y + 50, 6, 6);
+    closePath(); fill();
+  }
+  if(player.wingLevel >=3){
+    ctx.fillStyle = wingColor;
+    ctx.fillRect(player.x-22, player.y+30, 8, 20);
+    ctx.fillRect(player.x+64, player.y+30, 8, 20);
   }
 
-  // 绘制护盾
-  if(player.shield){
+  // 多层护盾
+  if(player.shieldCount > 0){
+    let opacity = player.shieldCount / player.shieldMax;
     ctx.strokeStyle = shieldColor; ctx.lineWidth=2;
+    ctx.globalAlpha = opacity;
     ctx.beginPath(); ctx.arc(cx, cy, 40, 0, Math.PI*2); ctx.stroke();
-    ctx.strokeStyle = '#ffffff'; ctx.lineWidth=1;
+    ctx.strokeStyle = '#fff'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.arc(cx, cy, 36, 0, Math.PI*2); ctx.stroke();
+    ctx.globalAlpha = 1;
   }
 }
 
@@ -744,6 +765,24 @@ function drawEffect(ef){
   ctx.fill();
 }
 
+// 绘制道具名字
+function drawTextEffects() {
+  ctx.font = '16px Arial';
+  ctx.textAlign = 'center';
+  for (let i = textEffects.length - 1; i >= 0; i--) {
+    const te = textEffects[i];
+    te.life--;
+    te.y += te.vy;
+    te.alpha = te.life / 60;
+    if (te.life <= 0) { textEffects.splice(i, 1); continue; }
+
+    ctx.globalAlpha = te.alpha;
+    ctx.fillStyle = '#fff';
+    ctx.fillText(te.text, te.x, te.y);
+    ctx.globalAlpha = 1;
+  }
+}
+
 // 主循环
 function loop(){
   try {
@@ -769,6 +808,7 @@ function loop(){
     if(player.magnetTime>0) player.magnetTime -= 16;
 
     drawPlayer();
+    drawTextEffects();
     bossAttack();
 
     // 子弹
@@ -793,7 +833,7 @@ function loop(){
       }
     }
 
-    // 道具
+    // 道具拾取 + 升级
     for(let i=items.length-1;i>=0;i--){
       let it = items[i]; it.y += it.speed;
       if(player.magnetTime>0){
@@ -805,29 +845,58 @@ function loop(){
       drawItem(it);
       if(collide(player,it)){
         playSound('item');
-        if(it.type==='weapon'){ if(player.weaponLevel<3) player.weaponLevel++; }
-        if(it.type==='shield') player.shield = true;
-        if(it.type==='laser') player.laserTime = 5500;
-        if(it.type==='wing'){ if(!player.wing1) player.wing1=true; else player.wing2=true; }
-        if(it.type==='bomb'){ player.bombCount++; bombText.innerText='炸弹：'+player.bombCount; }
-        if(it.type==='invincible') player.invincibleTime = 5500;
-        if(it.type==='magnet') player.magnetTime = 5500;
-        if(it.type==='score'){
-          score += currentSkin ===5 ? 150 : 100;
-          scoreText.innerText='分数：'+score;
+        const tx = it.x + it.w/2;
+        const ty = it.y;
+
+        switch(it.type){
+          case 'weapon':
+            if(player.weaponLevel < player.weaponMax) player.weaponLevel++;
+            showItemText(tx,ty,`武器 Lv${player.weaponLevel}`);
+            break;
+          case 'shield':
+            if(player.shieldCount < player.shieldMax) player.shieldCount++;
+            showItemText(tx,ty,`护盾 ${player.shieldCount}层`);
+            break;
+          case 'laser':
+            if(player.laserLevel < player.laserMax) player.laserLevel++;
+            player.laserTime = 8000;
+            showItemText(tx,ty,`激光 Lv${player.laserLevel}`);
+            break;
+          case 'wing':
+            if(player.wingLevel < player.wingMax) player.wingLevel++;
+            showItemText(tx,ty,`僚机 Lv${player.wingLevel}`);
+            break;
+          case 'bomb':
+            player.bombCount++;
+            bombText.innerText='炸弹：'+player.bombCount;
+            showItemText(tx,ty,'获得炸弹');
+            break;
+          case 'invincible':
+            player.invincibleTime = 6000;
+            showItemText(tx,ty,'无敌激活');
+            break;
+          case 'magnet':
+            player.magnetTime = 6000;
+            showItemText(tx,ty,'拾取磁铁');
+            break;
+          case 'score':
+            score += currentSkin===5 ? 150 : 100;
+            scoreText.innerText='分数：'+score;
+            showItemText(tx,ty,'加分道具');
+            break;
         }
         items.splice(i,1);
       }
       if(it.y>canvas.height) items.splice(i,1);
     }
 
-    // 敌机
+    // 敌机碰撞（护盾层数消耗）
     for(let i=enemies.length-1;i>=0;i--){
       let e = enemies[i]; e.y += e.speed; drawEnemy(e);
       if(collide(player,e)){
-        if(player.shield){
+        if(player.shieldCount > 0){
           boom(e.x,e.y); enemies.splice(i,1);
-          if(currentSkin !==4) player.shield=false;
+          if(currentSkin !==4) player.shieldCount--;
           continue;
         }
         if(player.invincibleTime>0){
@@ -853,8 +922,8 @@ function loop(){
         ctx.arc(b.x+b.w/2, b.y+b.h/2, b.w/2, 0, Math.PI*2);
         ctx.fill();
         if(collide(player,b)){
-          if(player.shield){
-            player.shield = (currentSkin ===4);
+          if(player.shieldCount > 0){
+            if(currentSkin!==4) player.shieldCount--;
             bossBullets.splice(i,1); continue;
           }
           if(player.invincibleTime>0){ bossBullets.splice(i,1); continue; }
@@ -917,7 +986,7 @@ function loop(){
   }
 }
 
-// BOSS解锁皮肤 + 生成随机颜色
+// BOSS解锁皮肤
 function unlockSkinByLevel(bossLevel){
   let skinId = null;
   let tip = '';
@@ -929,7 +998,6 @@ function unlockSkinByLevel(bossLevel){
   }
   if(skinId && !unlockedSkins.includes(skinId)){
     unlockedSkins.push(skinId);
-    // 生成随机颜色
     skinColors[skinId] = generateRandomSkinColor();
     playSound('unlock');
     unlockTip.textContent = '击败BOSS！解锁：' + tip;
@@ -955,10 +1023,15 @@ function start(){
 
   gameRunning = true;
   score = 0; level = 1;
-  player.weaponLevel = 1; player.laserTime = 0; player.shield = true;
-  player.wing1 = false; player.wing2 = false; player.bombCount = 0;
+  // 重置所有升级属性
+  player.weaponLevel = 1;
+  player.laserLevel = 0; player.laserTime = 0;
+  player.wingLevel = 0;
+  player.shieldCount = 1;
   player.invincibleTime = 0; player.magnetTime = 0;
-  ultCharge = 0; ulting = false; ultFrame = 0;
+  player.bombCount = 0;
+
+  ultCharge = 0; ulting = false;
   
   scoreText.innerText = '分数：0';
   levelText.innerText = '关卡：1';
@@ -966,6 +1039,7 @@ function start(){
   ultText.innerText = '大招能量：0/100';
   
   bullets = []; enemies = []; effects = []; items = [];
+  textEffects = [];
   followMissiles = []; boss = null; bossBullets = [];
   player.x = canvas.width/2-25;
   player.y = canvas.height*0.8;

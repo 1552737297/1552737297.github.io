@@ -46,6 +46,31 @@ color:#fff;font-size:16px;font-weight:bold;
 border:none;box-shadow:0 0 16px #f30;
 display:none
 }
+
+/* 战败界面样式 */
+#defeat{
+position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+text-align:center;
+display:none;
+z-index:10
+}
+#defeatTitle{
+font-size:48px;font-weight:bold;
+color:#f30;text-shadow:0 0 20px #f30;
+margin-bottom:20px
+}
+#defeatInfo{
+font-size:20px;color:#fff;
+margin-bottom:30px;
+line-height:1.6
+}
+#restartBtn{
+padding:16px 40px;font-size:22px;
+background:linear-gradient(90deg,#f30,#f60);
+color:#fff;border:none;border-radius:12px;
+font-weight:bold;box-shadow:0 0 20px #f30;
+cursor:pointer
+}
 </style>
 </head>
 <body>
@@ -57,6 +82,14 @@ display:none
 <div id="bomb" class="ui">炸弹：0</div>
 <button id="startBtn">开始游戏</button>
 <button id="bombBtn">全屏炸弹</button>
+
+<!-- 战败界面 -->
+<div id="defeat">
+  <div id="defeatTitle">战 败</div>
+  <div id="defeatInfo"></div>
+  <button id="restartBtn">重新挑战</button>
+</div>
+
 <canvas id="game"></canvas>
 
 <script>
@@ -70,6 +103,10 @@ const startBtn = document.getElementById('startBtn');
 const bombBtn = document.getElementById('bombBtn');
 const logo = document.getElementById('logo');
 const author = document.getElementById('author');
+const defeat = document.getElementById('defeat');
+const defeatTitle = document.getElementById('defeatTitle');
+const defeatInfo = document.getElementById('defeatInfo');
+const restartBtn = document.getElementById('restartBtn');
 
 canvas.width = 375;
 canvas.height = 667;
@@ -545,6 +582,7 @@ function start(){
   author.style.display = 'none';
   startBtn.style.display = 'none';
   bombBtn.style.display = 'block';
+  defeat.style.display = 'none'; // 隐藏战败界面
 
   if(window.shootInterval) clearInterval(window.shootInterval);
   if(window.enemyInterval) clearInterval(window.enemyInterval);
@@ -556,6 +594,7 @@ function start(){
   loop();
 }
 
+// ====================== 战败界面（替换alert） ======================
 function gameOver(){
   gameRunning = false;
   if(bossSpawnTimer) clearTimeout(bossSpawnTimer);
@@ -563,13 +602,14 @@ function gameOver(){
   clearInterval(window.enemyInterval);
   clearInterval(window.missileInterval);
   
-  alert(`游戏结束！\n关卡：${level}\n得分：${score}\n分享给小伙伴挑战吧！`);
-  logo.style.display = 'block';
-  author.style.display = 'block';
-  startBtn.style.display = 'block';
+  // 显示战败信息
+  defeatInfo.innerHTML = `最高关卡：${level}<br>最终得分：${score}<br>再接再厉！`;
+  defeat.style.display = 'block';
   bombBtn.style.display = 'none';
 }
 
+// 重新开始按钮
+restartBtn.onclick = start;
 startBtn.onclick = start;
 </script>
 </body>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>太空雷霆战机 - 3D旋转终极版 + 抽奖系统</title>
+<title>太空雷霆战机 - 3D旋转终极版 + 抽奖系统 + 战机图鉴</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{
@@ -160,6 +160,30 @@ display:none;
 cursor:pointer;
 }
 
+/* ====================== 图鉴按钮 ====================== */
+#pediaBtn{
+position:absolute;bottom:120px;left:30px;
+width:60px;height:60px;
+border-radius:50%;
+font-size:14px;
+font-weight:bold;
+border:2px solid #0fa;
+background:#112;
+color:#0fa;
+box-shadow:0 0 15px #0fa;
+display:none;
+cursor:pointer;
+transition: all 0.3s ease;
+z-index:8;
+}
+#pediaBtn:hover{
+transform: scale(1.08);
+box-shadow:0 0 25px #0fa;
+}
+#pediaBtn:active{
+transform: scale(0.94);
+}
+
 /* ====================== 抽奖系统按钮 ====================== */
 #luckyBtn{
 position:absolute;bottom:120px;right:30px;
@@ -255,6 +279,83 @@ opacity:0.7;
 100%{transform:rotate(2160deg)}
 }
 
+/* ====================== 战机图鉴弹窗 ====================== */
+#pediaPopup{
+position:fixed;top:0;left:0;width:100%;height:100%;
+background:rgba(0,0,0,0.8);
+display:flex;justify-content:center;align-items:center;
+z-index:999;
+backdrop-filter: blur(10px);
+display:none;
+}
+.pedia-box{
+background:rgba(10,20,40,0.95);
+padding:28px 24px;
+border-radius:20px;
+border:2px solid #0fa;
+box-shadow:0 0 60px rgba(0,255,170,0.3);
+width:340px;
+max-height:80vh;
+overflow-y:auto;
+text-align:center;
+}
+.pedia-title{
+font-size:28px;
+background:linear-gradient(90deg,#0fa,#0af);
+-webkit-background-clip:text;background-clip:text;color:transparent;
+font-weight:bold;margin-bottom:24px;
+}
+.skin-list{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:14px;
+margin-bottom:20px;
+}
+.skin-item{
+background:rgba(0,15,30,0.6);
+border:2px solid #334;
+border-radius:14px;
+padding:16px 10px;
+transition:0.3s;
+}
+.skin-item.unlocked{
+border-color:#0fa;
+background:rgba(0,40,30,0.5);
+}
+.skin-item.current{
+border-color:#0ff;
+background:rgba(0,60,50,0.6);
+box-shadow:0 0 18px rgba(0,255,170,0.4);
+}
+.skin-color{
+width:50px;height:50px;
+border-radius:50%;
+margin:0 auto 10px;
+border:2px solid #fff;
+}
+.skin-name{
+font-size:16px;font-weight:bold;color:#fff;margin-bottom:6px;
+}
+.skin-desc{
+font-size:12px;color:#aaa;line-height:1.4;margin-bottom:8px;
+}
+.use-skin-btn{
+padding:6px 14px;
+font-size:13px;font-weight:bold;
+background:#0fa;color:#000;
+border:none;border-radius:20px;
+cursor:pointer;
+opacity:0.8;
+}
+.use-skin-btn:disabled{
+background:#445;color:#888;cursor:not-allowed;
+}
+#closePedia{
+margin-top:16px;padding:10px 24px;
+background:#224;color:#fff;border:none;
+border-radius:20px;cursor:pointer;
+}
+
 #defeat{
 position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
 text-align:center;
@@ -320,6 +421,7 @@ transform: scale(0.94);
 <button id="bombBtn">全屏炸弹</button>
 <button id="ultBtn">星际湮灭</button>
 <button id="skinSwitchBtn">换肤</button>
+<button id="pediaBtn">图鉴</button>
 <button id="luckyBtn">抽奖</button>
 
 <!-- 抽奖弹窗 -->
@@ -333,6 +435,15 @@ transform: scale(0.94);
     <button id="spinBtn">开始抽奖 (300分)</button>
     <div id="spinResult"></div>
     <button id="closeLucky">关闭</button>
+  </div>
+</div>
+
+<!-- 战机图鉴弹窗 -->
+<div id="pediaPopup">
+  <div class="pedia-box">
+    <div class="pedia-title">战机图鉴</div>
+    <div class="skin-list" id="skinList"></div>
+    <button id="closePedia">关闭图鉴</button>
   </div>
 </div>
 
@@ -364,6 +475,12 @@ const defeatInfo = document.getElementById('defeatInfo');
 const restartBtn = document.getElementById('restartBtn');
 const unlockTip = document.getElementById('unlockTip');
 
+// 图鉴元素
+const pediaBtn = document.getElementById('pediaBtn');
+const pediaPopup = document.getElementById('pediaPopup');
+const skinList = document.getElementById('skinList');
+const closePedia = document.getElementById('closePedia');
+
 // 抽奖元素
 const luckyBtn = document.getElementById('luckyBtn');
 const luckyPopup = document.getElementById('luckyPopup');
@@ -384,6 +501,14 @@ let unlockedSkins = [1];
 let currentSkin = 1;
 let skinColors = {
   1: { body: '#00d9ff', bodyDark: '#005dff', wing: '#0042bd', shield: '#00d9ff' }
+};
+// 战机名称与描述
+const skinInfo = {
+  1: { name: "基础战机", desc: "均衡型战机\n适合新手" },
+  2: { name: "迅风战机", desc: "攻击速度大幅提升" },
+  3: { name: "湮灭战机", desc: "大招充能速度加快" },
+  4: { name: "圣盾战机", desc: "护盾永久不消耗" },
+  5: { name: "至尊战机", desc: "获得分数全部翻倍" }
 };
 
 let ultCharge = 0;
@@ -580,7 +705,7 @@ function playSound(type) {
       osc.frequency.setValueAtTime(550, audioCtx.currentTime + 0.1);
       osc.frequency.setValueAtTime(660, audioCtx.currentTime + 0.2);
       gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+      gainNode.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
       osc.start();
       osc.stop(audioCtx.currentTime + 0.3);
       break;
@@ -590,7 +715,7 @@ function playSound(type) {
       osc.frequency.setValueAtTime(659, audioCtx.currentTime+0.1);
       osc.frequency.setValueAtTime(784, audioCtx.currentTime+0.2);
       gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+0.4);
+      gainNode.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+0.4);
       osc.start();osc.stop(audioCtx.currentTime+0.4);
       break;
   }
@@ -1040,9 +1165,55 @@ function givePrize(name){
   }
 }
 
+// ====================== 图鉴系统核心逻辑 ======================
+function openPedia(){
+  if(!gameRunning) return;
+  pediaPopup.style.display = 'flex';
+  renderSkinList();
+}
+function closePediaPopup(){
+  pediaPopup.style.display = 'none';
+}
+
+function renderSkinList(){
+  skinList.innerHTML = '';
+  for(let id=1;id<=5;id++){
+    const unlocked = unlockedSkins.includes(id);
+    const isCurrent = currentSkin === id;
+    const info = skinInfo[id];
+    const color = skinColors[id].body;
+
+    const item = document.createElement('div');
+    item.className = `skin-item ${unlocked ? 'unlocked' : ''} ${isCurrent ? 'current' : ''}`;
+
+    item.innerHTML = `
+      <div class="skin-color" style="background:${color};"></div>
+      <div class="skin-name">${info.name}</div>
+      <div class="skin-desc">${info.desc}</div>
+      <button class="use-skin-btn" data-id="${id}" ${!unlocked ? 'disabled' : ''}>
+        ${isCurrent ? '使用中' : '使用战机'}
+      </button>
+    `;
+    skinList.appendChild(item);
+  }
+
+  document.querySelectorAll('.use-skin-btn').forEach(btn=>{
+    btn.onclick = ()=>{
+      const id = parseInt(btn.dataset.id);
+      if(unlockedSkins.includes(id)){
+        currentSkin = id;
+        renderSkinList();
+      }
+    };
+  });
+}
+
 luckyBtn.onclick = openLucky;
 closeLucky.onclick = closeLuckyPopup;
 spinBtn.onclick = spinWheel;
+
+pediaBtn.onclick = openPedia;
+closePedia.onclick = closePediaPopup;
 
 function loop(){
   try {
@@ -1306,7 +1477,8 @@ function start(){
   bombBtn.style.display = 'block';
   skinSwitchBtn.style.display = 'block';
   ultBtn.style.display = 'block';
-  luckyBtn.style.display = 'block'; // 显示抽奖按钮
+  pediaBtn.style.display = 'block';
+  luckyBtn.style.display = 'block';
   ultBtn.disabled = true;
   defeat.style.display = 'none';
 
@@ -1334,8 +1506,10 @@ function gameOver(){
   bombBtn.style.display = 'none';
   skinSwitchBtn.style.display = 'none';
   ultBtn.style.display = 'none';
-  luckyBtn.style.display = 'none'; // 隐藏抽奖
+  pediaBtn.style.display = 'none';
+  luckyBtn.style.display = 'none';
   closeLuckyPopup();
+  closePediaPopup();
 }
 
 restartBtn.onclick = start;

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>迷你泰拉瑞亚 - 2D生存建造</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;user-select:none;}
+body{background:#000;overflow:hidden;}
+#gameCanvas{display:block;margin:0 auto;background:#87CEEB;}
+/*手机触控按钮*/
+.ctrl{position:fixed;z-index:10;}
+.left-ctrl{bottom:30px;left:20px;display:flex;gap:10px;}
+.right-ctrl{bottom:30px;right:20px;display:flex;flex-direction:column;gap:10px;}
+.btn{width:60px;height:60px;background:rgba(255,255,255,0.2);border-radius:50%;color:#fff;text-align:center;line-height:60px;font-size:22px;border:2px solid #fff;}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+
+<!-- 手机虚拟按键 -->
+<div class="ctrl left-ctrl">
+<div class="btn" id="btnLeft">←</div>
+<div class="btn" id="btnRight">→</div>
+</div>
+<div class="ctrl right-ctrl">
+<div class="btn" id="btnJump">跳</div>
+<div class="btn" id="btnDig">挖</div>
+</div>
+
+<script>
+// ===== 基础配置 =====
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+// 适配手机全屏
+function resize(){
+canvas.width = Math.min(window.innerWidth,800);
+canvas.height = Math.min(window.innerHeight,500);
+}
+resize();window.addEventListener('resize',resize);
+
+const TILE_SIZE = 32;
+const WORLD_W = 80;
+const WORLD_H = 30;
+
+// 方块ID：0空气 1泥土 2草地 3石头
+let world = [];
+// 生成随机地形
+function generateWorld(){
+world = [];
+for(let y=0;y<WORLD_H;y++){
+let row = [];
+for(let x=0;x<WORLD_W;x++){
+// 地表起伏
+let groundH =  Math.floor(WORLD_H/2 + Math.sin(x*0.15)*4);
+if(y < groundH) row.push(0);
+else if(y === groundH) row.push(2);
+else if(y < groundH+8) row.push(1);
+else row.push(3);
+}
+world.push(row);
+}
+}
+generateWorld();
+
+// 玩家属性
+let player = {
+x:WORLD_W/2*TILE_SIZE,
+y:WORLD_H/2*TILE_SIZE,
+vx:0,vy:0,
+speed:4,gravity:0.6,jumpPower:-14,
+onGround:false
+};
+
+// 按键控制
+const key = {left:false,right:false,jump:false,dig:false};
+// 桌面键盘
+window.addEventListener('keydown',e=>{
+if(e.key==='ArrowLeft')key.left=true;
+if(e.key==='ArrowRight')key.right=true;
+if(e.key===' '&&player.onGround)key.jump=true;
+});
+window.addEventListener('keyup',e=>{
+if(e.key==='ArrowLeft')key.left=false;
+if(e.key==='ArrowRight')key.right=false;
+});
+
+// 手机触控按钮
+document.getElementById('btnLeft').addEventListener('touchstart',()=>key.left=true);
+document.getElementById('btnLeft').addEventListener('touchend',()=>key.left=false);
+document.getElementById('btnRight').addEventListener('touchstart',()=>key.right=true);
+document.getElementById('btnRight').addEventListener('touchend',()=>key.right=false);
+document.getElementById('btnJump').addEventListener('touchstart',()=>{if(player.onGround)key.jump=true});
+
+// 挖矿点击
+canvas.addEventListener('touchstart',e=>{
+let rect = canvas.getBoundingClientRect();
+let mx = e.touches[0].clientX - rect.left;
+let my = e.touches[0].clientY - rect.top;
+let tileX = Math.floor(mx/TILE_SIZE + player.x/TILE_SIZE - canvas.width/2/TILE_SIZE);
+let tileY = Math.floor(my/TILE_SIZE + player.y/TILE_SIZE - canvas.height/2/TILE_SIZE);
+if(world[tileY] && world[tileY][tileX] >0) world[tileY][tileX] = 0;
+});
+
+// 碰撞检测
+function isSolid(x,y){
+let tx = Math.floor(x/TILE_SIZE);
+let ty = Math.floor(y/TILE_SIZE);
+if(tx<0||tx>=WORLD_W||ty<0||ty>=WORLD_H) return true;
+return world[ty][tx] > 0;
+}
+
+// 游戏更新
+function update(){
+// 左右移动
+player.vx = 0;
+if(key.left)player.vx = -player.speed;
+if(key.right)player.vx = player.speed;
+
+// 重力跳跃
+player.vy += player.gravity;
+if(key.jump){
+player.vy = player.jumpPower;
+key.jump = false;
+}
+
+// 水平碰撞
+if(!isSolid(player.x+player.vx,player.y+10)) player.x += player.vx;
+// 垂直落地
+player.onGround = false;
+if(isSolid(player.x,player.y+player.vy+12)){
+player.onGround = true;
+player.vy = 0;
+}else{
+player.y += player.vy;
+}
+}
+
+// 渲染地图+玩家
+function render(){
+// 天空底色
+ctx.fillStyle="#87CEEB";
+ctx.fillRect(0,0,canvas.width,canvas.height);
+
+// 相机偏移
+let camX = player.x - canvas.width/2;
+let camY = player.y - canvas.height/2;
+
+// 绘制方块
+for(let y=0;y<WORLD_H;y++){
+for(let x=0;x<WORLD_W;x++){
+let t = world[y][x];
+if(t===0)continue;
+let sx = x*TILE_SIZE - camX;
+let sy = y*TILE_SIZE - camY;
+if(sx<-TILE_SIZE||sx>canvas.width)continue;
+// 颜色区分方块
+if(t===2)ctx.fillStyle="#4CAF50";
+if(t===1)ctx.fillStyle="#8B572A";
+if(t===3)ctx.fillStyle="#888888";
+ctx.fillRect(sx,sy,TILE_SIZE-1,TILE_SIZE-1);
+}
+}
+
+// 绘制玩家
+ctx.fillStyle="#ff3333";
+ctx.fillRect(canvas.width/2-12,canvas.height/2-24,24,36);
+}
+
+// 循环动画
+function gameLoop(){
+update();render();
+requestAnimationFrame(gameLoop);
+}
+gameLoop();
+</script>
+</body>
+</html>

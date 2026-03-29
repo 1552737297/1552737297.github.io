@@ -1,7 +1,6 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// 画布自适应（原有保留）
 function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -9,19 +8,14 @@ function resizeCanvas() {
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
-// 游戏常量（原有保留）
 const TILE = 32;
 const GRAV = 0.5;
 const JUMP = 12;
 const SPD = 5;
 const BLOCK_COLOR = {
-    1: "#8B4513",
-    2: "#32CD32",
-    3: "#808080",
-    4: "#a0522d"
+    1: "#8B4513", 2: "#32CD32", 3: "#808080", 4: "#a0522d"
 };
 
-// 玩家对象（原有保留）
 let player = {
     x: 200, y: 200, w: 28, h: 32,
     vx: 0, vy: 0, onGround: false,
@@ -29,18 +23,15 @@ let player = {
     invincible: false, invTime: 0
 };
 
-// 人物动画变量（原有保留）
 let animTimer = 0;
 let walkFrame = 0;
 
-// 物品系统：10格快捷栏 + 40格背包（原有保留）
 const HOTBAR_SIZE = 10;
 const BACKPACK_SIZE = 40;
 let hotbar = Array(HOTBAR_SIZE).fill(null).map(() => ({ id: 0, count: 0 }));
 let backpack = Array(BACKPACK_SIZE).fill(null).map(() => ({ id: 0, count: 0 }));
 let selectSlot = 0;
 
-// 初始化物品（原有保留）
 function initInventory() {
     hotbar[0] = { id: 1, count: 99 };
     hotbar[1] = { id: 2, count: 99 };
@@ -53,31 +44,23 @@ function initInventory() {
 }
 initInventory();
 
-// 游戏世界/相机/怪物（原有保留）
 let world = {};
 let camera = { x: 0, y: 0 };
 let monsters = [];
 const MONSTER_MAX = 6;
 
-// 生成怪物（原有保留）
 function spawnMonster() {
     if (monsters.length >= MONSTER_MAX) return;
     monsters.push({
-        x: Math.random() * 1800 - 400,
-        y: 200, w: 28, h: 28,
-        hp: 30, speed: 1.1
+        x: Math.random() * 1800 - 400, y: 200, w: 28, h: 28, hp: 30, speed: 1.1
     });
 }
 for (let i = 0; i < 6; i++) spawnMonster();
 
-// 按键状态（原有保留）
 const keys = {
-    left: false, right: false, up: false,
-    dig: false, place: false,
-    digCD: 0, placeCD: 0
+    left: false, right: false, up: false, dig: false, place: false, digCD: 0, placeCD: 0
 };
 
-// 生成世界（原有保留）
 function genWorld() {
     let baseY = Math.floor(canvas.height / TILE / 2) + 6;
     for (let x = -60; x < 180; x++) {
@@ -92,7 +75,6 @@ function genWorld() {
     }
 }
 
-// 地图相关方法（原有保留）
 function getTile(px, py) {
     let tx = Math.floor(px / TILE);
     let ty = Math.floor(py / TILE);
@@ -102,7 +84,6 @@ function isSolid(x, y) {
     return getTile(x, y) !== 0;
 }
 
-// 挖掘方块（原有保留）
 function dig() {
     let cx = player.x + player.w / 2;
     let cy = player.y + player.h / 2;
@@ -116,7 +97,6 @@ function dig() {
     }
 }
 
-// 放置方块（原有保留）
 function place() {
     const selectedItem = hotbar[selectSlot];
     if (!selectedItem || selectedItem.id === 0 || selectedItem.count <= 0) return;
@@ -136,7 +116,6 @@ function place() {
     renderBackpackUI();
 }
 
-// 物品添加到背包（原有保留）
 function addItemToBackpack(itemId, count) {
     for (let slot of [...hotbar, ...backpack]) {
         if (slot.id === itemId && slot.count < 99) {
@@ -170,7 +149,6 @@ function addItemToBackpack(itemId, count) {
     renderBackpackUI();
 }
 
-// 键盘事件（原有保留）
 document.addEventListener('keydown', e => {
     if (e.key === 'a' || e.key === 'ArrowLeft') keys.left = true;
     if (e.key === 'd' || e.key === 'ArrowRight') keys.right = true;
@@ -184,11 +162,10 @@ document.addEventListener('keyup', e => {
     if (e.key === 'a' || e.key === 'ArrowLeft') keys.left = false;
     if (e.key === 'd' || e.key === 'ArrowRight') keys.right = false;
     if (e.key === 'w' || e.key === 'ArrowUp') keys.up = false;
-    if (e.key === 'j') keys.dig = false;
-    if (e.key === 'k') keys.place = false;
+    if (e.key === 'j') dig = false;
+    if (e.key === 'k') place = false;
 });
 
-// 移动端按键绑定（原有保留）
 function bindBtn(id, k) {
     const btn = document.getElementById(id);
     btn.addEventListener('touchstart', e => { e.preventDefault(); keys[k] = true; });
@@ -201,7 +178,6 @@ bindBtn('jumpBtn', 'up');
 bindBtn('digBtn', 'dig');
 bindBtn('placeBtn', 'place');
 
-// 渲染10格快捷栏UI（微调：数量文字用span包裹，适配CSS定位）
 function renderHotbarUI() {
     const hotbarEl = document.getElementById('hotbar');
     hotbarEl.innerHTML = '';
@@ -209,27 +185,22 @@ function renderHotbarUI() {
         let slot = document.createElement('div');
         slot.className = `inv-slot ${i === selectSlot ? 'selected' : ''} ${item.id === 0 ? 'empty' : ''}`;
         slot.style.backgroundColor = item.id !== 0 ? BLOCK_COLOR[item.id] : '';
-        // 数量文字用span包裹，方便CSS定位到右下角
         const countSpan = document.createElement('span');
         countSpan.innerText = item.count > 0 ? item.count : '';
         slot.appendChild(countSpan);
-        // 点击切换选中格
         slot.onclick = () => {
             selectSlot = i;
             renderHotbarUI();
         };
         hotbarEl.appendChild(slot);
     });
-    // 血条更新
     const hpPer = Math.max(0, player.hp / player.maxHp * 100);
     document.getElementById('hp-fill').style.width = hpPer + '%';
 }
 
-// 渲染背包UI（微调：数量文字用span包裹）
 function renderBackpackUI() {
     const backpackGrid = document.getElementById('backpackGrid');
     backpackGrid.innerHTML = '';
-    // 背包顶部显示10格快捷栏
     hotbar.forEach((item, i) => {
         let slot = document.createElement('div');
         slot.className = `inv-slot ${item.id === 0 ? 'empty' : ''}`;
@@ -243,7 +214,6 @@ function renderBackpackUI() {
         };
         backpackGrid.appendChild(slot);
     });
-    // 背包主体40格
     backpack.forEach((item, i) => {
         let slot = document.createElement('div');
         slot.className = `inv-slot ${item.id === 0 ? 'empty' : ''}`;
@@ -251,7 +221,6 @@ function renderBackpackUI() {
         const countSpan = document.createElement('span');
         countSpan.innerText = item.count > 0 ? item.count : '';
         slot.appendChild(countSpan);
-        // 点击背包物品：移动到快捷栏空位置
         slot.onclick = () => {
             if (item.id === 0) return;
             const emptySlotIndex = hotbar.findIndex(s => s.id === 0);
@@ -266,7 +235,6 @@ function renderBackpackUI() {
     });
 }
 
-// 怪物更新（原有保留）
 function updateMonsters() {
     monsters.forEach(m => {
         if (m.x < player.x - 10) m.x += m.speed;
@@ -284,7 +252,6 @@ function updateMonsters() {
     });
 }
 
-// 游戏主更新逻辑（原有保留）
 function update() {
     if (keys.digCD > 0) keys.digCD--;
     if (keys.placeCD > 0) keys.placeCD--;
@@ -335,7 +302,6 @@ function update() {
     updateMonsters();
     renderHotbarUI();
 
-    // 人物动画
     animTimer++;
     if(animTimer >= 8){
         animTimer = 0;
@@ -343,7 +309,6 @@ function update() {
     }
 }
 
-// 游戏绘制逻辑（原有完全保留）
 function draw() {
     ctx.fillStyle = '#87CEB8';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -363,7 +328,6 @@ function draw() {
         let my = m.y - camera.y;
         ctx.fillRect(mx, my, m.w, m.h);
     });
-    // 玩家绘制
     let px = player.x - camera.x;
     let py = player.y - camera.y;
     if (player.invincible && Math.floor(Date.now() / 80) % 2 === 0) {
@@ -372,20 +336,15 @@ function draw() {
         ctx.globalAlpha = 1;
     }
     let isMoving = Math.abs(player.vx) > 0;
-    // 头皮肤
     ctx.fillStyle = "#ffd6b9";
     ctx.fillRect(px + 4, py, 20, 12);
-    // 头发
     ctx.fillStyle = "#603813";
     ctx.fillRect(px + 4, py, 20, 4);
-    // 眼睛
     ctx.fillStyle = "#000000";
     ctx.fillRect(px + 8, py + 4, 3, 3);
     ctx.fillRect(px + 14, py + 4, 3, 3);
-    // 上衣
     ctx.fillStyle = "#e74c3c";
     ctx.fillRect(px + 3, py + 12, 22, 10);
-    // 手臂动画
     ctx.fillStyle = "#ffd6b9";
     if(isMoving && player.onGround){
         if(walkFrame === 0){
@@ -399,7 +358,6 @@ function draw() {
         ctx.fillRect(px, py + 12, 4, 10);
         ctx.fillRect(px + 24, py + 12, 4, 10);
     }
-    // 腿部动画
     ctx.fillStyle = "#34495e";
     if(!player.onGround){
         ctx.fillRect(px + 4, py + 22, 7, 9);
@@ -419,14 +377,12 @@ function draw() {
     ctx.globalAlpha = 1;
 }
 
-// 游戏主循环（原有保留）
 function loop() {
     update();
     draw();
     requestAnimationFrame(loop);
 }
 
-// 初始化执行
 renderBackpackUI();
 genWorld();
 loop();

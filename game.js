@@ -1,192 +1,255 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// 画布自适应
-function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+// 适配画布
+function resizeCanvas(){
+    canvas.width=innerWidth;
+    canvas.height=innerHeight;
 }
 resizeCanvas();
-window.addEventListener('resize', resizeCanvas);
+addEventListener("resize",resizeCanvas);
 
-// ==================== 游戏配置 ====================
-const TILE_SIZE = 32;       // 方块大小
-const PLAYER_SPEED = 5;     // 移动速度
-const JUMP_POWER = 12;      // 跳跃力度
-const GRAVITY = 0.5;        // 重力
+//===== 基础配置 =====
+const TILE=32;
+const GRAV=0.5;
+const JUMP=12;
+const SPD=5;
 
-// 玩家对象
-let player = {
-    x: 200,
-    y: 200,
-    width: 28,
-    height: 32,
-    velX: 0,
-    velY: 0,
-    onGround: false,
-    color: '#ff6b6b'
+// 方块类型：0空 1泥土 2草 3石头 4木头
+const BLOCK_COLOR={
+    1:"#8B4513",
+    2:"#32CD32",
+    3:"#808080",
+    4:"#a0522d"
 };
 
-// 按键状态
-const keys = {
-    left: false, right: false, up: false,
-    dig: false, place: false
+//===== 玩家 =====
+let player={
+    x:200,y:200,w:28,h:32,
+    vx:0,vy:0,onGround:false,
+    hp:100,maxHp:100
 };
 
-// 世界方块 (type: 0空 1泥土 2草地 3石头)
-let world = {};
-let camera = { x: 0, y: 0 };
+// 背包&选中
+let inv=[
+    {id:1,count:99},
+    {id:2,count:99},
+    {id:3,count:99},
+    {id:4,count:99}
+];
+let selectSlot=0;
 
-// ==================== 地形生成 ====================
-function generateWorld() {
-    let groundY = Math.floor(canvas.height / TILE_SIZE / 2) + 5;
-    
-    for (let x = -50; x < 150; x++) {
-        // 随机高度
-        let h = groundY + Math.floor(Math.random() * 3) - 1;
-        
-        for (let y = h; y < h + 15; y++) {
-            let type = 1;
-            if (y === h) type = 2;       // 顶层草地
-            if (y > h + 3) type = 3;     // 深处石头
-            world[`${x},${y}`] = type;
+//===== 世界 & 相机 =====
+let world={};
+let camera={x:0,y:0};
+
+//===== 怪物系统 =====
+let monsters=[];
+function spawnMonster(){
+    monsters.push({
+        x:Math.random()*2000-500,
+        y:300,w:28,h:28,
+        hp:30,vx:0,speed:1.2
+    });
+}
+for(let i=0;i<12;i++)spawnMonster();
+
+//===== 按键 =====
+const keys={left:false,right:false,up:false,dig:false,place:false};
+
+//===== 生成地形 =====
+function genWorld(){
+    let base=Math.floor(canvas.height/TILE/2)+6;
+    for(let x=-80;x<220;x++){
+        let h=base+Math.floor(Math.random()*4)-2;
+        for(let y=h;y<h+20;y++){
+            let t=1;
+            if(y===h)t=2;
+            if(y>h+4)t=3;
+            if(Math.random()<0.02)t=4;
+            world[`${x},${y}`]=t;
         }
     }
 }
 
-// ==================== 输入控制 ====================
-// 电脑键盘
-document.addEventListener('keydown', e => {
-    if(e.key === 'a' || e.key === 'ArrowLeft') keys.left = true;
-    if(e.key === 'd' || e.key === 'ArrowRight') keys.right = true;
-    if(e.key === 'w' || e.key === 'ArrowUp') keys.up = true;
-    if(e.key === 'j') keys.dig = true;
-    if(e.key === 'k') keys.place = true;
+//===== 碰撞工具 =====
+function getTile(px,py){
+    let tx=Math.floor(px/TILE);
+    let ty=Math.floor(py/TILE);
+    return world[tx+","+ty]||0;
+}
+function isSolid(x,y){return getTile(x,y)!==0;}
+
+//===== 挖掘放置 =====
+function dig(){
+    let cx=player.x+player.w/2;
+    let cy=player.y+player.h/2;
+    let tx=Math.floor(cx/TILE);
+    let ty=Math.floor(cy/TILE);
+    let key=`${tx},${ty}`;
+    if(world[key]){
+        delete world[key];
+    }
+}
+function place(){
+    let it=inv[selectSlot];
+    if(!it||it.count<=0)return;
+    let cx=player.x+player.w/2;
+    let cy=player.y+player.h/2;
+    let tx=Math.floor(cx/TILE);
+    let ty=Math.floor(cy/TILE);
+    world[`${tx},${ty}`]=it.id;
+}
+
+//===== 键盘监听 =====
+addEventListener("keydown",e=>{
+    if(e.key=="a"||e.key=="ArrowLeft")keys.left=true;
+    if(e.key=="d"||e.key=="ArrowRight")keys.right=true;
+    if(e.key=="w"||e.key=="ArrowUp")keys.up=true;
+    if(e.key=="j")keys.dig=true;
+    if(e.key=="k")keys.place=true;
+    // 数字切换物品
+    if(e.key>="1"&&e.key<="4")selectSlot=Number(e.key)-1;
 });
-document.addEventListener('keyup', e => {
-    if(e.key === 'a' || e.key === 'ArrowLeft') keys.left = false;
-    if(e.key === 'd' || e.key === 'ArrowRight') keys.right = false;
-    if(e.key === 'w' || e.key === 'ArrowUp') keys.up = false;
-    if(e.key === 'j') keys.dig = false;
-    if(e.key === 'k') keys.place = false;
+addEventListener("keyup",e=>{
+    if(e.key=="a"||e.key=="ArrowLeft")keys.left=false;
+    if(e.key=="d"||e.key=="ArrowRight")keys.right=false;
+    if(e.key=="w"||e.key=="ArrowUp")keys.up=false;
+    if(e.key=="j")keys.dig=false;
+    if(e.key=="k")keys.place=false;
 });
 
-// 手机触屏按钮
-function bindBtn(id, key) {
-    const btn = document.getElementById(id);
-    btn.addEventListener('touchstart', () => keys[key] = true);
-    btn.addEventListener('touchend', () => keys[key] = false);
+//===== 手机按钮绑定 =====
+function bindBtn(id,k){
+    let b=document.getElementById(id);
+    b.addEventListener("touchstart",e=>{e.preventDefault();keys[k]=true;});
+    b.addEventListener("touchend",()=>keys[k]=false);
 }
-bindBtn('leftBtn', 'left');
-bindBtn('rightBtn', 'right');
-bindBtn('jumpBtn', 'up');
-bindBtn('digBtn', 'dig');
-bindBtn('placeBtn', 'place');
+bindBtn("leftBtn","left");
+bindBtn("rightBtn","right");
+bindBtn("jumpBtn","up");
+bindBtn("digBtn","dig");
+bindBtn("placeBtn","place");
 
-// ==================== 碰撞检测 ====================
-function getTile(x, y) {
-    return world[`${Math.floor(x/TILE_SIZE)},${Math.floor(y/TILE_SIZE)}`] || 0;
-}
-
-function collide(x, y) {
-    return getTile(x, y) !== 0;
-}
-
-// ==================== 挖掘 & 放置 ====================
-function digBlock() {
-    let tx = Math.floor((player.x + player.width/2) / TILE_SIZE);
-    let ty = Math.floor((player.y + player.height/2) / TILE_SIZE);
-    delete world[`${tx},${ty}`];
-}
-
-function placeBlock() {
-    let tx = Math.floor((player.x + player.width/2) / TILE_SIZE);
-    let ty = Math.floor((player.y + player.height/2) / TILE_SIZE);
-    world[`${tx},${ty}`] = 1;
+//===== 渲染物品栏UI =====
+function renderInvUI(){
+    let box=document.getElementById("inv");
+    box.innerHTML="";
+    inv.forEach((item,i)=>{
+        let s=document.createElement("div");
+        s.className="inv-slot"+(i===selectSlot?" selected":"");
+        s.innerText=item.count;
+        s.style.background=BLOCK_COLOR[item.id];
+        s.onclick=()=>selectSlot=i;
+        box.appendChild(s);
+    });
+    // 更新血条
+    document.getElementById("hp-fill").style.width=(player.hp/player.maxHp*100)+"%";
 }
 
-// ==================== 游戏更新 ====================
-function update() {
-    // 移动
-    player.velX = 0;
-    if(keys.left) player.velX = -PLAYER_SPEED;
-    if(keys.right) player.velX = PLAYER_SPEED;
-    
+//===== 怪物逻辑更新 =====
+function updateMonsters(){
+    monsters.forEach(m=>{
+        // 向玩家移动
+        if(m.x<player.x)m.vx=m.speed;
+        else m.vx=-m.speed;
+        m.x+=m.vx;
+
+        // 怪物重力落地
+        if(!isSolid(m.x,m.y+m.h+2)) m.y+=3;
+
+        // 碰玩家扣血
+        if(
+            m.x<player.x+player.w&&
+            m.x+m.w>player.x&&
+            m.y<player.y+player.h&&
+            m.y+m.h>player.y
+        ){
+            player.hp-=0.3;
+        }
+    })
+}
+
+//===== 游戏主更新 =====
+function update(){
+    // 水平移动
+    player.vx=0;
+    if(keys.left)player.vx=-SPD;
+    if(keys.right)player.vx=SPD;
+
     // 跳跃
-    if(keys.up && player.onGround) {
-        player.velY = -JUMP_POWER;
-        player.onGround = false;
+    if(keys.up&&player.onGround) {
+        player.vy=-JUMP;
+        player.onGround=false;
     }
-    
+
     // 重力
-    player.velY += GRAVITY;
-    
-    // 挖掘放置
-    if(keys.dig) digBlock();
-    if(keys.place) placeBlock();
-    
-    // X轴碰撞
-    player.x += player.velX;
-    if(collide(player.x, player.y) || collide(player.x+player.width, player.y)) {
-        player.x -= player.velX;
+    player.vy+=GRAV;
+
+    // 挖放
+    if(keys.dig)dig();
+    if(keys.place)place();
+
+    // X碰撞
+    player.x+=player.vx;
+    if(isSolid(player.x,player.y)||isSolid(player.x+player.w,player.y)){
+        player.x-=player.vx;
     }
-    
-    // Y轴碰撞
-    player.onGround = false;
-    player.y += player.velY;
-    if(collide(player.x, player.y+player.height) || collide(player.x+player.width, player.y+player.height)) {
-        player.y = Math.floor(player.y/TILE_SIZE) * TILE_SIZE;
-        player.velY = 0;
-        player.onGround = true;
+
+    // Y碰撞
+    player.onGround=false;
+    player.y+=player.vy;
+    if(isSolid(player.x,player.y+player.h)||isSolid(player.x+player.w,player.y+player.h)){
+        player.y=Math.floor(player.y/TILE)*TILE;
+        player.vy=0;
+        player.onGround=true;
     }
-    
-    // 摄像机跟随
-    camera.x = player.x - canvas.width/2;
-    camera.y = player.y - canvas.height/2;
+
+    // 血量保护
+    if(player.hp<=0)player.hp=player.maxHp;
+
+    // 相机跟随
+    camera.x=player.x-canvas.width/2;
+    camera.y=player.y-canvas.height/2;
+
+    updateMonsters();
+    renderInvUI();
 }
 
-// ==================== 渲染 ====================
-function draw() {
-    // 清空屏幕
-    ctx.fillStyle = '#87CEEB';
+//===== 绘制 =====
+function draw(){
+    ctx.fillStyle="#87CEEB";
     ctx.fillRect(0,0,canvas.width,canvas.height);
-    
+
     // 绘制方块
-    for(let key in world) {
-        let [x, y] = key.split(',').map(Number);
-        let type = world[key];
-        
-        let rx = x * TILE_SIZE - camera.x;
-        let ry = y * TILE_SIZE - camera.y;
-        
-        if(rx < -TILE_SIZE || rx > canvas.width) continue;
-        if(ry < -TILE_SIZE || ry > canvas.height) continue;
-        
-        // 方块颜色
-        if(type === 1) ctx.fillStyle = '#8B4513';    // 泥土
-        if(type === 2) ctx.fillStyle = '#32CD32';    // 草地
-        if(type === 3) ctx.fillStyle = '#808080';    // 石头
-        
-        ctx.fillRect(rx, ry, TILE_SIZE-1, TILE_SIZE-1);
+    for(let k in world){
+        let [x,y]=k.split(",").map(Number);
+        let t=world[k];
+        let sx=x*TILE-camera.x;
+        let sy=y*TILE-camera.y;
+        if(sx<-TILE||sx>canvas.width)continue;
+        if(sy<-TILE||sy>canvas.height)continue;
+        ctx.fillStyle=BLOCK_COLOR[t];
+        ctx.fillRect(sx,sy,TILE-1,TILE-1);
     }
-    
+
+    // 绘制怪物
+    ctx.fillStyle="#9b59b6";
+    monsters.forEach(m=>{
+        let mx=m.x-camera.x;
+        let my=m.y-camera.y;
+        ctx.fillRect(mx,my,m.w,m.h);
+    })
+
     // 绘制玩家
-    ctx.fillStyle = player.color;
-    ctx.fillRect(
-        player.x - camera.x,
-        player.y - camera.y,
-        player.width,
-        player.height
-    );
+    ctx.fillStyle="#ff6b6b";
+    ctx.fillRect(player.x-camera.x,player.y-camera.y,player.w,player.h);
 }
 
-// ==================== 主循环 ====================
-function loop() {
-    update();
-    draw();
-    requestAnimationFrame(loop);
+// 循环
+function loop(){
+    update();draw();requestAnimationFrame(loop);
 }
 
-// 启动游戏
-generateWorld();
+genWorld();
 loop();

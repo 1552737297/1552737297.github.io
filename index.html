@@ -1,17 +1,17 @@
 function drawPlayer(){
   if(player.invincibleTime>0 && Math.floor(Date.now()/120)%2==0) return;
+
   const cx = player.x + 25;
   const cy = player.y + 30;
-
   let bodyColor = getPlayerColor();
-  let glowIntensity = Math.min(30, 10 + playerLevel * 2);
+  let glow = Math.min(30, 10 + playerLevel * 2);
 
   ctx.shadowBlur = 0;
   ctx.shadowColor = bodyColor;
-  ctx.shadowBlur = glowIntensity;
+  ctx.shadowBlur = glow;
 
-  // 主战机
-  function drawShip(x, y, scale){
+  // 画单架飞机的工具函数
+  function drawJet(x, y, scale){
     ctx.beginPath();
     ctx.moveTo(x + 25*scale, y);
     ctx.lineTo(x + 10*scale, y + 40*scale);
@@ -24,46 +24,42 @@ function drawPlayer(){
     ctx.fill();
   }
 
-  // 等级外观：1 → 2 → 3 → 4 架
-  const stage = Math.min(4, Math.floor(playerLevel / 2) + 1); // 每2级升一个外观阶段
+  //===================== 等级外观：1→2→3→4架 ====================
+  let form = 1;
+  if (playerLevel >= 3) form = 2;
+  if (playerLevel >= 5) form = 3;
+  if (playerLevel >= 7) form = 4;
 
-  // 1架：中间
-  drawShip(player.x, player.y, 1);
+  // 主机永远在中间
+  drawJet(player.x, player.y, 1);
 
-  // 2架：左右
-  if (stage >= 2) {
-    drawShip(player.x - 50, player.y + 12, 0.7);
-    drawShip(player.x + 50, player.y + 12, 0.7);
+  // 2级形态：左右僚机
+  if (form >= 2) {
+    drawJet(player.x - 45, player.y + 10, 0.7);
+    drawJet(player.x + 45, player.y + 10, 0.7);
   }
 
-  // 3架：左右+前翼
-  if (stage >= 3) {
-    drawShip(player.x - 32, player.y - 8, 0.6);
-    drawShip(player.x + 32, player.y - 8, 0.6);
+  // 3级形态：再加前侧两架
+  if (form >= 3) {
+    drawJet(player.x - 25, player.y - 10, 0.6);
+    drawJet(player.x + 25, player.y - 10, 0.6);
   }
 
-  // 4架：四机菱形编队（最帅形态）
-  if (stage >= 4) {
-    drawShip(player.x - 66, player.y + 20, 0.55);
-    drawShip(player.x + 66, player.y + 20, 0.55);
-    drawShip(player.x - 20, player.y - 16, 0.5);
-    drawShip(player.x + 20, player.y - 16, 0.5);
+  // 4级形态：四机菱形编队（最终形态）
+  if (form >= 4) {
+    drawJet(player.x - 60, player.y + 20, 0.55);
+    drawJet(player.x + 60, player.y + 20, 0.55);
   }
+  //================================================================
 
   // 护盾
   if(player.shieldCount > 0){
-    let opacity = player.shieldCount / player.shieldMax;
-    ctx.strokeStyle = bodyColor; 
-    ctx.lineWidth=2;
-    ctx.globalAlpha = opacity;
-    ctx.beginPath(); 
-    ctx.arc(cx, cy, 40, 0, Math.PI*2); 
-    ctx.stroke();
-    ctx.strokeStyle = '#fff'; 
-    ctx.lineWidth=1;
-    ctx.beginPath(); 
-    ctx.arc(cx, cy, 36, 0, Math.PI*2); 
-    ctx.stroke();
+    let opa = player.shieldCount / player.shieldMax;
+    ctx.globalAlpha = opa;
+    ctx.strokeStyle = bodyColor; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(cx, cy, 40, 0, Math.PI*2); ctx.stroke();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.arc(cx, cy, 36, 0, Math.PI*2); ctx.stroke();
     ctx.globalAlpha = 1;
   }
 

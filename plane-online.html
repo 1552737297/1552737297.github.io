@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>雷霆战机 - 双人联机版</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+background:#000;color:#fff;font-family:Arial;
+display:flex;justify-content:center;align-items:center;
+height:100vh;flex-direction:column;
+}
+#game{border:2px solid #0ef;background:#020610}
+.ui{position:absolute;color:#0ef;font-size:16px;backdrop-filter:blur(4px);padding:4px 8px;border-radius:6px}
+#roomUi{top:10px;left:10px}
+#roomInput{padding:6px;width:120px;background:#112;color:#0ef;border:1px solid #0ef}
+#roomBtn{padding:6px 10px;background:#0ef;color:#000;border:none;border-radius:4px}
+#status{top:10px;right:10px}
+#levelUi{top:40px;left:10px}
+</style>
+</head>
+<body>
+
+<div class="ui" id="roomUi">
+  房间号：<input id="roomInput" value="1234" maxlength="6">
+  <button id="roomBtn">创建/加入</button>
+</div>
+<div class="ui" id="status">状态：未连接</div>
+<div class="ui" id="levelUi">战机等级：1</div>
+
+<canvas id="game" width="375" height="667"></canvas>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const roomInput = document.getElementById('roomInput');
+const roomBtn = document.getElementById('roomBtn');
+const statusText = document.getElementById('status');
+const levelUi = document.getElementById('levelUi');
+
+// ————————————————————————————————
+// 本地游戏数据
+// ————————————————————————————————
+let me = {
+  id: Math.random().toString(36).slice(2),
+  x: 180, y: 500, w: 50, h: 60,
+  level: 1,
+  color: '#0ef'
+};
+
+let other = null;
+let bullets = [];
+let enemies = [];
+let roomId = '';
+let ws = null;
+let connected = false;
+let rainbowOffset = 0;
+
+// ————————————————————————————————
+// 连接联机服务器（公共测试 WS）
+// ————————————————————————————————
+function connect() {
+  roomId = roomInput.value.trim();
+  if (!roomId) return alert('请输入房间号');
+
+  if (ws) ws.close();
+
+  // 公开联机测试服务器
+  ws = new WebSocket('wss://echo.websocket.events');
+
+  ws.onopen = () => {
+    connected = true;
+    statusText.innerText = '状态：已连接';
+    send({ type: 'join', room: roomId, pid: me.id });
+  };
+
+  ws.onmessage = (e) => {
+    try {
+      const msg = JSON.parse(e.data);
+      onRecv(msg);
+    } catch (e) {}
+  };
+
+  ws.onclose = () => {
+    connected = false;
+    statusText.innerText = '状态：断开';
+  };
+}
+
+function send(data) {
+  if (!ws || !connected) return;
+  ws.send(JSON.stringify({ ...data, room: roomId, pid: me.id }));
+}
+
+function onRecv(msg) {
+  if (msg.room !== roomId) return;
+
+  // 同步玩家位置
+  if (msg.type === 'pos' && msg.pid !== me.id) {
+    other = { x: msg.x, y: msg.y, level: msg.level, id: msg.pid };
+  }
+
+  // 同步子弹
+  if (msg.type === 'shoot' && msg.pid !== me.id) {
+    bullets.push({ x: msg.x, y: msg.y, from: 'other' });
+  }
+}
+
+// ————————————————————————————————
+// 对称进化战机绘制（你要的样式）
+// ————————————————————————————————
+function getColor(level) {
+  if (level >= 6) {
+    rainbowOffset += 2;
+    return `hsl(${rainbowOffset % 360}, 100%, 65%)`;
+  }
+  return '#0ef';
+}
+
+function drawJet(x, y, scale, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(x + 25*scale, y);
+  ctx.lineTo(x + 10*scale, y + 40*scale);
+  ctx.lineTo(x + 15*scale, y + 55*scale);
+  ctx.lineTo(x + 25*scale, y + 60*scale);
+  ctx.lineTo(x + 35*scale, y + 55*scale);
+  ctx.lineTo(x + 40*scale, y + 40*scale);
+  ctx.closePath();
+  ctx.fill();
+
+  // 左机翼
+  ctx.beginPath();
+  ctx.moveTo(x + 12*scale, y + 38*scale);
+  ctx.lineTo(x - 18*scale, y + 48*scale);
+  ctx.lineTo(x - 18*scale, y + 58*scale);
+  ctx.lineTo(x + 12*scale, y + 48*scale);
+  ctx.fill();
+
+  // 右机翼
+  ctx.beginPath();
+  ctx.moveTo(x + 38*scale, y + 38*scale);
+  ctx.lineTo(x + 68*scale, y + 48*scale);
+  ctx.lineTo(x + 68*scale, y + 58*scale);
+  ctx.lineTo(x + 38*scale, y + 48*scale);
+  ctx.fill();
+}
+
+function drawPlayer(p, isMe) {
+  const color = getColor(p.level);
+  const form = Math.min(4, p.level);
+
+  drawJet(p.x, p.y, 1, color);
+
+  if (form >= 2) {
+    drawJet(p.x - 50, p.y + 10, 0.7, color);
+    drawJet(p.x + 50, p.y + 10, 0.7, color);
+  }
+  if (form >= 3) {
+    drawJet(p.x - 30, p.y - 12, 0.6, color);
+    drawJet(p.x + 30, p.y - 12, 0.6, color);
+  }
+  if (form >= 4) {
+    drawJet(p.x - 65, p.y + 20, 0.55, color);
+    drawJet(p.x + 65, p.y + 20, 0.55, color);
+  }
+}
+
+// ————————————————————————————————
+// 触摸/鼠标控制
+// ————————————————————————————————
+canvas.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  me.x = e.touches[0].clientX - rect.left - 25;
+  me.y = e.touches[0].clientY - rect.top - 30;
+  send({ type: 'pos', x: me.x, y: me.y, level: me.level });
+});
+
+canvas.addEventListener('mousemove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  me.x = e.clientX - rect.left - 25;
+  me.y = e.clientY - rect.top - 30;
+  send({ type: 'pos', x: me.x, y: me.y, level: me.level });
+});
+
+// ————————————————————————————————
+// 升级（测试用）
+// ————————————————————————————————
+let levelUpTimer = 0;
+function autoLevelUp() {
+  levelUpTimer++;
+  if (levelUpTimer > 300 && me.level < 10) {
+    me.level++;
+    levelUi.innerText = `战机等级：${me.level}`;
+    levelUpTimer = 0;
+  }
+}
+
+// ————————————————————————————————
+// 主循环
+// ————————————————————————————————
+function loop() {
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  autoLevelUp();
+  drawPlayer(me, true);
+  if (other) drawPlayer(other, false);
+
+  requestAnimationFrame(loop);
+}
+
+roomBtn.onclick = connect;
+loop();
+</script>
+
+</body>
+</html>

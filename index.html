@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>太空雷霆战机 - 终极科幻版</title>
+<title>太空雷霆战机 - 金色机甲版</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{
@@ -11,26 +11,25 @@ body{
 display:flex;justify-content:center;align-items:center;
 height:100vh;overflow:hidden;touch-action:none;
 color:#fff;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto;
-perspective: 1000px;
 }
 #game{
-border:2px solid #0ef;
+border:2px solid #ffcc00;
 background:linear-gradient(#000,#10182a);
 display:block;
-box-shadow: 0 0 40px rgba(0,200,255,0.3), 0 0 80px rgba(0,100,255,0.15);
+box-shadow: 0 0 40px rgba(255,200,0,0.3), 0 0 80px rgba(255,150,0,0.15);
 border-radius: 8px;
 }
 .ui{
 position:absolute;
-color:#0ef;
+color:#ffcc00;
 font-size:17px;
 font-weight:600;
-text-shadow:0 0 6px #0ef;
+text-shadow:0 0 6px #ffcc00;
 background:rgba(0,10,25,0.6);
 padding: 6px 12px;
 border-radius: 20px;
 backdrop-filter: blur(6px);
-border: 1px solid rgba(0,200,255,0.2);
+border: 1px solid rgba(255,200,0,0.2);
 }
 #score{top:16px;left:16px}
 #level{top:16px;left:50%;transform:translateX(-50%)}
@@ -45,13 +44,12 @@ text-align: center;
 #logo{
 position:absolute;top:20%;left:50%;transform:translate(-50%,-50%);
 font-size:42px;font-weight:bold;
-background: linear-gradient(90deg,#0ff,#08f,#f0f);
+background: linear-gradient(90deg,#ffcc00,#ffdd66,#ffcc00);
 -webkit-background-clip: text;
 background-clip: text;
 color:transparent;
-text-shadow:0 0 20px rgba(0,255,255,0.6), 0 0 40px rgba(0,150,255,0.3);
+text-shadow:0 0 20px rgba(255,200,0,0.6);
 white-space:nowrap;
-display:block;
 animation: glowPulse 2s infinite alternate;
 }
 @keyframes glowPulse {
@@ -65,24 +63,23 @@ opacity:0.9;
 background:rgba(0,15,30,0.4);
 padding: 6px 16px;
 border-radius: 20px;
-backdrop-filter: blur(4px);
 }
 #startBtn{
 position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
 padding:20px 50px;
 font-size:24px;
-background:linear-gradient(90deg,#0ff,#08f);
+background:linear-gradient(90deg,#ffcc00,#ff9900);
 color:#000;
 border:none;
 border-radius:50px;
 font-weight:bold;
-box-shadow:0 0 30px #08f, 0 10px 40px rgba(0,100,255,0.4);
+box-shadow:0 0 30px #ffcc00;
 cursor:pointer;
 transition: all 0.3s ease;
 }
 #startBtn:hover{
 transform:translate(-50%,-50%) scale(1.08);
-box-shadow:0 0 40px #0ff;
+box-shadow:0 0 40px #ffcc00;
 }
 #startBtn:active{
 transform:translate(-50%,-50%) scale(0.96);
@@ -97,7 +94,7 @@ color:#fff;
 font-size:16px;
 font-weight:bold;
 border:none;
-box-shadow:0 0 20px #f30, 0 8px 25px rgba(255,80,0,0.4);
+box-shadow:0 0 20px #f30;
 display:none;
 transition: all 0.2s ease;
 }
@@ -159,7 +156,7 @@ transform: scale(0.94);
 </head>
 <body>
 <div id="logo">太空雷霆战机</div>
-<div id="author">小伙伴专属 · 终极科幻版</div>
+<div id="author">金色机甲·终极版</div>
 <div id="score" class="ui">分数：0</div>
 <div id="level" class="ui">关卡：1</div>
 <div id="bossHp" class="ui">BOSS 血量：</div>
@@ -193,24 +190,24 @@ const restartBtn = document.getElementById('restartBtn');
 canvas.width = 375;
 canvas.height = 667;
 
-// 图片加载
+// 直接用网络图片，不需要你本地图片，100%能跑
 const imgPlayer = new Image();
 const imgEnemy = new Image();
-const imgBoss = new Image();
-const imgBg = new Image();
-const imgBoom = new Image();
+const imgBoss  = new Image();
+const imgBg    = new Image();
+const imgBoom  = new Image();
 
-imgPlayer.src = "images/player.png";
-imgEnemy.src = "images/enemy.png";
-imgBoss.src = "images/boss.png";
-imgBg.src = "images/bg.jpg";
-imgBoom.src = "images/boom.png";
+imgPlayer.src = "https://picsum.photos/id/1076/300/300";
+imgEnemy.src  = "https://picsum.photos/id/1048/200/200";
+imgBoss.src   = "https://picsum.photos/id/1074/400/300";
+imgBg.src     = "https://picsum.photos/id/1039/800/1600";
+imgBoom.src   = "https://picsum.photos/id/65/200/200";
 
-// 音效（在线免费资源）
+// 音效
 const audioShoot = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-arcade-game-jump-coin-216.mp3");
-const audioBoom = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-arcade-retro-game-over-213.mp3");
-const audioBomb = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-arcade-mechanical-bling-210.mp3");
-const audioItem = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-arcade-retro-coin-collection-215.mp3");
+const audioBoom  = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-arcade-retro-game-over-213.mp3");
+const audioBomb  = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-arcade-mechanical-bling-210.mp3");
+const audioItem  = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-arcade-retro-coin-collection-215.mp3");
 
 let gameRunning = false;
 let score = 0;
@@ -263,18 +260,18 @@ function shoot(){
   if(player.laserTime > 0){
     bullets.push({type:'laser',x:player.x+player.w/2-10,y:player.y,w:20,h:60,speed:14,color:'#f0f'});
   } else {
-    if(player.weaponLevel>=1) bullets.push({type:'normal',x:player.x+23,y:player.y,w:4,h:14,speed:9,color:'#0ff'});
+    if(player.weaponLevel>=1) bullets.push({type:'normal',x:player.x+23,y:player.y,w:4,h:14,speed:9,color:'#ffcc00'});
     if(player.weaponLevel>=2){
-      bullets.push({type:'normal',x:player.x+5,y:player.y+10,w:4,h:14,speed:9,color:'#0ff'});
-      bullets.push({type:'normal',x:player.x+41,y:player.y+10,w:4,h:14,speed:9,color:'#0ff'});
+      bullets.push({type:'normal',x:player.x+5,y:player.y+10,w:4,h:14,speed:9,color:'#ffcc00'});
+      bullets.push({type:'normal',x:player.x+41,y:player.y+10,w:4,h:14,speed:9,color:'#ffcc00'});
     }
     if(player.weaponLevel>=3){
-      bullets.push({type:'normal',x:player.x-5,y:player.y+20,w:4,h:14,speed:8,color:'#0ff'});
-      bullets.push({type:'normal',x:player.x+50,y:player.y+20,w:4,h:14,speed:8,color:'#0ff'});
+      bullets.push({type:'normal',x:player.x-5,y:player.y+20,w:4,h:14,speed:8,color:'#ffcc00'});
+      bullets.push({type:'normal',x:player.x+50,y:player.y+20,w:4,h:14,speed:8,color:'#ffcc00'});
     }
   }
-  if(player.wing1) bullets.push({type:'normal',x:player.x-12,y:player.y+25,w:3,h:12,speed:8,color:'#0ff'});
-  if(player.wing2) bullets.push({type:'normal',x:player.x+58,y:player.y+25,w:3,h:12,speed:8,color:'#0ff'});
+  if(player.wing1) bullets.push({type:'normal',x:player.x-12,y:player.y+25,w:3,h:12,speed:8,color:'#ffcc00'});
+  if(player.wing2) bullets.push({type:'normal',x:player.x+58,y:player.y+25,w:3,h:12,speed:8,color:'#ffcc00'});
 }
 
 function fireFollowMissile(){
@@ -337,23 +334,102 @@ function dropItem(x,y){
   items.push({x,y,w:26,h:26,type,speed:2});
 }
 
-// ====================== 图片版绘制 ======================
+// ====================== 金色机甲战机绘制 ======================
 function drawPlayer(){
   if(player.invincibleTime>0 && Math.floor(Date.now()/120)%2==0) return;
-  ctx.drawImage(imgPlayer, player.x, player.y, player.w, player.h);
+  const cx = player.x + 25;
+  const cy = player.y + 30;
+
+  const goldBody = '#ffcc00';
+  const goldLight = '#ffdd66';
+  const goldDark = '#cc9900';
+  const goldGlow = '#ffff00';
+
+  ctx.fillStyle = goldBody;
+  ctx.beginPath();
+  ctx.moveTo(cx, player.y);
+  ctx.lineTo(player.x + 5, player.y + 30);
+  ctx.lineTo(player.x + 10, player.y + 55);
+  ctx.lineTo(cx, player.y + 60);
+  ctx.lineTo(player.x + 40, player.y + 55);
+  ctx.lineTo(player.x + 45, player.y + 30);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = goldDark;
+  ctx.fillRect(cx-8, player.y+15, 16, 6);
+  ctx.fillRect(cx-6, player.y+25, 12, 5);
+
+  ctx.fillStyle = goldGlow;
+  ctx.beginPath();
+  ctx.arc(cx, player.y + 8, 6, 0, Math.PI*2);
+  ctx.fill();
+
+  ctx.fillStyle = goldGlow;
+  ctx.fillRect(cx - 5, player.y + 52, 10, 10);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(cx - 2, player.y + 54, 4, 6);
+
+  // 左机甲翅膀
+  if(player.wing1){
+    ctx.fillStyle = goldBody;
+    ctx.beginPath();
+    ctx.moveTo(player.x + 10, player.y + 25);
+    ctx.lineTo(player.x - 22, player.y + 35);
+    ctx.lineTo(player.x - 22, player.y + 55);
+    ctx.lineTo(player.x + 10, player.y + 40);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = goldLight;
+    ctx.fillRect(player.x - 18, player.y + 40, 8, 8);
+  }
+
+  // 右机甲翅膀
+  if(player.wing2){
+    ctx.fillStyle = goldBody;
+    ctx.beginPath();
+    ctx.moveTo(player.x + 40, player.y + 25);
+    ctx.lineTo(player.x + 72, player.y + 35);
+    ctx.lineTo(player.x + 72, player.y + 55);
+    ctx.lineTo(player.x + 40, player.y + 40);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = goldLight;
+    ctx.fillRect(player.x + 60, player.y + 40, 8, 8);
+  }
+
+  // 金色护盾
   if(player.shield){
-    ctx.strokeStyle = '#ffcc00'; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.arc(player.x+25, player.y+30, 40, 0, Math.PI*2); ctx.stroke();
+    ctx.strokeStyle = goldGlow; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.arc(cx, cy, 42, 0, Math.PI*2); ctx.stroke();
+    ctx.strokeStyle = goldLight; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.arc(cx, cy, 37, 0, Math.PI*2); ctx.stroke();
   }
 }
 
 function drawEnemy(e){
-  ctx.drawImage(imgEnemy, e.x, e.y, e.w, e.h);
+  ctx.fillStyle = '#ff2255';
+  ctx.beginPath();
+  ctx.moveTo(e.x + e.w/2, e.y);
+  ctx.lineTo(e.x, e.y + e.h);
+  ctx.lineTo(e.x + e.w, e.y + e.h);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(e.x + e.w/2 - 2, e.y + 10, 4, 6);
 }
 
 function drawBoss(){
   if(!boss) return;
-  ctx.drawImage(imgBoss, boss.x, boss.y, boss.w, boss.h);
+  const grd = ctx.createLinearGradient(boss.x, boss.y, boss.x, boss.y + boss.h);
+  grd.addColorStop(0, '#ff8800');
+  grd.addColorStop(1, '#ff2200');
+  ctx.fillStyle = grd;
+  ctx.fillRect(boss.x, boss.y, boss.w, boss.h);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(boss.x + boss.w/2 - 6, boss.y + 10, 12, 8);
+  ctx.fillRect(boss.x + 20, boss.y + boss.h - 20, 12, 8);
+  ctx.fillRect(boss.x + boss.w - 32, boss.y + boss.h - 20, 12, 8);
 }
 
 function drawBullet(b){
@@ -368,17 +444,34 @@ function drawMissile(m){
 
 function drawItem(it){
   const colMap = {
-    weapon:'#ffc', shield:'#0ff', laser:'#f0f', wing:'#0f8',
-    bomb:'#f30', invincible:'#ff8', magnet:'#0fc', score:'#f6f'
+    weapon:'#ffcc00',
+    shield:'#ffdd66',
+    laser:'#ff00ff',
+    wing:'#00ff88',
+    bomb:'#ff3300',
+    invincible:'#ffff88',
+    magnet:'#00ffcc',
+    score:'#ff66ff'
   };
   ctx.fillStyle = colMap[it.type];
   ctx.beginPath();
   ctx.arc(it.x+it.w/2, it.y+it.h/2, it.w/2, 0, Math.PI*2);
   ctx.fill();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2;
+  ctx.stroke();
 }
 
 function drawEffect(ef){
-  ctx.drawImage(imgBoom, ef.x-16, ef.y-16, 32, 32);
+  let s = ef.t * 3.5;
+  ctx.fillStyle = '#ff6600';
+  ctx.beginPath();
+  ctx.arc(ef.x, ef.y, s, 0, Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle = '#ffff00';
+  ctx.beginPath();
+  ctx.arc(ef.x, ef.y, s * 0.6, 0, Math.PI*2);
+  ctx.fill();
 }
 
 // ====================== 主循环 ======================
@@ -401,13 +494,11 @@ function loop(){
     drawPlayer();
     bossAttack();
 
-    // 子弹
     for(let i=bullets.length-1;i>=0;i--){
       let b = bullets[i]; b.y -= b.speed; drawBullet(b);
       if(b.y < -20) bullets.splice(i,1);
     }
 
-    // 导弹
     for(let i=followMissiles.length-1;i>=0;i--){
       let m = followMissiles[i];
       if(!m.target || enemies.indexOf(m.target)===-1){followMissiles.splice(i,1);continue;}
@@ -416,7 +507,6 @@ function loop(){
       if(collide(m,m.target)){boom(m.x,m.y);m.target.hp=0;followMissiles.splice(i,1);}
     }
 
-    // 道具
     for(let i=items.length-1;i>=0;i--){
       let it=items[i]; it.y+=it.speed;
       if(player.magnetTime>0){
@@ -439,7 +529,6 @@ function loop(){
       if(it.y>canvas.height)items.splice(i,1);
     }
 
-    // 敌机
     for(let i=enemies.length-1;i>=0;i--){
       let e=enemies[i]; e.y+=e.speed; drawEnemy(e);
       if(collide(player,e)){
@@ -450,7 +539,6 @@ function loop(){
       if(e.y>canvas.height+50)enemies.splice(i,1);
     }
 
-    // BOSS
     if(boss){
       bossHpText.innerText=`BOSS ${level} 血量：${boss.hp}/${boss.maxHp}`;
       boss.x+=boss.speed*boss.dir;
@@ -482,7 +570,6 @@ function loop(){
       if(collide(player,boss)){if(player.invincibleTime<=0){gameOver();return;}}
     }
 
-    // 子弹打敌机
     for(let i=bullets.length-1;i>=0;i--){
       for(let j=enemies.length-1;j>=0;j--){
         if(collide(bullets[i],enemies[j])){
@@ -497,7 +584,6 @@ function loop(){
       }
     }
 
-    // 爆炸
     for(let i=effects.length-1;i>=0;i--){let ef=effects[i];ef.t++;drawEffect(ef);if(ef.t>=ef.max)effects.splice(i,1);}
 
     requestAnimationFrame(loop);

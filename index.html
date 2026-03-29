@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>太空雷霆战机 - 豪华完整版</title>
+<title>太空雷霆战机 - 终极科幻版</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{
@@ -13,16 +13,13 @@ height:100vh;overflow:hidden;touch-action:none;
 color:#fff;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto}
 #game{
 border:2px solid #0ef;
-background:black;
-display:block;
-position:relative
-}
+background:linear-gradient(#000,#10182a);
+display:block}
 .ui{position:absolute;color:#0ef;font-size:18px;font-weight:500;text-shadow:0 0 6px #0ef}
 #score{top:12px;left:12px}
 #level{top:12px;left:50%;transform:translateX(-50%)}
 #bossHp{top:40px;left:50%;transform:translateX(-50%);display:none}
 #bomb{top:12px;right:12px}
-
 #logo{
 position:absolute;top:22%;left:50%;transform:translate(-50%,-50%);
 font-size:38px;font-weight:bold;color:#0ff;text-shadow:0 0 12px #0ff;
@@ -32,7 +29,6 @@ white-space:nowrap;display:block
 position:absolute;top:33%;left:50%;transform:translateX(-50%);
 font-size:16px;color:#ccc;opacity:0.8
 }
-
 #startBtn{
 position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
 padding:18px 44px;font-size:24px;
@@ -41,7 +37,6 @@ color:#000;border:none;border-radius:14px;
 font-weight:bold;box-shadow:0 0 24px #08f;
 cursor:pointer
 }
-
 #bombBtn{
 position:absolute;bottom:24px;right:24px;
 width:68px;height:68px;
@@ -52,7 +47,7 @@ border:none;box-shadow:0 0 16px #f30;
 display:none
 }
 
-/* 战败界面 */
+/* 战败界面样式 */
 #defeat{
 position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
 text-align:center;
@@ -76,36 +71,11 @@ color:#fff;border:none;border-radius:12px;
 font-weight:bold;box-shadow:0 0 20px #f30;
 cursor:pointer
 }
-
-/* 胜利界面 */
-#victory{
-position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-text-align:center;
-display:none;
-z-index:10
-}
-#victoryTitle{
-font-size:48px;font-weight:bold;
-color:#0ff;text-shadow:0 0 20px #0ff;
-margin-bottom:20px
-}
-#victoryInfo{
-font-size:20px;color:#fff;
-margin-bottom:30px;
-line-height:1.6
-}
-#victoryBtn{
-padding:16px 40px;font-size:22px;
-background:linear-gradient(90deg,#0ff,#08f);
-color:#000;border:none;border-radius:12px;
-font-weight:bold;box-shadow:0 0 20px #0ff;
-cursor:pointer
-}
 </style>
 </head>
 <body>
 <div id="logo">太空雷霆战机</div>
-<div id="author">小伙伴专属 · 豪华完整版</div>
+<div id="author">小伙伴专属 · 终极科幻版</div>
 <div id="score" class="ui">分数：0</div>
 <div id="level" class="ui">关卡：1</div>
 <div id="bossHp" class="ui">BOSS 血量：</div>
@@ -113,16 +83,11 @@ cursor:pointer
 <button id="startBtn">开始游戏</button>
 <button id="bombBtn">全屏炸弹</button>
 
+<!-- 战败界面 -->
 <div id="defeat">
   <div id="defeatTitle">战 败</div>
   <div id="defeatInfo"></div>
   <button id="restartBtn">重新挑战</button>
-</div>
-
-<div id="victory">
-  <div id="victoryTitle">胜 利</div>
-  <div id="victoryInfo"></div>
-  <button id="victoryBtn">继续挑战</button>
 </div>
 
 <canvas id="game"></canvas>
@@ -138,14 +103,10 @@ const startBtn = document.getElementById('startBtn');
 const bombBtn = document.getElementById('bombBtn');
 const logo = document.getElementById('logo');
 const author = document.getElementById('author');
-
 const defeat = document.getElementById('defeat');
+const defeatTitle = document.getElementById('defeatTitle');
 const defeatInfo = document.getElementById('defeatInfo');
 const restartBtn = document.getElementById('restartBtn');
-
-const victory = document.getElementById('victory');
-const victoryInfo = document.getElementById('victoryInfo');
-const victoryBtn = document.getElementById('victoryBtn');
 
 canvas.width = 375;
 canvas.height = 667;
@@ -155,34 +116,11 @@ let score = 0;
 let level = 1;
 let bossSpawnTimer = null;
 
-// 星空背景
-let stars = [];
-function initStars(){
-  stars = [];
-  for(let i=0;i<100;i++){
-    stars.push({
-      x: Math.random()*canvas.width,
-      y: Math.random()*canvas.height,
-      size: Math.random()*2+1,
-      speed: Math.random()*2+1
-    })
-  }
-}
-function drawStars(){
-  ctx.fillStyle = '#fff';
-  stars.forEach(s=>{
-    ctx.fillRect(s.x,s.y,s.size,s.size);
-    s.y += s.speed;
-    if(s.y>canvas.height) s.y=0;
-  })
-}
-
 const player = {
   x: canvas.width/2-25, y: canvas.height*0.8, w:50, h:60,
   shield:true, weaponLevel:1, laserTime:0,
   invincibleTime:0, bombCount:0,
-  wing1:false, wing2:false, magnetTime:0,
-  hitFlash:0
+  wing1:false, wing2:false, magnetTime:0
 };
 
 let bullets = [];
@@ -193,7 +131,6 @@ let followMissiles = [];
 let boss = null;
 let bossBullets = [];
 
-// 触摸飞行
 canvas.addEventListener('touchmove', e=>{
   if(!gameRunning) return;
   e.preventDefault();
@@ -207,7 +144,6 @@ canvas.addEventListener('touchmove', e=>{
   if(player.y + player.h > canvas.height) player.y = canvas.height - player.h;
 });
 
-// 炸弹
 bombBtn.onclick = () => {
   if(player.bombCount <= 0) return;
   player.bombCount--;
@@ -216,9 +152,8 @@ bombBtn.onclick = () => {
   enemies = [];
   bossBullets = [];
   if(boss) boss.hp -= 10;
-};
+}
 
-// 射击
 function shoot(){
   if(!gameRunning) return;
   if(player.laserTime > 0){
@@ -245,21 +180,18 @@ function shoot(){
   if(player.wing2) bullets.push({type:'normal',x:player.x+58,y:player.y+25,w:3,h:12,speed:8,color:'#0ff'});
 }
 
-// 跟踪导弹
 function fireFollowMissile(){
   if(!gameRunning || enemies.length === 0) return;
   let t = enemies[Math.floor(Math.random()*enemies.length)];
   followMissiles.push({x:player.x+player.w/2,y:player.y,target:t,w:8,h:12,speed:6,color:'#f80'});
 }
 
-// 创建敌机
 function createEnemy(){
   if(!gameRunning || boss) return;
   let speed = 2.6 + level*0.3 + Math.random()*1.8;
-  enemies.push({x:Math.random()*(canvas.width-36),y:-40,w:36,h:44,speed:speed,hp:1,hit:0});
+  enemies.push({x:Math.random()*(canvas.width-36),y:-40,w:36,h:44,speed:speed,hp:1});
 }
 
-// BOSS
 function spawnBoss(){
   if(!gameRunning || boss) return;
   let hp = 40 + level*25;
@@ -273,13 +205,11 @@ function spawnBoss(){
     speed: 1.3 + level*0.22,
     dir: 1,
     level: level,
-    attackTimer: 0,
-    hit:0
+    attackTimer: 0
   };
   bossHpText.style.display = 'block';
 }
 
-// BOSS攻击
 function bossAttack(){
   if(!gameRunning || !boss) return;
   boss.attackTimer++;
@@ -301,48 +231,32 @@ function bossAttack(){
   }
 }
 
-// 碰撞
 function collide(a,b){
   return a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y;
 }
 
-// 爆炸
 function boom(x,y){
   effects.push({x,y,t:0,max:14});
 }
 
-// 道具
 function dropItem(x,y){
   const list = ['weapon','shield','laser','wing','bomb','invincible','magnet','score'];
   let type = list[Math.floor(Math.random()*list.length)];
   items.push({x,y,w:26,h:26,type,speed:2});
 }
 
-// ====================== 画玩家 ======================
+// ====================== 终极美化：玩家战机 ======================
 function drawPlayer(){
   if(player.invincibleTime>0 && Math.floor(Date.now()/120)%2==0) return;
   const cx = player.x + 25;
   const cy = player.y + 30;
 
-  if(player.hitFlash>0){
-    ctx.globalCompositeOperation = 'lighter';
-    player.hitFlash--;
-  }
-
-  // 尾焰
-  ctx.fillStyle = '#ff8800';
-  ctx.beginPath();
-  ctx.arc(cx, player.y+60, 8, 0, Math.PI*2);
-  ctx.fill();
-  ctx.fillStyle = '#ffff00';
-  ctx.beginPath();
-  ctx.arc(cx, player.y+60, 4, 0, Math.PI*2);
-  ctx.fill();
-
+  // 渐变机身
   const grd = ctx.createLinearGradient(0, player.y, 0, player.y + 60);
   grd.addColorStop(0, '#00d9ff');
   grd.addColorStop(1, '#005dff');
 
+  // 主战机箭头形状
   ctx.fillStyle = grd;
   ctx.beginPath();
   ctx.moveTo(cx, player.y);
@@ -354,11 +268,13 @@ function drawPlayer(){
   ctx.closePath();
   ctx.fill();
 
+  // 引擎光效
   ctx.fillStyle = '#0ff';
   ctx.fillRect(cx - 3, player.y + 52, 6, 8);
   ctx.fillStyle = '#fff';
   ctx.fillRect(cx - 1, player.y + 54, 2, 4);
 
+  // 左翼
   if(player.wing1){
     ctx.fillStyle = '#0042bd';
     ctx.beginPath();
@@ -371,6 +287,8 @@ function drawPlayer(){
     ctx.fillStyle = '#0ff';
     ctx.fillRect(player.x - 12, player.y + 50, 6, 6);
   }
+
+  // 右翼
   if(player.wing2){
     ctx.fillStyle = '#0042bd';
     ctx.beginPath();
@@ -383,22 +301,19 @@ function drawPlayer(){
     ctx.fillStyle = '#0ff';
     ctx.fillRect(player.x + 56, player.y + 50, 6, 6);
   }
+
+  // 双层护盾
   if(player.shield){
     ctx.strokeStyle = '#0ff'; ctx.lineWidth=2;
     ctx.beginPath(); ctx.arc(cx, cy, 40, 0, Math.PI*2); ctx.stroke();
     ctx.strokeStyle = '#ffffff'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.arc(cx, cy, 36, 0, Math.PI*2); ctx.stroke();
   }
-
-  ctx.globalCompositeOperation = 'source-over';
 }
 
-// 敌机
+// ====================== 敌机美化 ======================
 function drawEnemy(e){
-  if(e.hit>0) {
-    ctx.globalCompositeOperation = 'lighter';
-    e.hit--;
-  }
+  // 外星战机
   ctx.fillStyle = '#ff2255';
   ctx.beginPath();
   ctx.moveTo(e.x + e.w/2, e.y);
@@ -406,32 +321,29 @@ function drawEnemy(e){
   ctx.lineTo(e.x + e.w, e.y + e.h);
   ctx.closePath();
   ctx.fill();
+
   ctx.fillStyle = '#fff';
   ctx.fillRect(e.x + e.w/2 - 2, e.y + 10, 4, 6);
-  ctx.globalCompositeOperation = 'source-over';
 }
 
-// BOSS
+// ====================== BOSS美化 ======================
 function drawBoss(){
   if(!boss) return;
-  if(boss.hit>0){
-    ctx.globalCompositeOperation = 'lighter';
-    boss.hit--;
-  }
+  // 渐变BOSS战舰
   const grd = ctx.createLinearGradient(boss.x, boss.y, boss.x, boss.y + boss.h);
   grd.addColorStop(0, '#ff8800');
   grd.addColorStop(1, '#ff2200');
   ctx.fillStyle = grd;
   ctx.fillRect(boss.x, boss.y, boss.w, boss.h);
 
+  // 炮台灯光
   ctx.fillStyle = '#fff';
   ctx.fillRect(boss.x + boss.w/2 - 6, boss.y + 10, 12, 8);
   ctx.fillRect(boss.x + 20, boss.y + boss.h - 20, 12, 8);
   ctx.fillRect(boss.x + boss.w - 32, boss.y + boss.h - 20, 12, 8);
-  ctx.globalCompositeOperation = 'source-over';
 }
 
-// 子弹
+// ====================== 子弹美化 ======================
 function drawBullet(b){
   if(b.type === 'laser'){
     ctx.fillStyle = '#ff00ff';
@@ -446,7 +358,7 @@ function drawBullet(b){
   }
 }
 
-// 导弹
+// ====================== 跟踪导弹美化 ======================
 function drawMissile(m){
   ctx.fillStyle = '#ff6600';
   ctx.fillRect(m.x, m.y, m.w, m.h);
@@ -454,12 +366,17 @@ function drawMissile(m){
   ctx.fillRect(m.x + 2, m.y + 2, 4, 8);
 }
 
-// 道具
+// ====================== 道具美化 ======================
 function drawItem(it){
   const colMap = {
-    weapon:'#ffcc00', shield:'#00eeff', laser:'#ff00ff',
-    wing:'#00ff88', bomb:'#ff3300', invincible:'#ffff88',
-    magnet:'#00ffcc', score:'#ff66ff'
+    weapon:'#ffcc00',
+    shield:'#00eeff',
+    laser:'#ff00ff',
+    wing:'#00ff88',
+    bomb:'#ff3300',
+    invincible:'#ffff88',
+    magnet:'#00ffcc',
+    score:'#ff66ff'
   };
   ctx.fillStyle = colMap[it.type];
   ctx.beginPath();
@@ -470,27 +387,27 @@ function drawItem(it){
   ctx.stroke();
 }
 
-// 爆炸特效
+// ====================== 爆炸特效美化 ======================
 function drawEffect(ef){
   let s = ef.t * 3.5;
+  // 外火焰
   ctx.fillStyle = '#ff6600';
   ctx.beginPath();
   ctx.arc(ef.x, ef.y, s, 0, Math.PI*2);
   ctx.fill();
+  // 内白光
   ctx.fillStyle = '#ffff00';
   ctx.beginPath();
   ctx.arc(ef.x, ef.y, s * 0.6, 0, Math.PI*2);
   ctx.fill();
 }
 
-// ====================== 游戏主循环 ======================
+// ====================== 主循环 ======================
 function loop(){
   try {
     if(!gameRunning) return;
     ctx.fillStyle = '#000';
     ctx.fillRect(0,0,canvas.width,canvas.height);
-
-    drawStars();
 
     if(player.laserTime>0) player.laserTime -= 16;
     if(player.invincibleTime>0) player.invincibleTime -= 16;
@@ -507,7 +424,7 @@ function loop(){
       if(b.y < -20) bullets.splice(i,1);
     }
 
-    // 导弹
+    // 跟踪导弹
     for(let i=followMissiles.length-1;i>=0;i--){
       let m = followMissiles[i];
       if(!m.target || enemies.indexOf(m.target) === -1){ followMissiles.splice(i,1); continue; }
@@ -555,16 +472,8 @@ function loop(){
       e.y += e.speed;
       drawEnemy(e);
       if(collide(player,e)){
-        if(player.shield){
-          boom(e.x,e.y); enemies.splice(i,1); player.shield=false;
-          player.hitFlash = 5;
-          continue;
-        }
-        if(player.invincibleTime>0){
-          boom(e.x,e.y); enemies.splice(i,1);
-          player.hitFlash = 5;
-          continue;
-        }
+        if(player.shield){ boom(e.x,e.y); enemies.splice(i,1); player.shield=false; continue; }
+        if(player.invincibleTime>0){ boom(e.x,e.y); enemies.splice(i,1); continue; }
         gameOver(); return;
       }
       if(e.y>canvas.height+50) enemies.splice(i,1);
@@ -587,8 +496,8 @@ function loop(){
         ctx.arc(b.x+b.w/2, b.y+b.h/2, b.w/2, 0, Math.PI*2);
         ctx.fill();
         if(collide(player,b)){
-          if(player.shield){ player.shield = false; bossBullets.splice(i,1); player.hitFlash=5; continue; }
-          if(player.invincibleTime>0){ bossBullets.splice(i,1); player.hitFlash=5; continue; }
+          if(player.shield){ player.shield = false; bossBullets.splice(i,1); continue; }
+          if(player.invincibleTime>0){ bossBullets.splice(i,1); continue; }
           gameOver(); return;
         }
         if(b.x<0||b.x>canvas.width||b.y<0||b.y>canvas.height) bossBullets.splice(i,1);
@@ -599,18 +508,17 @@ function loop(){
         if(boss && collide(bullets[i], boss)){
           bullets.splice(i,1);
           boss.hp--;
-          boss.hit = 3;
           if(boss.hp <= 0){
             boom(boss.x+boss.w/2, boss.y+boss.h/2);
             score += 800*level;
             scoreText.innerText = '分数：'+score;
-
             boss = null;
             bossBullets = [];
             bossHpText.style.display = 'none';
-
-            gameVictory();
-            return;
+            level++;
+            levelText.innerText = '关卡：'+level;
+            if(bossSpawnTimer) clearTimeout(bossSpawnTimer);
+            bossSpawnTimer = setTimeout(spawnBoss, 9000);
           }
         }
       }
@@ -626,7 +534,6 @@ function loop(){
         if(collide(bullets[i],enemies[j])){
           bullets.splice(i,1);
           enemies[j].hp--;
-          enemies[j].hit = 3;
           if(enemies[j].hp <= 0){
             boom(enemies[j].x+enemies[j].w/2, enemies[j].y+enemies[j].h/2);
             if(Math.random()<0.45) dropItem(enemies[j].x, enemies[j].y);
@@ -654,49 +561,19 @@ function loop(){
   }
 }
 
-// ====================== 游戏胜利 ======================
-function gameVictory(){
-  gameRunning = false;
-  clearInterval(window.shootInterval);
-  clearInterval(window.enemyInterval);
-  clearInterval(window.missileInterval);
-  if(bossSpawnTimer) clearTimeout(bossSpawnTimer);
-
-  victoryInfo.innerHTML = `关卡：${level}<br>得分：${score}<br>恭喜通关！`;
-  victory.style.display = 'block';
-  bombBtn.style.display = 'none';
-}
-
-// ====================== 游戏结束 ======================
-function gameOver(){
-  gameRunning = false;
-  clearInterval(window.shootInterval);
-  clearInterval(window.enemyInterval);
-  clearInterval(window.missileInterval);
-  if(bossSpawnTimer) clearTimeout(bossSpawnTimer);
-
-  defeatInfo.innerHTML = `关卡：${level}<br>得分：${score}<br>再接再厉！`;
-  defeat.style.display = 'block';
-  bombBtn.style.display = 'none';
-}
-
-// ====================== 开始游戏 ======================
 function start(){
   gameRunning = true;
   score = 0; level = 1;
   player.weaponLevel = 1; player.laserTime = 0; player.shield = true;
   player.wing1 = false; player.wing2 = false; player.bombCount = 0;
-  player.invincibleTime = 0; player.magnetTime = 0; player.hitFlash = 0;
+  player.invincibleTime = 0; player.magnetTime = 0;
   scoreText.innerText = '分数：0';
   levelText.innerText = '关卡：1';
   bombText.innerText = '炸弹：0';
-
   bullets = []; enemies = []; effects = []; items = [];
   followMissiles = []; boss = null; bossBullets = [];
   player.x = canvas.width/2-25;
   player.y = canvas.height*0.8;
-
-  initStars();
 
   if(bossSpawnTimer) clearTimeout(bossSpawnTimer);
   bossSpawnTimer = setTimeout(spawnBoss, 30000);
@@ -705,8 +582,7 @@ function start(){
   author.style.display = 'none';
   startBtn.style.display = 'none';
   bombBtn.style.display = 'block';
-  defeat.style.display = 'none';
-  victory.style.display = 'none';
+  defeat.style.display = 'none'; // 隐藏战败界面
 
   if(window.shootInterval) clearInterval(window.shootInterval);
   if(window.enemyInterval) clearInterval(window.enemyInterval);
@@ -718,9 +594,23 @@ function start(){
   loop();
 }
 
-startBtn.onclick = start;
+// ====================== 战败界面（替换alert） ======================
+function gameOver(){
+  gameRunning = false;
+  if(bossSpawnTimer) clearTimeout(bossSpawnTimer);
+  clearInterval(window.shootInterval);
+  clearInterval(window.enemyInterval);
+  clearInterval(window.missileInterval);
+  
+  // 显示战败信息
+  defeatInfo.innerHTML = `最高关卡：${level}<br>最终得分：${score}<br>再接再厉！`;
+  defeat.style.display = 'block';
+  bombBtn.style.display = 'none';
+}
+
+// 重新开始按钮
 restartBtn.onclick = start;
-victoryBtn.onclick = start;
+startBtn.onclick = start;
 </script>
 </body>
 </html>

@@ -19,96 +19,246 @@ body {
     display: block;
 }
 
+/* 血条样式优化：圆角+渐变+阴影 */
 .hp-bar {
     position: absolute;
     top: 15px;
     left: 15px;
     width: 180px;
     height: 24px;
-    background: #333;
-    border: 2px solid #fff;
-    border-radius: 4px;
+    background: #222;
+    border: 2px solid #444;
+    border-radius: 12px;
+    z-index: 999;
+    box-shadow: 0 0 8px rgba(0,0,0,0.8);
+    overflow: hidden;
 }
 #hp-fill {
     height: 100%;
-    background: #e74c3c;
+    background: linear-gradient(90deg, #e74c3c, #c0392b);
     width: 100%;
-    transition: 0.2s;
+    transition: 0.2s ease-in-out;
+    border-radius: 10px;
 }
 
+/* 背包切换按钮优化：hover/点击反馈+圆角+阴影 */
+.toggle-backpack {
+    position: absolute;
+    top: 15px;
+    left: 200px;
+    padding: 8px 16px;
+    background: linear-gradient(180deg, #444, #222);
+    color: #fff;
+    border: 2px solid #666;
+    border-radius: 12px;
+    cursor: pointer;
+    z-index: 999;
+    box-shadow: 0 0 8px rgba(0,0,0,0.8);
+    transition: all 0.2s ease;
+    font-size: 14px;
+    font-weight: 600;
+}
+.toggle-backpack:hover, .toggle-backpack:active {
+    background: linear-gradient(180deg, #555, #333);
+    border-color: #ffd700;
+    transform: scale(1.05);
+}
+
+/* 10格快捷栏优化：半透明磨砂+圆角+阴影+适配小屏 */
 .inventory {
     position: absolute;
-    bottom: 90px;
+    bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
     display: flex;
-    gap: 6px;
-    background: rgba(0,0,0,0.5);
-    padding: 8px;
-    border-radius: 8px;
+    gap: 8px;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(8px);
+    padding: 10px;
+    border-radius: 16px;
+    z-index: 999;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.8);
+    border: 1px solid rgba(255,255,255,0.1);
+    /* 小屏自适应 */
+    flex-wrap: nowrap;
+    width: calc(100% - 40px);
+    max-width: 600px;
+    justify-content: center;
 }
+
+/* 背包面板优化：磨砂背景+大圆角+分层阴影+内边距调整 */
+.backpack {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(12px);
+    padding: 20px;
+    border-radius: 20px;
+    border: 2px solid rgba(255,255,255,0.2);
+    display: none;
+    z-index: 1000;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.9), inset 0 0 0 1px rgba(255,255,255,0.1);
+    min-width: 300px;
+    max-width: 90vw;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+/* 背包滚动条美化 */
+.backpack::-webkit-scrollbar {
+    width: 6px;
+}
+.backpack::-webkit-scrollbar-thumb {
+    background: #666;
+    border-radius: 3px;
+}
+.backpack::-webkit-scrollbar-track {
+    background: #222;
+    border-radius: 3px;
+}
+
+.backpack.show {
+    display: block;
+    /* 淡入动画 */
+    animation: backpackFadeIn 0.3s ease-in-out;
+}
+@keyframes backpackFadeIn {
+    from { opacity: 0; transform: translate(-50%, -45%); }
+    to { opacity: 1; transform: translate(-50%, -50%); }
+}
+
+.backpack-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+/* 关闭背包按钮优化：和背包风格统一+hover反馈 */
+.close-backpack {
+    padding: 10px 24px;
+    background: linear-gradient(180deg, #e74c3c, #c0392b);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    display: block;
+    margin: 0 auto;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(231,76,60,0.3);
+    transition: all 0.2s ease;
+}
+.close-backpack:hover, .close-backpack:active {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(231,76,60,0.5);
+}
+
+/* 物品槽核心优化：3D质感+hover/选中高亮+数量文字美化+方块边框 */
 .inv-slot {
     width: 44px;
     height: 44px;
-    background: #444;
-    border: 2px solid #888;
-    border-radius: 4px;
+    background: linear-gradient(180deg, #333, #222);
+    border: 2px solid #555;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #fff;
-    font-size: 14px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 2px 4px rgba(0,0,0,0.5);
+    position: relative;
 }
+/* 物品槽内方块添加小边框，区分背景 */
+.inv-slot::before {
+    content: '';
+    position: absolute;
+    width: 36px;
+    height: 36px;
+    background: inherit;
+    border-radius: 4px;
+    z-index: -1;
+}
+/* 空槽样式优化：更浅的边框+淡背景 */
+.inv-slot.empty {
+    background: linear-gradient(180deg, #222, #111);
+    border-color: #444;
+}
+.inv-slot.empty::before {
+    background: transparent;
+}
+/* 选中槽高亮：金色渐变边框+发光+缩放 */
 .inv-slot.selected {
     border-color: #ffd700;
-    background: #555;
+    background: linear-gradient(180deg, #444, #333);
+    box-shadow: inset 0 1px 0 rgba(255,215,0,0.2), 0 0 10px rgba(255,215,0,0.4), 0 2px 4px rgba(0,0,0,0.5);
+    transform: scale(1.08);
+    z-index: 1;
+}
+/* hover反馈：边框变浅+轻微缩放 */
+.inv-slot:not(.empty):hover {
+    border-color: #888;
+    transform: scale(1.05);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 0 8px rgba(255,255,255,0.2);
+}
+/* 数量文字定位优化：右下角，加阴影防重叠 */
+.inv-slot span {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
 }
 
-/* 设置面板 */
+/* 设置面板优化：圆角+磨砂+阴影 */
 .setting-panel{
     position:absolute;
     top:16px;right:16px;
     background:rgba(0,0,0,0.65);
-    padding:10px;
-    border-radius:8px;
+    backdrop-filter: blur(8px);
+    padding:12px;
+    border-radius: 12px;
     color:#fff;
     font-size:14px;
     z-index:9999;
     transition:opacity .4s;
+    border:1px solid rgba(255,255,255,0.1);
+    box-shadow:0 4px 16px rgba(0,0,0,0.8);
 }
 .setting-panel>div{
-    margin:4px 0;
+    margin:6px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+/* 滑块样式优化 */
+.setting-panel input[type="range"] {
+    width: 120px;
+    accent-color: #ffd700;
 }
 
-/* 左侧移动控制区 */
-.mobile-controls {
+/* 移动端控制按键优化：磨砂+圆角+阴影+点击反馈 */
+.mobile-controls, .mobile-controls-right {
     position: fixed;
     bottom: 20px;
-    left: 20px;
     display: flex;
     flex-direction: column;
     gap: 12px;
     z-index: 998;
     pointer-events: none;
 }
-
-/* 右侧挖掘放置区 */
-.mobile-controls-right {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    z-index: 998;
-    pointer-events: none;
-}
+.mobile-controls { left: 20px; }
+.mobile-controls-right { right: 20px; }
 
 .btn {
     width: 64px;
     height: 64px;
     background: rgba(0,0,0,0.5);
-    border: 2px solid white;
+    backdrop-filter: blur(8px);
+    border: 2px solid rgba(255,255,255,0.2);
     border-radius: 50%;
     color: white;
     font-size: 22px;
@@ -117,7 +267,36 @@ body {
     justify-content: center;
     pointer-events: all;
     touch-action: manipulation;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.8);
 }
 .btn:active {
-    background: rgba(255,255,255,0.3);
+    background: rgba(255,255,255,0.2);
+    transform: scale(0.95);
+    border-color: #ffd700;
+}
+
+/* 小屏幕适配：缩小物品槽和按键 */
+@media (max-width: 480px) {
+    .inv-slot {
+        width: 38px;
+        height: 38px;
+    }
+    .inv-slot::before {
+        width: 30px;
+        height: 30px;
+    }
+    .btn {
+        width: 56px;
+        height: 56px;
+        font-size: 20px;
+    }
+    .toggle-backpack {
+        left: 180px;
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+    .hp-bar {
+        width: 150px;
+    }
 }

@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>泰拉风格2D沙盒</title>
+    <title>2D沙盒游戏</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div class="game-container">
     <canvas id="gameCanvas"></canvas>
 
+    <!-- 血条 -->
     <div class="hp-bar">
         <div id="hp-fill"></div>
     </div>
@@ -22,64 +23,85 @@
         <div>底部距离 <input type="range" id="botGap" min="0" max="120" value="20"></div>
     </div>
 
-    <div class="inventory" id="inv"></div>
+    <!-- 背包切换按钮 -->
+    <button class="toggle-backpack" id="toggleBackpack">背包</button>
+    <!-- 10格快捷物品栏 -->
+    <div class="inventory" id="hotbar"></div>
+    <!-- 背包面板（40格+快捷栏展示） -->
+    <div class="backpack" id="backpack">
+        <div class="backpack-grid" id="backpackGrid"></div>
+        <button class="close-backpack" id="closeBackpack">关闭背包</button>
+    </div>
 
-    <!-- 左侧移动按键 -->
+    <!-- 左侧移动控制按键（移动端） -->
     <div class="mobile-controls">
         <div class="btn" id="leftBtn">←</div>
         <div class="btn" id="rightBtn">→</div>
         <div class="btn" id="jumpBtn">跳</div>
     </div>
 
-    <!-- 右侧操作按键 -->
+    <!-- 右侧操作控制按键（移动端） -->
     <div class="mobile-controls-right">
         <div class="btn" id="digBtn">挖</div>
         <div class="btn" id="placeBtn">放</div>
     </div>
 </div>
+
 <script src="game.js"></script>
 <script>
-// 实时调节控制器
-const sPanel = document.querySelector('.setting-panel');
-const btnSize = document.getElementById('btnSize');
-const leftGap = document.getElementById('leftGap');
-const rightGap = document.getElementById('rightGap');
-const botGap = document.getElementById('botGap');
-const mL = document.querySelector('.mobile-controls');
-const mR = document.querySelector('.mobile-controls-right');
-const btns = document.querySelectorAll('.btn');
+    // 控制器样式实时调节（原有功能保留）
+    const sPanel = document.querySelector('.setting-panel');
+    const btnSize = document.getElementById('btnSize');
+    const leftGap = document.getElementById('leftGap');
+    const rightGap = document.getElementById('rightGap');
+    const botGap = document.getElementById('botGap');
+    const mL = document.querySelector('.mobile-controls');
+    const mR = document.querySelector('.mobile-controls-right');
+    const btns = document.querySelectorAll('.btn');
 
-function updateUI(){
-    let sz = btnSize.value;
-    let l = leftGap.value;
-    let r = rightGap.value;
-    let b = botGap.value;
+    function updateUI(){
+        let sz = btnSize.value;
+        let l = leftGap.value;
+        let r = rightGap.value;
+        let b = botGap.value;
 
-    mL.style.left = l+'px';
-    mR.style.right = r+'px';
-    mL.style.bottom = b+'px';
-    mR.style.bottom = b+'px';
+        mL.style.left = l+'px';
+        mR.style.right = r+'px';
+        mL.style.bottom = b+'px';
+        mR.style.bottom = b+'px';
 
-    btns.forEach(el=>{
-        el.style.width = sz+'px';
-        el.style.height = sz+'px';
-        el.style.fontSize = sz/2.8+'px';
+        btns.forEach(el=>{
+            el.style.width = sz+'px';
+            el.style.height = sz+'px';
+            el.style.fontSize = sz/2.8+'px';
+        });
+    }
+    btnSize.oninput = leftGap.oninput = rightGap.oninput = botGap.oninput = updateUI;
+    updateUI();
+
+    // 长按隐藏设置面板（原有功能保留）
+    let hideTimer;
+    document.addEventListener('touchstart',()=>{
+        clearTimeout(hideTimer);
+        sPanel.style.opacity = "1";
     });
-}
-btnSize.oninput = leftGap.oninput = rightGap.oninput = botGap.oninput = updateUI;
-updateUI();
+    document.addEventListener('touchend',()=>{
+        hideTimer = setTimeout(()=>{
+            sPanel.style.opacity = "0.15";
+        },2500);
+    });
 
-// 长按隐藏设置(避免遮挡)
-let hideTimer;
-document.addEventListener('touchstart',()=>{
-    clearTimeout(hideTimer);
-    sPanel.style.opacity = "1";
-});
-document.addEventListener('touchend',()=>{
-    hideTimer = setTimeout(()=>{
-        sPanel.style.opacity = "0.15";
-    },2500);
-});
+    // 背包显示/隐藏切换（新增功能）
+    const toggleBackpackBtn = document.getElementById('toggleBackpack');
+    const backpackPanel = document.getElementById('backpack');
+    const closeBackpackBtn = document.getElementById('closeBackpack');
+
+    toggleBackpackBtn.addEventListener('click', () => {
+        backpackPanel.classList.toggle('show');
+    });
+    closeBackpackBtn.addEventListener('click', () => {
+        backpackPanel.classList.remove('show');
+    });
 </script>
 </body>
 </html>

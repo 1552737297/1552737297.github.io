@@ -528,6 +528,10 @@ let boss = null;
 let bossBullets = [];
 let textEffects = [];
 
+let shootTimer = 0;
+let missileTimer = 0;
+let enemyTimer = 0;
+
 const prizes = [
   {name:'护盾+1',color:'#0ef'},
   {name:'武器升级',color:'#fc0'},
@@ -918,10 +922,10 @@ function dropItem(x,y){
 }
 
 function applySkinEffect() {
-  switch (currentSkin) {
-    case 4:
+  if (currentSkin === 4) {
+    if (player.shieldCount < player.shieldMax) {
       player.shieldCount = player.shieldMax;
-      break;
+    }
   }
 }
 
@@ -1342,9 +1346,23 @@ function gameLoop(timestamp){
 
   drawParticles();
 
-  if(Math.floor(timestamp/350)%2===0 && !ulting) shoot();
-  if(Math.floor(timestamp/800)%1===0 && !ulting) fireFollowMissile();
-  if(Math.floor(timestamp/600)%1===0) createEnemy();
+  shootTimer++;
+  missileTimer++;
+  enemyTimer++;
+
+  let shootCd = currentSkin === 2 ? 10 : 16;
+  if(shootTimer >= shootCd && !ulting){
+    shoot();
+    shootTimer = 0;
+  }
+  if(missileTimer >= 80 && !ulting){
+    fireFollowMissile();
+    missileTimer = 0;
+  }
+  if(enemyTimer >= 60){
+    createEnemy();
+    enemyTimer = 0;
+  }
 
   for(let i=bullets.length-1;i>=0;i--){
     let b = bullets[i];
@@ -1362,7 +1380,7 @@ function gameLoop(timestamp){
     if(collide(player,e) && player.invincibleTime<=0){
       boom(e.x+e.w/2,e.y+e.h/2);
       enemies.splice(i,1);
-      player.shieldCount--;
+      if(currentSkin !==4) player.shieldCount--;
       if(player.shieldCount <=0) {gameOver();return;}
     }
     for(let j=bullets.length-1;j>=0;j--){
@@ -1391,8 +1409,9 @@ function gameLoop(timestamp){
 
   for(let i=followMissiles.length-1;i>=0;i--){
     let m = followMissiles[i];
-    if(!m || !m.target || enemies.indexOf(m.target)===-1){
-      followMissiles.splice(i,1);continue;
+    if(!m || !m.target || !enemies.includes(m.target)){
+      followMissiles.splice(i,1);
+      continue;
     }
     let tx = m.target.x + m.target.w/2;
     let ty = m.target.y + m.target.h/2;
@@ -1467,6 +1486,7 @@ function gameLoop(timestamp){
       score += add;
       scoreText.innerText = '分数：'+score;
       boss = null;
+      bossBullets = [];
       bossHpText.style.display = 'none';
       level++;
       levelText.innerText = '关卡：'+level;
@@ -1483,7 +1503,7 @@ function gameLoop(timestamp){
     if(b.x<0||b.x>canvas.width||b.y<0||b.y>canvas.height){bossBullets.splice(i,1);continue;}
     if(collide(player,b) && player.invincibleTime<=0){
       bossBullets.splice(i,1);
-      player.shieldCount--;
+      if(currentSkin !==4) player.shieldCount--;
       if(player.shieldCount <=0) {gameOver();return;}
     }
   }

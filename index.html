@@ -625,8 +625,7 @@ function createBgMusic() {
   bgMusicLoop.buffer = buffer;
   bgMusicLoop.connect(musicGain);
 }
-
-function playSkinSwitchSound(skinId) {
+ function playSkinSwitchSound(skinId) {
   if (!audioCtx) return;
   const osc = audioCtx.createOscillator();
   const gainNode = audioCtx.createGain();

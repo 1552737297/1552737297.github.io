@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>太空雷霆战机 - 终极美化版</title>
+<title>太空雷霆战机</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{
@@ -144,7 +144,7 @@ canvas {
   <button id="restartBtn">重新挑战</button>
 </div>
 
-<canvas id="game"></canvas>
+<canvas id="game" width="375" height="667"></canvas>
 
 <script>
 const canvas = document.getElementById('game');
@@ -163,9 +163,6 @@ const defeat = document.getElementById('defeat');
 const defeatTitle = document.getElementById('defeatTitle');
 const defeatInfo = document.getElementById('defeatInfo');
 const restartBtn = document.getElementById('restartBtn');
-
-canvas.width = 375;
-canvas.height = 667;
 
 let gameRunning = false;
 let score = 0;
@@ -189,8 +186,6 @@ const player = {
   x: canvas.width/2-25, y: canvas.height*0.8, w:50, h:60,
   shieldCount: 1, shieldMax: 3,
   weaponLevel:1, weaponMax:3,
-  laserLevel:0, laserMax:3, laserTime:0,
-  wingLevel:0, wingMax:3,
   invincibleTime:0, bombCount:0
 };
 
@@ -245,7 +240,7 @@ canvas.addEventListener('touchmove', e=>{
 });
 
 skinSwitchBtn.onclick = () => {
-  currentSkin = currentSkin ===1 ? 1 : 1;
+  currentSkin = 1;
 };
 
 bombBtn.onclick = () => {
@@ -335,6 +330,7 @@ function drawPlayer(){
   ctx.translate(cx, cy);
   ctx.translate(-cx, -cy);
 
+  // 战机主体
   ctx.fillStyle = colors.body;
   ctx.shadowBlur = 15;
   ctx.shadowColor = colors.body;
@@ -349,9 +345,10 @@ function drawPlayer(){
   ctx.lineTo(cx+12, player.y + 50);
   ctx.lineTo(cx+22, player.y + 35);
   ctx.lineTo(cx+18, player.y + 10);
-  closePath();
+  ctx.closePath();
   ctx.fill();
 
+  // 光翼
   ctx.fillStyle = '#ff00ff';
   ctx.shadowBlur = 25;
   ctx.shadowColor = '#ff00ff';
@@ -361,7 +358,7 @@ function drawPlayer(){
   ctx.lineTo(cx-55, player.y + 25);
   ctx.lineTo(cx-40, player.y + 35);
   ctx.lineTo(cx-30, player.y + 45);
-  closePath();
+  ctx.closePath();
   ctx.fill();
   ctx.beginPath();
   ctx.moveTo(cx+10, player.y + 20);
@@ -369,14 +366,16 @@ function drawPlayer(){
   ctx.lineTo(cx+55, player.y + 25);
   ctx.lineTo(cx+40, player.y + 35);
   ctx.lineTo(cx+30, player.y + 45);
-  closePath();
+  ctx.closePath();
   ctx.fill();
 
+  // 引擎光
   ctx.fillStyle = '#00ffff';
   ctx.shadowBlur = 30;
   ctx.shadowColor = '#00ffff';
   ctx.fillRect(cx-6, player.y + 52, 12, 10);
 
+  // 护盾
   if(player.shieldCount > 0){
     ctx.globalAlpha = 0.8;
     ctx.strokeStyle = colors.shield;
@@ -404,6 +403,7 @@ function drawBullet(b){
 function loop(){
   if(!gameRunning) return;
 
+  // 渐变背景
   let bgGrd = ctx.createLinearGradient(0,0,0,canvas.height);
   bgGrd.addColorStop(0,'#050612');
   bgGrd.addColorStop(0.5,'#0a0a23');
@@ -411,6 +411,7 @@ function loop(){
   ctx.fillStyle = bgGrd;
   ctx.fillRect(0,0,canvas.width,canvas.height);
 
+  // 岩石
   ctx.fillStyle = '#2a3447';
   ctx.strokeStyle = '#4a74ff';
   ctx.lineWidth = 2;
@@ -424,7 +425,7 @@ function loop(){
     ctx.lineTo(x+w,y+h*0.3);
     ctx.lineTo(x+w*0.7,y+h);
     ctx.lineTo(x+w*0.2,y+h*0.8);
-    closePath();
+    ctx.closePath();
     ctx.fill();
     ctx.stroke();
   }
@@ -441,11 +442,13 @@ function loop(){
   drawPlayer();
   bossAttack();
 
+  // 子弹
   for(let i=bullets.length-1;i>=0;i--){
     let b = bullets[i]; b.y -= b.speed; drawBullet(b);
     if(b.y < -20) bullets.splice(i,1);
   }
 
+  // 敌人
   for(let i=enemies.length-1;i>=0;i--){
     let e = enemies[i]; e.y += e.speed;
     ctx.fillStyle = '#f44';
@@ -455,7 +458,7 @@ function loop(){
     ctx.moveTo(e.x+e.w/2,e.y);
     ctx.lineTo(e.x,e.y+e.h);
     ctx.lineTo(e.x+e.w,e.y+e.h);
-    closePath();
+    ctx.closePath();
     ctx.fill();
     ctx.shadowBlur = 0;
 
@@ -471,6 +474,7 @@ function loop(){
     if(e.y>canvas.height) enemies.splice(i,1);
   }
 
+  // BOSS
   if(boss){
     ctx.fillStyle = '#f80';
     ctx.shadowBlur = 12;
@@ -481,6 +485,7 @@ function loop(){
     boss.x += boss.speed * boss.dir;
     if(boss.x<20 || boss.x+boss.w>canvas.width-20) boss.dir *= -1;
 
+    // BOSS子弹
     for(let i=bossBullets.length-1;i>=0;i--){
       let b = bossBullets[i];
       b.x += b.vx; b.y += b.vy;
@@ -503,6 +508,7 @@ function loop(){
       }
     }
 
+    // 子弹打BOSS
     for(let i=bullets.length-1;i>=0;i--){
       if(boss && collide(bullets[i],boss)){
         bullets.splice(i,1);
@@ -518,6 +524,7 @@ function loop(){
     }
   }
 
+  // 子弹打敌人
   for(let i=bullets.length-1;i>=0;i--){
     for(let j=enemies.length-1;j>=0;j--){
       if(collide(bullets[i],enemies[j])){

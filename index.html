@@ -303,9 +303,7 @@ background:linear-gradient(90deg,#0fa,#0af);
 font-weight:bold;margin-bottom:24px;
 }
 .skin-list{
-display:grid;
-grid-template-columns:1fr 1fr;
-gap:14px;
+display:grid;grid-template-columns:1fr 1fr;gap:14px;
 margin-bottom:20px;
 }
 .skin-item{
@@ -518,7 +516,7 @@ const player = {
   weaponLevel:1, weaponMax:3,
   laserLevel:0, laserMax:3, laserTime:0,
   wingLevel:0, wingMax:3,
-  invincibleTime:0, bombCount:0, magnetTime:0
+  invincibleTime:0, bombCount:1, magnetTime:0
 };
 
 let bullets = [];
@@ -623,7 +621,6 @@ function createBgMusic() {
     data[i] = Math.sin(2 * Math.PI * note * t) * Math.exp(-t * 0.5) * 0.3;
   }
   bgMusicLoop.buffer = buffer;
-  bgMusicLoop.connect(musicGain);
 }
  function playSkinSwitchSound(skinId) {
   if (!audioCtx) return;
@@ -769,15 +766,18 @@ canvas.addEventListener('touchmove', e=>{
 skinSwitchBtn.onclick = () => {
   let oldSkin = currentSkin;
   let next = currentSkin;
+  let found = false;
   for (let i = 0; i < 10; i++) {
     next++;
     if (next > 5) next = 1;
     if (unlockedSkins.includes(next)) {
       currentSkin = next;
       playSkinSwitchSound(currentSkin);
+      found = true;
       break;
     }
   }
+  if(!found) currentSkin = oldSkin;
 };
 
 document.addEventListener('keydown', e=>{
@@ -804,6 +804,7 @@ ultBtn.onclick = useUltimate;
 function useUltimate(){
   if(ultCharge < ultMax || ulting) return;
   ultCharge = 0;
+  ultText.innerText = '大招能量：0/100';
   ulting = true;
   ultFrame = 0;
   player.invincibleTime = 2000;
@@ -1274,6 +1275,9 @@ function gameOver(){
   defeatTitle.innerText = '战 败';
   defeatInfo.innerHTML = `最终分数：${score}<br>达到关卡：${level}`;
   defeat.style.display = 'block';
+  
+  clearInterval(bossSpawnTimer);
+  bossSpawnTimer = null;
 }
 
 function restartGame(){
@@ -1296,7 +1300,7 @@ function startGame(){
   player.weaponLevel = 1;
   player.laserLevel = 0;player.laserTime=0;
   player.wingLevel=0;
-  player.invincibleTime=0;player.bombCount=0;player.magnetTime=0;
+  player.invincibleTime=0;player.bombCount=1;player.magnetTime=0;
 
   logo.style.display = 'none';
   author.style.display = 'none';
@@ -1310,7 +1314,7 @@ function startGame(){
 
   scoreText.innerText = '分数：0';
   levelText.innerText = '关卡：1';
-  bombText.innerText = '炸弹：0';
+  bombText.innerText = '炸弹：1';
   ultText.innerText = '大招能量：0/100';
 
   initAudio();

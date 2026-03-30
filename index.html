@@ -1,181 +1,410 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>太空雷霆战机 - 图鉴+专属皮肤音效完整版</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{
- background:#000;
-display:flex;justify-content:center;align-items:center;
-height:100vh;overflow:hidden;touch-action:none;
-color:#fff;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto;
-perspective: 1000px;
-}
-#game{
-border:2px solid #0ef;
-background:linear-gradient(#000,#10122a);
-display:block;
-box-shadow: 0 0 20px #0ef,inset 0 0 20px rgba(0,238,255,.2);
-}
-/* 图鉴弹窗样式 */
-#bookPanel{
-position:fixed;top:0;left:0;width:100%;height:100%;
-background:rgba(0,0,0,.85);display:none;z-index:99;
-padding:20px;overflow:auto;
-}
-.book-content{
-max-width:500px;margin:30px auto;background:#111;border:2px solid #0ef;
-border-radius:12px;padding:20px;box-shadow:0 0 30px #0ef;
-}
-.book-item{
-padding:12px;margin:10px 0;border:1px solid #333;border-radius:8px;
-display:flex;justify-content:space-between;align-items:center;
-}
-.lock{color:#666}
-.use-btn{padding:6px 12px;border:none;border-radius:4px;cursor:pointer}
-.unlock-btn{background:#08f;color:#fff}
-.used-btn{background:#0c6;color:#fff}
-.disable-btn{background:#444;color:#999;cursor:not-allowed}
-#bookBtn{
-position:fixed;left:20px;bottom:20px;padding:8px 16px;
-background:#0ef;color:#000;border:none;border-radius:6px;
-z-index:10;cursor:pointer;font-weight:bold;
-}
-#closeBook{
-float:right;padding:6px 12px;background:#f33;color:#fff;
-border:none;border-radius:4px;cursor:pointer;
-}
-</style>
-</head>
-<body>
-<canvas id="game"></canvas>
-
-<!-- 全局音效预加载 -->
-<audio id="sfx-normal" preload="auto">
-<source src="https://freesound.org/data/previews/80/80921_1437127-lq.mp3">
-
-<audio id="sfx-fast" preload="auto">
-<source src="https://freesound.org/data/previews/169/169245_3148214-lq.mp3">
-
-<audio id="sfx-dark" preload="auto">
-<source src="https://freesound.org/data/previews/322/322741_5993545-lq.mp3">
-
-<audio id="sfx-shield" preload="auto">
-<source src="https://freesound.org/data/previews/248/248349_4480405-lq.mp3">
-
-<audio id="sfx-supreme" preload="auto">
-<source src="https://freesound.org/data/previews/451/451263_8588048-lq.mp3">
-
-<audio id="skinChangeSnd" preload="auto">
-<source src="https://freesound.org/data/previews/131/131256_2376305-lq.mp3">
-
-
-<!-- 图鉴UI -->
-<button id="bookBtn">战机图鉴</button>
-<div id="bookPanel">
-<div class="book-content">
-<button id="closeBook">关闭</button>
-<h2 style="text-align:center;margin-bottom:20px;color:#0ef">战机图鉴</h2>
-<div id="bookList"></div>
-</div>
-</div>
-
-<script>
-// ========== 音效核心函数 ==========
-function playSkinChangeSound(){
-    let snd = document.getElementById('skinChangeSnd');
-    snd.currentTime = 0;
-    snd.play().catch(e=>{});
-}
-function playShootBySkin(skin){
-    let aid = 'sfx-normal';
-    switch(skin){
-        case 'xunfeng': aid = 'sfx-fast'; break;
-        case 'anmie': aid = 'sfx-dark'; break;
-        case 'shengdun': aid = 'sfx-shield'; break;
-        case 'zhizun': aid = 'sfx-supreme'; break;
-    }
-    let snd = document.getElementById(aid);
-    snd.currentTime = 0;
-    snd.play().catch(e=>{});
-}
-
-// ========== 游戏基础画布 ==========
-const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d');
-canvas.width = 320;
-canvas.height = 520;
-
-// 战机皮肤配置
-const skinConfig = [
-    {id:'base',name:'基础战机',color:'#0ef',desc:'均衡稳定',unlock:true},
-    {id:'xunfeng',name:'迅风战机',color:'#3f3',desc:'射速大幅提升',unlock:false,boss:1},
-    {id:'anmie',name:'湮灭战机',color:'#93f',desc:'大招充能加快',unlock:false,boss:2},
-    {id:'shengdun',name:'圣盾战机',color:'#ff3',desc:'护盾永久生效',unlock:false,boss:3},
-    {id:'zhizun',name:'至尊战机',color:'#f33',desc:'得分翻倍',unlock:false,boss:4}
-];
-let currentSkin = 'base';
-
-// 图鉴渲染
-function renderBook(){
-    let html = '';
-    skinConfig.forEach(item=>{
-        let tip = item.unlock ? '已解锁':'击败BOSS'+item.boss+'解锁';
-        let btnClass = '';
-        let btnText = '';
-        if(!item.unlock){
-            btnClass = 'disable-btn';
-            btnText = '未解锁';
-        }else if(currentSkin === item.id){
-            btnClass = 'used-btn';
-            btnText = '使用中';
-        }else{
-            btnClass = 'unlock-btn';
-            btnText = '切换使用';
+<html lang="zh-CN<head>
+   <meta charset="UTF-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+太空雷霆
+   <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        html += `
-        <div class="book-item ${!item.unlock?'lock':''}">
-            <div>
-                <div>${item.name}</div>
-                <div style="font-size:12px;color:#aaa">${item.desc}</div>
-            </div>
-            <button class="use-btn ${btnClass}" data-skin="${item.id}" ${!item.unlock?'disabled':''}>${btnText}</button>
+
+        body {
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            touch-action: none;
+            color: #fff;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+
+        /* 游戏画布 */
+        #gameCanvas {
+            border: 2px solid #0ef;
+            background: linear-gradient(to bottom, #000, #0a0b2e);
+            display: block;
+            box-shadow: 0 0 25px #0ef;
+        }
+
+        /* 图鉴按钮 */
+        #bookBtn {
+            position: fixed;
+            left: 15px;
+            bottom: 15px;
+            padding: 8px 14px;
+            background: #0ef;
+            color: #000;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 999;
+        }
+
+        /* 图鉴弹窗 */
+        #bookPanel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            z-index: 1000;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .bookContent {
+            max-width: 480px;
+            margin: 40px auto;
+            background: #111435;
+            border: 2px solid #0ef;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 0 30px #0ef;
+        }
+
+        .bookTitle {
+            text-align: center;
+            color: #0ef;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .closeBook {
+            float: right;
+            padding: 5px 10px;
+            background: #f44336;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .planeItem {
+            padding: 12px 15px;
+            margin: 10px 0;
+            border: 1px solid #333;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .planeName {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .planeDesc {
+            font-size: 12px;
+            color: #ccc;
+        }
+
+        .useBtn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .btnUnlocked {
+            background: #2196f3;
+            color: #fff;
+        }
+
+        .btnUsed {
+            background: #4caf50;
+            color: #fff;
+            cursor: default;
+        }
+
+        .btnLocked {
+            background: #666;
+            color: #999;
+            cursor: not-allowed;
+        }
+
+        /* 血条样式 */
+        .hpBar {
+            width: 100px;
+            height: 8px;
+            background: #333;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 5px;
+        }
+
+        .hpCurrent {
+            height: 100%;
+            background: #f44336;
+            transition: width 0.2s ease;
+</style</head>
+<!-- 游戏画布 -->
+    <canvas id="gameCanvas" width="360" height="640"><!-- 图鉴按钮 -->
+    <button id="bookBtn"></button>
+<!-- 图鉴弹窗 --><div id="bookPanel">
+        <div class="bookContent"><button class="</button<h2 class="bookTitle">战机</h2>
+<div id="plane</div>
         </div>
-        `;
-    });
-    document.getElementById('bookList').innerHTML = html;
+    <!-- 战机专属音效预加载 --><audio preload="auto" id="sfx-normal">
+        <source src="https://freesound.org/data/previews/80/80921_1437127-lq.mp3" type="audio/mpeg">
+    
+    <audio preload="auto" id="sfx-fast"><source src="https://freesound.org/data/previews/169/169245_3148214-lq.mp3" type="audio/mpeg">
+    <audio preload="auto" id="sfx-dark">
+<source src="https://freesound.org/data/previews/322/322741_599354-lq.mp3" type="audio/mpeg">
+    <audio preload="auto" id="sfx-shield">
+       <source src="https://freesound.org/data/previews/248/248349_4480405-lq.mp3" type="audio/mpeg">
+    <audio preload="auto" id="sfx-supreme">
+       <source src="https://freesound.org/data/previews/451/451263_8588048-lq.mp3" type="audio/mpeg">
+    <audio preload="auto" id="skin<source src="https://freesound.org/data/previews/131/131256_2376305-lq.mp3" type="audio/mpeg">
+    
 
-    // 绑定切换皮肤事件+音效
-    document.querySelectorAll('.use-btn:not([disabled])').forEach(btn=>{
-        btn.onclick = function(){
-            let sid = this.dataset.skin;
-            currentSkin = sid;
-            playSkinChangeSound(); //切换皮肤音效
-            renderBook();
+   <script>
+        // 获取画布与上下文
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const canvasW = canvas.width;
+        const canvasH = canvas.height;
+
+        // 战机配置（含图鉴、特性、音效）
+        const planeConfig = [
+            { id: 'base', name: '基础战机', color: '#0ef', unlock: true, desc: '均衡稳定，新手首选', shootSfx: 'sfx-normal' },
+            { id: 'xunfeng', name: '迅风战机', color: '#3f3', unlock: false, desc: '射速大幅提升，压制力拉满', shootSfx: 'sfx-fast', unlockBoss: 1 },
+            { id: 'anmie', name: '湮灭战机', color: '#93f', unlock: false, desc: '大招充能速度加快，清屏更快', shootSfx: 'sfx-dark', unlockBoss: 2 },
+            { id: 'shengdun', name: '圣盾战机', color: '#ff3', unlock: false, desc: '护盾永久不消耗，生存拉满', shootSfx: 'sfx-shield', unlockBoss: 3 },
+            { id: 'zhizun', name: '至尊战机', color: '#f33', unlock: false, desc: '所有获得分数翻倍，刷分神器', shootSfx: 'sfx-supreme', unlockBoss: 4 }
+        ];
+
+        // 游戏核心变量
+        let currentPlane = planeConfig[0]; // 当前使用战机
+        let planeX = canvasW / 2 - 20;
+        let planeY = canvasH - 80;
+        let planeW = 40;
+        let planeH = 50;
+        let bullets = [];
+        let enemies = [];
+        let score = 0;
+        let gameRunning = true;
+        let shootSpeed = 300; // 基础射速
+        let lastShootTime = 0;
+
+        // 音效播放函数（防报错、防叠加）
+        function playSound(soundId) {
+            const audio = document.getElementById(soundId);
+            if (audio) {
+                audio.currentTime = 0;
+                audio.play().catch(err => console.log('音效播放失败：', err));
+            }
         }
-    })
-}
 
-// 图鉴开关
-document.getElementById('bookBtn').onclick = ()=>{
-    document.getElementById('bookPanel').style.display = 'block';
-}
-document.getElementById('closeBook').onclick = ()=>{
-    document.getElementById('bookPanel').style.display = 'none';
-}
+        // 皮肤切换音效
+        function playChangeSkinSound() {
+            playSound('skinChange');
+        }
 
-// 模拟发射子弹对接专属音效（你原有发射逻辑替换调用这个）
-function playerShoot(){
-    playShootBySkin(currentSkin);
-    //这里放你原有生成子弹绘制逻辑
-}
+        // 渲染图鉴列表
+        function renderPlaneList() {
+            const listDom = document.getElementById('planeList');
+            let html = '';
+            planeConfig.forEach(item => {
+                let btnClass = '';
+                let btnText = '';
+                if (!item.unlock) {
+                    btnClass = 'btnLocked';
+                    btnText = `击败BOSS${item.unlockBoss}解锁`;
+                } else if (currentPlane.id === item.id) {
+                    btnClass = 'btnUsed';
+                    btnText = '使用中';
+                } else {
+                    btnClass = 'btnUnlocked';
+                    btnText = '切换使用';
+                }
+                html +=<div class="planeItem">
+                    <div>
+                        <div class="planeName" style="color:${item.color}">${item.name}</div>
+                        <div class="planeDesc"></div</div><button class="useBtn ${btnClass}" data-id="${item.id}" ${!item.unlock ? 'disabled' : ''}></button></div>
+                `;
+            });
+            listDom.innerHTML = html;
 
-// 初始化
-renderBook();
+            // 绑定切换战机事件
+            document.querySelectorAll('.useBtn:not([disabled])').forEach(btn => {
+                btn.onclick = function () {
+                    const planeId = this.dataset.id;
+                    currentPlane = planeConfig.find(item => item.id === planeId);
+                    // 切换射速适配迅风战机
+                    shootSpeed = currentPlane.id === 'xunfeng' ? 150 : 300;
+                    playChangeSkinSound();
+                    renderPlaneList();
+                };
+            });
+        }
 
-// 后续你原有：BOSS击杀解锁皮肤、战机绘制、大招、升级 全部正常兼容
-</script>
-</body>
-</html>
+        // 图鉴弹窗控制
+        const bookBtn = document.getElementById('bookBtn');
+        const bookPanel = document.getElementById('bookPanel');
+        const closeBookBtn = document.querySelector('.closeBook');
+        bookBtn.onclick = () => { bookPanel.style.display = 'block'; };
+        closeBookBtn.onclick = () => { bookPanel.style.display = 'none'; };
+
+        // 绘制战机（棱角分明+立体效果）
+        function drawPlane() {
+            ctx.fillStyle = currentPlane.color;
+            // 立体棱角机身
+            ctx.beginPath();
+            ctx.moveTo(planeX + planeW / 2, planeY);
+            ctx.lineTo(planeX, planeY + planeH * 0.7);
+            ctx.lineTo(planeX + planeW * 0.3, planeY + planeH);
+            ctx.lineTo(planeX + planeW * 0.7, planeY + planeH);
+            ctx.lineTo(planeX + planeW, planeY + planeH * 0.7);
+            ctx.closePath();
+            ctx.fill();
+            // 立体高光
+            ctx.fillStyle = '#fff';
+            ctx.globalAlpha = 0.3;
+            ctx.beginPath();
+            ctx.moveTo(planeX + planeW / 2, planeY + 5);
+            ctx.lineTo(planeX + 8, planeY + planeH * 0.7);
+            ctx.lineTo(planeX + planeW / 2, planeY + planeH - 5);
+            ctx.closePath();
+            ctx.fill();
+            ctx.globalAlpha = 1;
+        }
+
+        // 绘制子弹
+        function drawBullets() {
+            ctx.fillStyle = '#fff';
+            bullets.forEach((bullet, index) => {
+                bullet.y -= 8;
+                ctx.fillRect(bullet.x, bullet.y, 4, 10);
+                if (< 0) bullets.splice(index, 1);
+            });
+        }
+
+        // 发射子弹
+        function shootBullet(timestamp) {
+            if (timestamp - lastShootTime > shootSpeed && gameRunning) {
+                bullets.push({ x: planeX + planeW / 2 - 2, y: planeY });
+                playSound(currentPlane.shootSfx);
+                lastShootTime = timestamp;
+            }
+        }
+
+        // 绘制敌机
+        function drawEnemies() {
+            ctx.fillStyle = '#ff4444';
+            enemies.forEach((enemy, index) => {
+                enemy.y += 3;
+                // 棱角敌机
+                ctx.beginPath();
+                ctx.moveTo(enemy.x + enemy.w / 2, enemy.y);
+                ctx.lineTo(enemy.x, enemy.y + enemy.h);
+                ctx.lineTo(enemy.x + enemy.w, enemy.y + enemy.h);
+                ctx.closePath();
+                ctx.fill();
+                if (enemy.y > canvasH) enemies.splice(index, 1);
+            });
+        }
+
+        // 随机生成敌机
+        function createEnemy() {
+            if< 0.02 && gameRunning) {
+                enemies.push({
+                    x: Math.random() * (canvasW - 30),
+                    y: -40,
+                    w: 30,
+                    h: 35
+                });
+            }
+        }
+
+        // 碰撞检测
+        function checkCollision() {
+            // 子弹与敌机碰撞
+            bullets.forEach((bullet, bIndex) => {
+                enemies.forEach((enemy, eIndex) => {
+                    if (
+                        bullet.x > enemy.x &&< enemy.x + enemy.w &&
+                        bullet.y > enemy.y &&
+                        bullet.y < enemy.y + enemy.h
+                    ) {
+                        bullets.splice(bIndex, 1);
+                        enemies.splice(eIndex, 1);
+                        // 至尊战机分数翻倍
+                        score += currentPlane.id === 'zhizun' ? 20 : 10;
+                    }
+                });
+            });
+
+            // 敌机与战机碰撞
+            enemies.forEach((enemy, eIndex) => {
+                if (
+                    plane< enemy.x + enemy.w &&
+                    planeX + planeW > enemy.x &&
+                    planeY < enemy.y + enemy.h &&
+                    planeY + planeH > enemy.y
+                ) {
+                    // 圣盾战机免疫碰撞
+                    if (currentPlane.id !== 'shengdun') {
+                        gameRunning = false;
+                    }
+                }
+            });
+        }
+
+        // 绘制分数
+        function drawScore() {
+            ctx.fillStyle = '#fff';
+            ctx.font = '20px Microsoft YaHei';
+            ctx.fillText(`分数：${score}`, 10, 30);
+        }
+
+        // 绘制游戏结束
+        function drawGameOver() {
+            if (!gameRunning) {
+                ctx.fillStyle = 'rgba(0,0,0,0.7)';
+                ctx.fillRect(0, 0, canvasW, canvasH);
+                ctx.fillStyle = '#fff';
+                ctx.font = '30px Microsoft YaHei';
+                ctx.textAlign = 'center';
+                ctx.fillText('游戏结束', canvasW / 2, canvasH / 2 - 30);
+                ctx.fillText(`最终分数：${score}`, canvasW / 2, canvasH / 2 + 10);
+            }
+        }
+
+        // 鼠标/触摸控制战机移动
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            planeX = e.clientX - rect.left - planeW / 2;
+            planeY = e.clientY - rect.top - planeH / 2;
+            // 限制战机在画布内
+            planeX = Math.max(0, Math.min(canvasW - planeW, planeX));
+            planeY = Math.max(0, Math.min(canvasH - planeH, planeY));
+        });
+
+        // 游戏主循环
+        function gameLoop(timestamp) {
+            ctx.clearRect(0, 0, canvasW, canvasH);
+            if (gameRunning) {
+                shootBullet(timestamp);
+                createEnemy();
+                drawBullets();
+                drawEnemies();
+                checkCollision();
+            }
+            drawPlane();
+            drawScore();
+            drawGameOver();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // 初始化
+        renderPlaneList();
+        gameLoop(0);
+    </body></html>

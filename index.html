@@ -559,6 +559,7 @@ function generateRandomSkinColor() {
 }
 
 function addParticle(x, y, color) {
+  if(particles.length > 300) return;
   particles.push({
     x, y,
     vx: (Math.random()-0.5)*1.5,
@@ -811,7 +812,7 @@ function useUltimate(){
 }
 
 function doUltimateDamage(){
-  for(let e of enemies) boom(e.x+e.w/2, e.y+e.y/2);
+  for(let e of enemies) boom(e.x+e.w/2, e.y+e.h/2);
   enemies = [];
   bossBullets = [];
   if(boss) boss.hp -= 25 + level*5;
@@ -899,6 +900,7 @@ function bossAttack(){
 }
 
 function collide(a,b){
+  if(!a || !b) return false;
   return a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y;
 }
 
@@ -1350,6 +1352,7 @@ function gameLoop(timestamp){
 
   for(let i=enemies.length-1;i>=0;i--){
     let e = enemies[i];
+    if(!e) continue;
     e.y += e.speed;
     drawEnemy(e);
     if(e.y > canvas.height) {enemies.splice(i,1);continue;}
@@ -1361,6 +1364,7 @@ function gameLoop(timestamp){
     }
     for(let j=bullets.length-1;j>=0;j--){
       let b = bullets[j];
+      if(!b) continue;
       if(collide(b,e)){
         e.hp--;
         bullets.splice(j,1);
@@ -1384,7 +1388,7 @@ function gameLoop(timestamp){
 
   for(let i=followMissiles.length-1;i>=0;i--){
     let m = followMissiles[i];
-    if(!m.target || enemies.indexOf(m.target)===-1){
+    if(!m || !m.target || enemies.indexOf(m.target)===-1){
       followMissiles.splice(i,1);continue;
     }
     let tx = m.target.x + m.target.w/2;
@@ -1392,6 +1396,7 @@ function gameLoop(timestamp){
     let dx = tx - m.x;
     let dy = ty - m.y;
     let dist = Math.hypot(dx,dy);
+    if(dist <=0) dist = 1;
     m.x += (dx/dist)*m.speed;
     m.y += (dy/dist)*m.speed;
     drawMissile(m);
@@ -1417,7 +1422,7 @@ function gameLoop(timestamp){
       let ix=it.x+it.w/2, iy=it.y+it.h/2;
       let dx = cx-ix, dy=cy-iy;
       let d=Math.hypot(dx,dy);
-      if(d<120){it.x += (dx/d)*3; it.y += (dy/d)*3;}
+      if(d<120 && d>0){it.x += (dx/d)*3; it.y += (dy/d)*3;}
     }
     drawItem(it);
     if(it.y>canvas.height) {items.splice(i,1);continue;}
@@ -1467,6 +1472,7 @@ function gameLoop(timestamp){
 
   for(let i=bossBullets.length-1;i>=0;i--){
     let b = bossBullets[i];
+    if(!b) continue;
     b.x += b.vx; b.y += b.vy;
     ctx.fillStyle = b.color;
     ctx.shadowBlur = 8; ctx.shadowColor = b.color;

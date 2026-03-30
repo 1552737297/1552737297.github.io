@@ -105,60 +105,26 @@ box-shadow:0 0 40px #0ff;
 transform:translate(-50%,-50%) scale(0.96);
 }
 
-#bombBtn{
-position:absolute;bottom:30px;right:30px;
-width:76px;height:76px;
-border-radius:50%;
-background:linear-gradient(135deg,#f30,#f60);
-color:#fff;
-font-size:16px;
-font-weight:bold;
-border:none;
-box-shadow:0 0 20px #f30, 0 8px 25px rgba(255,80,0,0.4);
-display:none;
-transition: all 0.2s ease;
-}
-#bombBtn:active{
-transform: scale(0.92);
-box-shadow:0 0 12px #f30;
-}
-
-#ultBtn{
-position:absolute;bottom:30px;left:110px;
-width:76px;height:76px;
-border-radius:50%;
-background:linear-gradient(135deg,#90f,#f0f);
-color:#fff;
-font-size:16px;
-font-weight:bold;
-border:none;
-box-shadow:0 0 25px #90f, 0 8px 25px rgba(140,0,255,0.4);
-display:none;
-transition: all 0.2s ease;
-}
-#ultBtn:disabled{
-background:#444;
-box-shadow:none;
-opacity:0.5;
-}
-#ultBtn:active:enabled{
-transform: scale(0.92);
-box-shadow:0 0 40px #f0f;
+#bombBtn, #ultBtn, #skinSwitchBtn {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 0 15px currentColor, 0 0 30px rgba(255,255,255,0.3);
+  background: radial-gradient(circle, #222 0%, #000 100%);
+  color: #fff;
+  font-size: 12px;
+  font-weight: bold;
+  position: absolute;
+  bottom: 30px;
+  display: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-#skinSwitchBtn{
-position:absolute;bottom:30px;left:30px;
-width:60px;height:60px;
-border-radius:50%;
-font-size:14px;
-font-weight:bold;
-border:2px solid #0ff;
-background:#112;
-color:#0ff;
-box-shadow:0 0 15px #08f;
-display:none;
-cursor:pointer;
-}
+#bombBtn { right: 30px; color: #ff3300; border-color: #ff3300; }
+#ultBtn { left: 110px; color: #ff00ff; border-color: #ff00ff; }
+#skinSwitchBtn { left: 30px; color: #00ffff; border-color: #00ffff; }
 
 /* ====================== 图鉴按钮 ====================== */
 #pediaBtn{
@@ -405,6 +371,14 @@ box-shadow:0 0 40px #f30;
 #restartBtn:active{
 transform: scale(0.94);
 }
+canvas {
+  filter: brightness(1.1) contrast(1.2) saturate(1.3);
+}
+.ui {
+  backdrop-filter: blur(8px);
+  box-shadow: 0 0 10px rgba(0,200,255,0.3);
+}
+
 </style>
 </head>
 <body>
@@ -572,10 +546,10 @@ function generateRandomSkinColor() {
 function addParticle(x, y, color) {
   particles.push({
     x, y,
-    vx: (Math.random()-0.5)*1.2,
-    vy: Math.random()*2+1.5,
-    life: 30+Math.random()*20,
-    maxLife: 50,
+    vx: (Math.random()-0.5)*2, // 更大扩散
+    vy: Math.random()*3+2,     // 更快向下
+    life: 40+Math.random()*30, // 更长存活
+    maxLife: 70,
     color
   });
 }
@@ -946,81 +920,83 @@ function drawPlayer(){
   const cy = player.y + 30;
   const colors = skinColors[currentSkin];
 
-  // 持续喷粒子尾焰
-  addParticle(cx-8, player.y+55, colors.body);
-  addParticle(cx+8, player.y+55, colors.body);
-  addParticle(cx, player.y+58, '#fff');
+  // 粒子尾焰（更密集、更亮）
+  for(let i=0; i<4; i++){
+    addParticle(cx-6 + Math.random()*12, player.y+55, colors.body);
+    addParticle(cx, player.y+58, '#fff');
+  }
 
   ctx.save();
   ctx.translate(cx, cy);
-  ctx.rotate(shipRotate); // 左右倾斜旋转
+  ctx.rotate(shipRotate);
   ctx.translate(-cx, -cy);
 
-  // 3D 金属渐变
-  let grd = ctx.createLinearGradient(cx, player.y-10, cx, player.y + 70);
-  grd.addColorStop(0, '#fff');
-  grd.addColorStop(0.05, colors.body);
-  grd.addColorStop(0.6, colors.bodyDark);
-  grd.addColorStop(1, '#000');
-
-  // 3D 机身
-  ctx.fillStyle = grd;
-  ctx.beginPath();
-  ctx.moveTo(cx, player.y - 8);
-  ctx.lineTo(player.x + 6, player.y + 28);
-  ctx.lineTo(player.x + 10, player.y + 56);
-  ctx.lineTo(cx, player.y + 64);
-  ctx.lineTo(player.x + 40, player.y + 56);
-  ctx.lineTo(player.x + 44, player.y + 28);
-  ctx.closePath();
-  ctx.fill();
-
-  // 3D 立体侧翼
-  ctx.fillStyle = colors.wing;
-  ctx.beginPath();
-  ctx.moveTo(player.x + 12, player.y + 18);
-  ctx.lineTo(player.x - 22, player.y + 36);
-  ctx.lineTo(player.x - 18, player.y + 58);
-  ctx.lineTo(player.x + 16, player.y + 32);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.beginPath();
-  ctx.moveTo(player.x + 38, player.y + 18);
-  ctx.lineTo(player.x + 72, player.y + 36);
-  ctx.lineTo(player.x + 68, player.y + 58);
-  ctx.lineTo(player.x + 34, player.y + 32);
-  ctx.closePath();
-  ctx.fill();
-
-  // 引擎光效
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(cx - 5, player.y + 58, 10, 4);
+  // 1. 尖刺主机身（机甲风）
   ctx.fillStyle = colors.body;
-  ctx.fillRect(cx - 4, player.y + 54, 8, 4);
+  ctx.shadowBlur = 15;
+  ctx.shadowColor = colors.body;
+  ctx.beginPath();
+  ctx.moveTo(cx, player.y - 15);
+  ctx.lineTo(cx-18, player.y + 10);
+  ctx.lineTo(cx-22, player.y + 35);
+  ctx.lineTo(cx-12, player.y + 50);
+  ctx.lineTo(cx-8, player.y + 62);
+  ctx.lineTo(cx, player.y + 68);
+  ctx.lineTo(cx+8, player.y + 62);
+  ctx.lineTo(cx+12, player.y + 50);
+  ctx.lineTo(cx+22, player.y + 35);
+  ctx.lineTo(cx+18, player.y + 10);
+  ctx.closePath();
+  ctx.fill();
 
-  // 3D 球面护盾
+  // 2. 紫色/粉色光翼（参考你给的图）
+  ctx.fillStyle = '#ff00ff';
+  ctx.shadowBlur = 25;
+  ctx.shadowColor = '#ff00ff';
+  // 左侧光翼
+  ctx.beginPath();
+  ctx.moveTo(cx-10, player.y + 20);
+  ctx.lineTo(cx-45, player.y + 10);
+  ctx.lineTo(cx-55, player.y + 25);
+  ctx.lineTo(cx-40, player.y + 35);
+  ctx.lineTo(cx-30, player.y + 45);
+  ctx.closePath();
+  ctx.fill();
+  // 右侧光翼
+  ctx.beginPath();
+  ctx.moveTo(cx+10, player.y + 20);
+  ctx.lineTo(cx+45, player.y + 10);
+  ctx.lineTo(cx+55, player.y + 25);
+  ctx.lineTo(cx+40, player.y + 35);
+  ctx.lineTo(cx+30, player.y + 45);
+  ctx.closePath();
+  ctx.fill();
+
+  // 3. 核心发光引擎
+  ctx.fillStyle = '#00ffff';
+  ctx.shadowBlur = 30;
+  ctx.shadowColor = '#00ffff';
+  ctx.fillRect(cx-6, player.y + 52, 12, 10);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(cx-4, player.y + 54, 8, 6);
+
+  // 4. 护盾（更亮的球面光）
   if(player.shieldCount > 0){
     let op = player.shieldCount / player.shieldMax;
     ctx.globalAlpha = op * 0.9;
     ctx.strokeStyle = colors.shield;
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 4;
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = colors.shield;
     ctx.beginPath();
-    ctx.arc(cx, cy, 46, 0, Math.PI*2);
-    ctx.stroke();
-
-    ctx.globalAlpha = op * 0.3;
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(cx, cy, 42, 0, Math.PI*2);
+    ctx.arc(cx, cy, 50, 0, Math.PI*2);
     ctx.stroke();
     ctx.globalAlpha = 1;
   }
 
+  ctx.shadowBlur = 0; // 重置阴影
   ctx.restore();
 
-  // 旋转自动回弹
   if (shipRotate > 0) shipRotate -= 0.01;
   if (shipRotate < 0) shipRotate += 0.01;
 }
@@ -1060,16 +1036,28 @@ function drawBoss(){
 
 function drawBullet(b){
   if(b.type === 'laser'){
-    ctx.fillStyle = '#ff00ff';
+    // 渐变激光
+    let grd = ctx.createLinearGradient(b.x, b.y, b.x, b.y + b.h);
+    grd.addColorStop(0, '#ff00ff');
+    grd.addColorStop(0.5, '#9900ff');
+    grd.addColorStop(1, '#3300ff');
+    ctx.fillStyle = grd;
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = '#ff00ff';
     ctx.fillRect(b.x, b.y, b.w, b.h);
+    // 白色核心
     ctx.fillStyle = '#fff';
     ctx.fillRect(b.x + 5, b.y, 10, b.h);
   } else {
+    // 普通子弹发光
     ctx.fillStyle = b.color;
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = b.color;
     ctx.fillRect(b.x, b.y, b.w, b.h);
     ctx.fillStyle = '#fff';
     ctx.fillRect(b.x, b.y + 2, b.w, 4);
   }
+  ctx.shadowBlur = 0;
 }
 
 function drawMissile(m){
@@ -1253,8 +1241,32 @@ closePedia.onclick = closePediaPopup;
 function loop(){
   try {
     if(!gameRunning) return;
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0,0,canvas.width,canvas.height);
+    // 渐变宇宙背景
+let bgGrd = ctx.createLinearGradient(0, 0, 0, canvas.height);
+bgGrd.addColorStop(0, '#050612');
+bgGrd.addColorStop(0.5, '#0a0a23');
+bgGrd.addColorStop(1, '#000011');
+ctx.fillStyle = bgGrd;
+ctx.fillRect(0,0,canvas.width,canvas.height);
+
+// 随机绘制岩石（模拟截图里的冰岩）
+ctx.fillStyle = '#2a3447';
+ctx.strokeStyle = '#4a74ff';
+ctx.lineWidth = 2;
+for(let i=0; i<8; i++){
+  let x = Math.random() < 0.5 ? -20 : canvas.width-20;
+  let y = Math.random()*canvas.height;
+  let w = 40 + Math.random()*60;
+  let h = 60 + Math.random()*80;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x+w, y+h*0.3);
+  ctx.lineTo(x+w*0.7, y+h);
+  ctx.lineTo(x+w*0.2, y+h*0.8);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+}
 
     drawParticles(); // 粒子渲染
 
@@ -1381,9 +1393,12 @@ function loop(){
         let b = bossBullets[i];
         b.x += b.vx; b.y += b.vy;
         ctx.fillStyle = b.color;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = b.color;
         ctx.beginPath();
         ctx.arc(b.x+b.w/2, b.y+b.h/2, b.w/2, 0, Math.PI*2);
         ctx.fill();
+        ctx.shadowBlur = 0;
         if(collide(player,b)){
           if(player.shieldCount > 0){
             if(currentSkin!==4) player.shieldCount--;

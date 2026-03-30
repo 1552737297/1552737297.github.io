@@ -636,6 +636,35 @@ function createBgMusic() {
   bgMusicLoop.connect(musicGain);
 }
 
+// ====================== 皮肤切换音效（新增）======================
+function playSkinSwitchSound(skinId) {
+  if (!audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gainNode = audioCtx.createGain();
+  gainNode.gain.value = 0.25;
+  osc.connect(gainNode);
+  gainNode.connect(audioCtx.destination);
+
+  // 每个皮肤不同音调
+  const tones = {
+    1: [523, 587],    // 基础战机
+    2: [659, 740],    // 迅风战机
+    3: [784, 880],    // 湮灭战机
+    4: [880, 988],    // 圣盾战机
+    5: [1047, 1175]   // 至尊战机
+  };
+  const [f1, f2] = tones[skinId] || tones[1];
+
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(f1, audioCtx.currentTime);
+  osc.frequency.setValueAtTime(f2, audioCtx.currentTime + 0.08);
+  gainNode.gain.setValueAtTime(0.25, audioCtx.currentTime);
+  gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+  
+  osc.start();
+  osc.stop(audioCtx.currentTime + 0.3);
+}
+
 function playSound(type) {
   if (!audioCtx) return;
   const osc = audioCtx.createOscillator();
@@ -751,22 +780,27 @@ canvas.addEventListener('touchmove', e=>{
   if(player.y + player.h > canvas.height) player.y = canvas.height - player.h;
 });
 
+// 换肤按钮 + 播放皮肤音效
 skinSwitchBtn.onclick = () => {
+  let oldSkin = currentSkin;
   let next = currentSkin;
   for (let i = 0; i < 10; i++) {
     next++;
     if (next > 5) next = 1;
     if (unlockedSkins.includes(next)) {
       currentSkin = next;
+      playSkinSwitchSound(currentSkin);
       break;
     }
   }
 };
 
+// 键盘换肤 + 音效
 document.addEventListener('keydown', e=>{
   const k = parseInt(e.key);
   if (k >= 1 && k <= 5 && unlockedSkins.includes(k)) {
     currentSkin = k;
+    playSkinSwitchSound(currentSkin);
   }
   if(e.key === ' ' && ultCharge >= ultMax) useUltimate();
 });
@@ -1202,6 +1236,7 @@ function renderSkinList(){
       const id = parseInt(btn.dataset.id);
       if(unlockedSkins.includes(id)){
         currentSkin = id;
+        playSkinSwitchSound(currentSkin); // 图鉴切换皮肤音效
         renderSkinList();
       }
     };

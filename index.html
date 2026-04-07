@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>拼豆图纸生成器（带坐标轴·十字绣定位）</title>
+<title>拼豆图纸生成器（5x5定位网格）</title>
 <style>
 *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
 body{background:#f3f4f6;margin:0;padding:20px}
@@ -29,7 +29,7 @@ th{background:#f1f5f9}
 .tip{background:#fffbeb;border:1px solid #fef3c7;padding:12px;border-radius:8px;color:#92400e}
 .heatTip{background:#ecfeff;border:1px solid #cffafe;padding:12px;border-radius:8px;color:#0e7494}
 .loading{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000;visibility:hidden}
-  .loading.show{visibility:visible}
+.loading.show{visibility:visible}
 .spinner{border:4px solid #f3f3f3;border-top:4px solid #3b82f6;border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite}
 @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
 .grid-tool{background:#f3e8ff;border-radius:12px;padding:12px;margin-top:12px}
@@ -38,10 +38,9 @@ th{background:#f1f5f9}
 <body>
 <div class="container">
   <div class="header">
-    <h1>🧩 拼豆图纸生成器（带坐标轴·十字绣定位）</h1>
-    <p>支持普通图片 / 识别规则网格 · 自动显示行列坐标 · 导出带定位的图纸</p>
+    <h1>🧩 拼豆图纸生成器（5x5定位网格）</h1>
+    <p>自动绘制5x5粗定位线 · 支持普通图片/网格识别 · 坐标轴 · 色号匹配</p>
   </div>
-
   <div class="card">
     <div class="flex">
       <label for="fileInput" class="btn">📸 上传图片</label>
@@ -57,7 +56,7 @@ th{background:#f1f5f9}
         <button class="btn btn-presets" onclick="app.setSize(104)">104×104</button>
         <button class="btn btn-presets" onclick="app.setSize(150)">150×150</button>
         <button class="btn btn-presets" onclick="app.setSize(200)">200×200</button>
-      </div>    
+      </div>      
       <div>自定义：<input type="number" id="gridSize" value="29" min="5" max="300"></div>
       <div>去白阈值：<input type="number" id="whiteThreshold" value="240" min="200" max="255"></div>
       <div><label><input type="checkbox" id="flipX"> 左右反转</label></div>
@@ -76,7 +75,6 @@ th{background:#f1f5f9}
         <span style="font-size:12px;color:#666">提示：上传带规则方格的图片，输入行列数，自动提取每个方格的平均颜色</span>
       </div>
     </div>
-
     <div class="editArea">
       <div>🔹单格编辑：<input type="color" id="cellColor"> R:<input id="r" size=3> G:<input id="g" size=3> B:<input id="b" size=3>
       <button class="btn" onclick="app.applyCellEdit()">应用</button></div>
@@ -86,6 +84,7 @@ th{background:#f1f5f9}
       <div><button class="btn" onclick="app.undo()">↩️ 撤销</button> <button class="btn" onclick="app.redo()">↪️ 重做</button></div>
     </div>
   </div>
+
   <div class="card tip">
     <strong>拼豆小贴士：</strong> 1.将拼豆摆到拼豆板上对照图纸；2.铺上助烫纸；3.熨斗中温均匀熨烫；4.冷却后翻面再烫固定。
   </div>
@@ -105,7 +104,6 @@ th{background:#f1f5f9}
     </table>
   </div>
 </div>
-
 <div id="loading" class="loading"><div class="spinner"></div></div>
 
 <script>
@@ -129,7 +127,7 @@ const COLOR_CARD = [
   {code:"B19", r:38, g:138, b:142}, {code:"B20", r:203, g:236, b:207}, {code:"B21", r:24, g:97, b:106},
   {code:"B22", r:10, g:66, b:65}, {code:"B23", r:52, g:59, b:26}, {code:"B24", r:232, g:250, b:166},
   {code:"B25", r:78, g:132, b:109},
-  {code:"C1", r:240, g:254, b:228}, {code:"C2", r:171, g:248, b:254}, {code:"C3", r:26, g:224, b:247},
+    {code:"C1", r:240, g:254, b:228}, {code:"C2", r:171, g:248, b:254}, {code:"C3", r:26, g:224, b:247},
   {code:"C4", r:68, g:205, b:251}, {code:"C5", r:6, g:170, b:223}, {code:"C6", r:84, g:167, b:233},
   {code:"C7", r:57, g:119, b:202}, {code:"C8", r:15, g:82, b:189}, {code:"C9", r:51, g:73, b:195},
   {code:"C10", r:60, g:188, b:227}, {code:"C11", r:42, g:222, b:211}, {code:"C12", r:30, g:51, b:78},
@@ -164,7 +162,7 @@ const COLOR_CARD = [
   {code:"F19", r:190, g:69, b:74}, {code:"F20", r:198, g:148, b:149}, {code:"F21", r:242, g:184, b:198},
   {code:"F22", r:247, g:195, b:208}, {code:"F23", r:237, g:128, b:108}, {code:"F24", r:224, g:157, b:175},
   {code:"F25", r:232, g:72, b:84},
-   {code:"G1", r:255, g:228, b:211}, {code:"G2", r:252, g:198, b:172}, {code:"G3", r:241, g:196, b:165},
+    {code:"G1", r:255, g:228, b:211}, {code:"G2", r:252, g:198, b:172}, {code:"G3", r:241, g:196, b:165},
   {code:"G4", r:220, g:179, b:135}, {code:"G5", r:231, g:179, b:78}, {code:"G6", r:227, g:160, b:20},
   {code:"G7", r:152, g:92, b:58}, {code:"G8", r:113, g:61, b:47}, {code:"G9", r:228, g:182, b:133},
   {code:"G10", r:218, g:140, b:66}, {code:"G11", r:218, g:200, b:152}, {code:"G12", r:254, g:201, b:147},
@@ -179,21 +177,22 @@ const COLOR_CARD = [
   {code:"H16", r:27, g:18, b:19}, {code:"H17", r:240, g:238, b:239}, {code:"H18", r:252, g:255, b:246},
   {code:"H19", r:242, g:238, b:229}, {code:"H20", r:150, g:160, b:159}, {code:"H21", r:248, g:251, b:230},
   {code:"H22", r:202, g:202, b:210}, {code:"H23", r:155, g:156, b:148},
-  {code:"M1", r:187, g:198, b:182}, {code:"M2", r:144, g:153, b:148}, {code:"M3", r:105, g:126, b:128},
+    {code:"M1", r:187, g:198, b:182}, {code:"M2", r:144, g:153, b:148}, {code:"M3", r:105, g:126, b:128},
   {code:"M4", r:224, g:212, b:188}, {code:"M5", r:209, g:204, b:175}, {code:"M6", r:176, g:170, b:134},
   {code:"M7", r:176, g:167, b:150}, {code:"M8", r:174, g:127, b:130}, {code:"M9", r:166, g:136, b:98},
   {code:"M10", r:196, g:179, b:187}, {code:"M11", r:158, g:117, b:146}, {code:"M12", r:100, g:74, b:81},
   {code:"M13", r:199, g:146, b:102}, {code:"M14", r:194, g:116, b:100}, {code:"M15", r:116, g:125, b:122}
 ];
-  
+
 function rgbToHex(r,g,b){return '#'+[r,g,b].map(x=>x.toString(16).padStart(2,'0')).join('');}
 function hexToRgb(h){return [parseInt(h.substr(1,2),16),parseInt(h.substr(3,2),16),parseInt(h.substr(5,2),16)];}
 function colorDist(c1,c2){const dr=c1.r-c2.r, dg=c1.g-c2.g, db=c1.b-c2.b; return dr*dr+dg*dg+db*db;}
 function matchColor(r,g,b){let best=null,bestDist=Infinity; for(const col of COLOR_CARD){const d=colorDist({r,g,b},col); if(d<bestDist){bestDist=d; best=col;}} return best || {code:null, r,g,b};}
-
-// 全局配置
-const COORD_SIZE = 28; // 坐标区域宽度/高度（像素）
-const CELL_SIZE = 32;   // 每个格子大小
+  
+// 布局常量
+const COORD_SIZE = 28;   // 坐标区域宽高
+const CELL_SIZE = 32;     // 每个格子像素
+const GRID_STEP = 5;      // 每5格一条粗线
 
 // 主应用对象
 const app = {
@@ -232,8 +231,7 @@ const app = {
       this.generateGrid();
     };
     img.src = URL.createObjectURL(file);
-  },
-  
+  }, 
   handleGridImageUpload(e){
     const file = e.target.files[0];
     if(!file) return;
@@ -259,60 +257,79 @@ const app = {
     this.pixels = [];
     this.updateStat();
   },
-  // 通用渲染函数（带坐标轴）
+  // 核心渲染：绘制格子 + 网格线（细线 + 每5格粗线） + 坐标
   renderWithCoordinates(pixels, ctx, canvasWidth, canvasHeight, drawCoordinates = true){
     const size = pixels.length;
     if(size===0) return;
     const gridWidth = size * CELL_SIZE;
     const gridHeight = size * CELL_SIZE;
-    // 清空背景
+    // 1. 白色背景
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-    // 绘制网格线（浅灰色）
-    ctx.strokeStyle = "#cccccc";
-    ctx.lineWidth = 0.5;
-    for(let i=0; i<=size; i++){
-      ctx.beginPath();
-      ctx.moveTo(COORD_SIZE + i*CELL_SIZE, COORD_SIZE);
-      ctx.lineTo(COORD_SIZE + i*CELL_SIZE, COORD_SIZE + gridHeight);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(COORD_SIZE, COORD_SIZE + i*CELL_SIZE);
-      ctx.lineTo(COORD_SIZE + gridWidth, COORD_SIZE + i*CELL_SIZE);
-      ctx.stroke();
-    }
-    // 绘制颜色格子
+    // 2. 绘制颜色格子
     for(let y=0; y<size; y++){
       for(let x=0; x<size; x++){
         const p = pixels[y][x];
         ctx.fillStyle = `rgb(${p.r},${p.g},${p.b})`;
         ctx.fillRect(COORD_SIZE + x*CELL_SIZE, COORD_SIZE + y*CELL_SIZE, CELL_SIZE-1, CELL_SIZE-1);
-        // 显示色号或十六进制
         let displayText = p.code ? p.code : rgbToHex(p.r,p.g,p.b).slice(1);
         ctx.font = "bold 11px monospace";
         ctx.fillStyle = (p.r*0.299 + p.g*0.587 + p.b*0.114) > 160 ? "#000" : "#fff";
         ctx.fillText(displayText, COORD_SIZE + x*CELL_SIZE + 4, COORD_SIZE + y*CELL_SIZE + 20);
       }
     }
-    if(!drawCoordinates) return;
-    // 绘制坐标轴（行号、列号）
-    ctx.fillStyle = "#333333";
-    ctx.font = "12px sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    // 顶部列号 (1~size)
-    for(let x=0; x<size; x++){
-      ctx.fillText((x+1).toString(), COORD_SIZE + x*CELL_SIZE + CELL_SIZE/2, COORD_SIZE/2);
+    // 3. 绘制网格线（先细后粗，粗线覆盖细线）
+    ctx.save();
+    ctx.beginPath();
+    // 3.1 细线 (0.5px 浅灰)
+    ctx.lineWidth = 0.5;
+    ctx.strokeStyle = "#cccccc";
+    for(let i=0; i<=size; i++){
+      const pos = COORD_SIZE + i * CELL_SIZE;
+      ctx.beginPath();
+      ctx.moveTo(pos, COORD_SIZE);
+      ctx.lineTo(pos, COORD_SIZE + gridHeight);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(COORD_SIZE, pos);
+      ctx.lineTo(COORD_SIZE + gridWidth, pos);
+      ctx.stroke();
     }
-    // 左侧行号
-    for(let y=0; y<size; y++){
-      ctx.fillText((y+1).toString(), COORD_SIZE/2, COORD_SIZE + y*CELL_SIZE + CELL_SIZE/2);
+    // 3.2 每5格粗线 (2px 深灰)
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "#555555";
+    for(let i=0; i<=size; i+=GRID_STEP){
+      const pos = COORD_SIZE + i * CELL_SIZE;
+      ctx.beginPath();
+      ctx.moveTo(pos, COORD_SIZE);
+      ctx.lineTo(pos, COORD_SIZE + gridHeight);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(COORD_SIZE, pos);
+      ctx.lineTo(COORD_SIZE + gridWidth, pos);
+      ctx.stroke();
     }
-    // 可选：绘制原点标记 "0"
-    ctx.fillStyle = "#666";
-    ctx.font = "10px sans-serif";
-    ctx.fillText("0", COORD_SIZE/2, COORD_SIZE/2);
-  },
+    ctx.restore();
+    // 4. 绘制坐标轴数字
+    if(drawCoordinates){
+      ctx.fillStyle = "#333333";
+      ctx.font = "12px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      // 顶部列号
+      for(let x=0; x<size; x++){
+        ctx.fillText((x+1).toString(), COORD_SIZE + x*CELL_SIZE + CELL_SIZE/2, COORD_SIZE/2);
+      }
+      // 左侧行号
+      for(let y=0; y<size; y++){
+        ctx.fillText((y+1).toString(), COORD_SIZE/2, COORD_SIZE + y*CELL_SIZE + CELL_SIZE/2);
+      }
+      // 原点0
+      ctx.fillStyle = "#666";
+      ctx.font = "10px sans-serif";
+      ctx.fillText("0", COORD_SIZE/2, COORD_SIZE/2);
+    }
+  },  
   renderCanvas(){
     const size = this.pixels.length;
     if(size===0) return;
@@ -346,8 +363,7 @@ const app = {
     const ctx = offCanvas.getContext('2d');
     ctx.drawImage(this.originalImage, 0, 0, size, size);
     const imgData = ctx.getImageData(0, 0, size, size);
-    const data = imgData.data;
-    
+    const data = imgData.data;  
     const newPixels = [];
     for(let y=0; y<size; y++){
       const row = [];
@@ -406,8 +422,7 @@ const app = {
     
     const useColorMatch = document.getElementById('useColorMatch').checked;
     const threshold = parseInt(document.getElementById('whiteThreshold').value);
-    const newPixels = [];
-    
+    const newPixels = [];  
     for(let row=0; row<rows; row++){
       const rowPixels = [];
       for(let col=0; col<cols; col++){
@@ -444,7 +459,7 @@ const app = {
         rowPixels.push({r,g,b,or,og,ob, code});
       }
       newPixels.push(rowPixels);
-    }
+    }   
     if(document.getElementById('flipX').checked){
       for(let y=0; y<newPixels.length; y++) newPixels[y].reverse();
     }
@@ -465,13 +480,11 @@ const app = {
     const scaleY = canvas.height / rect.height;
     const mouseX = (e.clientX - rect.left) * scaleX;
     const mouseY = (e.clientY - rect.top) * scaleY;
-    // 减去坐标偏移
     const gridX = mouseX - COORD_SIZE;
     const gridY = mouseY - COORD_SIZE;
     if(gridX < 0 || gridY < 0) return;
-    const cellSize = CELL_SIZE;
-    const x = Math.floor(gridX / cellSize);
-    const y = Math.floor(gridY / cellSize);
+    const x = Math.floor(gridX / CELL_SIZE);
+    const y = Math.floor(gridY / CELL_SIZE);
     if(x>=0 && x<this.pixels.length && y>=0 && y<this.pixels.length){
       const p = this.pixels[y][x];
       document.getElementById('cellColor').value = rgbToHex(p.r,p.g,p.b);
@@ -534,7 +547,7 @@ const app = {
     } else {
       alert("未找到匹配的颜色（可增加容差值）");
     }
-  }, 
+  },  
   pushHistory(){
     const copy = JSON.parse(JSON.stringify(this.pixels));
     this.history = this.history.slice(0, this.historyIndex+1);
@@ -591,7 +604,7 @@ const app = {
       `;
       tbody.appendChild(tr);
     }
-  },  
+  }, 
   exportFull(){
     if(!this.pixels.length){ alert("没有可导出的图纸"); return; }
     const size = this.pixels.length;
@@ -607,7 +620,6 @@ const app = {
     exportCanvas.height = outHeight;
     const ctx = exportCanvas.getContext('2d');
     ctx.scale(scale, scale);
-    // 复用带坐标的渲染函数
     this.renderWithCoordinates(this.pixels, ctx, outWidth/scale, outHeight/scale, true);
     const link = document.createElement('a');
     link.download = `拼豆图纸_${size}x${size}.png`;

@@ -40,3 +40,54 @@ th{background:#f1f5f9}
     <h1>🧩 拼豆图纸生成器（专业优化版）</h1>
     <p>一键切换板尺寸 · Canvas高性能渲染 · 撤销/重做 · 色卡匹配 · 导出缩放</p>
   </div>
+
+  <div class="card">
+    <div class="flex">
+      <label for="fileInput" class="btn">📸 上传图片</label>
+      <input type="file" id="fileInput" accept="image/*">
+      <button class="btn" onclick="app.generateGrid()">⚙️ 生成网格</button>
+      <button class="btn btn-success" onclick="app.exportFull()">💾 导出图纸</button>
+      
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-presets" onclick="app.setSize(15)">15×15</button>
+        <button class="btn btn-presets" onclick="app.setSize(29)">29×29</button>
+        <button class="btn btn-presets" onclick="app.setSize(50)">50×50</button>
+        <button class="btn btn-presets" onclick="app.setSize(52)">52×52</button>
+        <button class="btn btn-presets" onclick="app.setSize(104)">104×104</button>
+      </div>
+      
+      <div>自定义：<input type="number" id="gridSize" value="29" min="5" max="150"></div>
+      <div>去白阈值：<input type="number" id="whiteThreshold" value="240" min="200" max="255"></div>
+      <div><label><input type="checkbox" id="flipX"> 左右反转</label></div>
+      <div><label><input type="checkbox" id="useMARD"> 使用MARD色卡</label></div>
+      <div>导出缩放：<select id="exportScale"><option value="1">1倍</option><option value="2" selected>2倍</option><option value="4">4倍</option></select></div>
+    </div>
+    <div class="editArea">
+      <div>🔹单格编辑：<input type="color" id="cellColor"> R:<input id="r" size=3> G:<input id="g" size=3> B:<input id="b" size=3>
+      <button class="btn" onclick="app.applyCellEdit()">应用</button></div>
+      <div>🔸批量换色：<input type="color" id="fromColor"> → <input type="color" id="toColor">
+      容差：<input type="number" id="replaceTolerance" value="0" min="0" max="50" style="width:60px">
+      <button class="btn" onclick="app.applyBatchReplace()">替换</button></div>
+      <div><button class="btn" onclick="app.undo()">↩️ 撤销</button> <button class="btn" onclick="app.redo()">↪️ 重做</button></div>
+    </div>
+  </div>
+
+  <div class="card tip">
+    <strong>拼豆小贴士：</strong> 1.将拼豆摆到拼豆板上对照图纸；2.铺上助烫纸；3.熨斗中温均匀熨烫；4.冷却后翻面再烫固定。
+  </div>
+  <div class="card heatTip">
+    <strong>熨烫提示：</strong> 温度不可过高，时间不宜过久，避免烫化变形；烫完冷却后再取下，防止变形。
+  </div>
+
+  <div class="canvas-wrapper" id="canvasWrapper">
+    <canvas id="gridCanvas"></canvas>
+  </div>
+
+  <div class="card stat">
+    <h3>📊 颜色统计</h3>
+    <table id="statTable">
+      <thead><tr><th>颜色</th><th>十六进制</th><th>原图RGB</th><th>最终RGB</th><th>颗数</th><th>占比</th></tr></thead>
+      <tbody id="statBody"></tbody>
+    </table>
+  </div>
+</div>

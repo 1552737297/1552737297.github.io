@@ -1,224 +1,42 @@
+```html
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>拼豆图纸生成器</title>
+<title>拼豆图纸生成器（专业优化版）</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
-body{background:#6366f1;padding:15px 0}
-.container{max-width:700px;margin:0 auto;padding:0 15px}
-header{text-align:center;color:#fff;margin:30px 0}
-header h1{font-size:48px;margin-bottom:5px}
-header p{font-size:17px;opacity:.9}
-.upload{background:#fff;border:2px dashed #d1d5db;border-radius:16px;padding:40px 20px;text-align:center;cursor:pointer;margin-bottom:20px}
-.upload:hover{border-color:#6366f1}
-.upload h3{font-size:18px;margin-bottom:8px}
-.upload p{font-size:14px;color:#6b7280}
+*{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+body{background:#f3f4f6;margin:0;padding:20px}
+.container{max-width:1400px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+.header{text-align:center}
+.card{background:#fff;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.08)}
+.flex{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.btn{padding:8px 16px;border-radius:8px;border:none;background:#3b82f6;color:white;cursor:pointer;transition:0.2s}
+.btn:hover{opacity:0.85}
+.btn-danger{background:#ef4444}
+.btn-success{background:#10b981}
+.btn-presets{background:#64748b}
 #fileInput{display:none}
-.brands{background:#fff;border-radius:16px;padding:12px;display:flex;gap:10px;overflow:auto;margin-bottom:20px}
-.brand{padding:10px 18px;border:1px solid #e5e7eb;border-radius:12px;background:#fff;white-space:nowrap}
-.brand.active{background:#6366f1;color:#fff}
-.panel{background:#fff;border-radius:16px;padding:20px;margin-bottom:20px}
-.setting{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
-.setting label{font-size:15px}
-.sliderWrap{display:flex;align-items:center;gap:10px;width:100%}
-#size{width:100%}
-.btnGenerate{width:100%;background:linear-gradient(135deg,#a855f7,#6366f1);color:#fff;border:none;border-radius:16px;padding:16px;font-size:16px;font-weight:500;margin-top:10px}
-.tabs{display:flex;background:#fff;border-radius:16px 16px 0 0}
-.tab{flex:1;text-align:center;padding:14px;font-size:15px}
-.tab.active{background:#6366f1;color:#fff;border-radius:16px 16px 0 0}
-.content{background:#fff;padding:20px;border-radius:0 0 16px 16px;min-height:300px}
-.page{display:none}
-.page.active{display:block}
-#originImg{max-width:100%;display:block;margin:0 auto}
-#grid{overflow:auto}
-table{border-collapse:collapse;width:max-content;margin:0 auto}
-td{width:16px;height:16px;text-align:center;font-size:9px;border:1px solid #eee}
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center}
-.modalBody{background:#fff;padding:20px;border-radius:20px;max-width:90vw}
-#cropCanvas{max-width:100%;max-height:60vh}
-.btns{display:flex;gap:15px;justify-content:center;margin-top:15px}
-.btn{padding:10px 24px;border-radius:12px;border:none}
-.btnConfirm{background:#6366f1;color:#fff}
+label.btn{display:inline-block}
+input[type="number"],input[type="color"],select{padding:6px 8px;border-radius:6px;border:1px solid #ddd}
+#gridCanvas{display:block;margin:0 auto;box-shadow:0 1px 4px rgba(0,0,0,0.1);cursor:pointer;background:#f9fafb}
+.canvas-wrapper{overflow:auto;text-align:center;background:#f9fafb;border-radius:8px;padding:10px}
+.stat table{width:100%;border-collapse:collapse;margin-top:10px}
+.stat th,.stat td{border:1px solid #e5e7eb;padding:8px;text-align:center}
+th{background:#f1f5f9}
+.editArea{display:flex;gap:10px;flex-wrap:wrap;padding:12px;background:#f8fafc;border-radius:8px}
+.tip{background:#fffbeb;border:1px solid #fef3c7;padding:12px;border-radius:8px;color:#92400e}
+.heatTip{background:#ecfeff;border:1px solid #cffafe;padding:12px;border-radius:8px;color:#0e7494}
+.loading{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000;visibility:hidden}
+.loading.show{visibility:visible}
+.spinner{border:4px solid #f3f3f3;border-top:4px solid #3b82f6;border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite}
+@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
 <div class="container">
-<header>
-<h1>Perler Beads</h1>
-<p>拼豆图纸生成器</p>
-</header>
-
-<label class="upload">
-<h3>点击图片到这里上传</h3>
-<p>支持 JPG、JPEG、PNG、WEBP 格式（最大10MB）</p>
-<input type="file" id="fileInput" accept="image/*">
-</label>
-
-<div class="brands">
-<div class="brand active" data="MARD">MARD</div>
-<div class="brand" data="COCO">COCO</div>
-<div class="brand" data="漫漫">漫漫</div>
-<div class="brand" data="盼盼">盼盼</div>
-<div class="brand" data="咪小窝">咪小窝</div>
-</div>
-
-<div class="panel">
-<div class="setting">
-<label>图片反转</label>
-<input type="checkbox" id="flip">
-</div>
-<div class="setting">
-<label>去除背景</label>
-<input type="checkbox" id="nobg">
-</div>
-<div class="setting">
-<div class="sliderWrap">
-<label>色块大小</label>
-<input type="range" id="size" min="10" max="60" value="40">
-<span id="sizeText">40×40</span>
-</div>
-</div>
-<button class="btnGenerate" id="generate">生成</button>
-</div>
-
-<div class="tabs">
-<div class="tab" data="origin">原图</div>
-<div class="tab active" data="grid">结果</div>
-<div class="tab" data="view">预览</div>
-</div>
-
-<div class="content">
-<div class="page" id="origin">
-<img id="originImg">
-</div>
-<div class="page active" id="grid">
-<div id="result"></div>
-</div>
-<div class="page" id="view">
-<canvas id="viewCanvas"></canvas>
-</div>
-</div>
-</div>
-
-<div class="modal" id="cropModal">
-<div class="modalBody">
-<canvas id="cropCanvas"></canvas>
-<div class="btns">
-<button class="btn btnConfirm" id="sureCrop">确认裁剪</button>
-<button class="btn" id="closeCrop">取消</button>
-</div>
-</div>
-</div>
-
-<script>
-const fileInput = document.getElementById('fileInput')
-const size = document.getElementById('size')
-const sizeText = document.getElementById('sizeText')
-const generate = document.getElementById('generate')
-const result = document.getElementById('result')
-const viewCanvas = document.getElementById('viewCanvas')
-const originImg = document.getElementById('originImg')
-const cropModal = document.getElementById('cropModal')
-const cropCanvas = document.getElementById('cropCanvas')
-const sureCrop = document.getElementById('sureCrop')
-const closeCrop = document.getElementById('closeCrop')
-
-let gridSize = 40
-let cropImg = null
-let img = null
-
-size.oninput = ()=>{
-gridSize = size.value
-sizeText.textContent = gridSize+'×'+gridSize
-}
-
-document.querySelectorAll('.brand').forEach(e=>{
-e.onclick = ()=>{
-document.querySelectorAll('.brand').forEach(b=>b.classList.remove('active'))
-e.classList.add('active')
-}
-})
-
-document.querySelectorAll('.tab').forEach(e=>{
-e.onclick = ()=>{
-document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'))
-document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'))
-e.classList.add('active')
-document.getElementById(e.dataset).classList.add('active')
-}
-})
-
-fileInput.onchange = (e)=>{
-const f = e.target.files[0]
-if(!f) return
-const reader = new FileReader()
-reader.onload = (ev)=>{
-img = new Image()
-img.onload = ()=>{
-showCrop()
-}
-img.src = ev.target.result
-}
-reader.readAsDataURL(f)
-}
-
-function showCrop(){
-cropModal.style.display = 'flex'
-const ctx = cropCanvas.getContext('2d')
-let w = img.width, h = img.height
-const max = 400
-if(w>max){h=h*max/w;w=max}
-if(h>max){w=w*max/h;h=max}
-cropCanvas.width = w
-cropCanvas.height = h
-ctx.drawImage(img,0,0,w,h)
-}
-
-closeCrop.onclick = ()=>{
-cropModal.style.display = 'none'
-}
-
-sureCrop.onclick = ()=>{
-const s = Math.min(cropCanvas.width,cropCanvas.height)
-const x = (cropCanvas.width-s)/2
-const y = (cropCanvas.height-s)/2
-const c = document.createElement('canvas')
-c.width = s
-c.height = s
-const ct = c.getContext('2d')
-ct.drawImage(cropCanvas,x,y,s,s,0,0,s,s)
-cropImg = new Image()
-cropImg.onload = ()=>{
-originImg.src = cropImg.src
-cropModal.style.display = 'none'
-}
-cropImg.src = c.toDataURL()
-}
-
-generate.onclick = ()=>{
-if(!cropImg){alert('请上传图片');return}
-const c = document.createElement('canvas')
-const ctx = c.getContext('2d')
-c.width = gridSize
-c.height = gridSize
-if(document.getElementById('flip').checked){
-ctx.translate(gridSize,0)
-ctx.scale(-1,1)
-}
-ctx.drawImage(cropImg,0,0,gridSize,gridSize)
-const data = ctx.getImageData(0,0,gridSize,gridSize).data
-let html = '<table>'
-for(let y=0;y<gridSize;y++){
-html+='<tr>'
-for(let x=0;x<gridSize;x++){
-const i = (y*gridSize+x)*4
-const r=data[i],g=data[i+1],b=data[i+2],a=data[i+3]
-const noBg = document.getElementById('nobg').checked
-if(noBg && (a<100 || (r>240&&g>240&&b>240))){
-html+='<td></td>'
-continue
-}
-const color = getColor(r,g,b)
-html+=`<td style="backg
+  <div class="header">
+    <h1>🧩 拼豆图纸生成器（专业优化版）</h1>
+    <p>一键切换板尺寸 · Canvas高性能渲染 · 撤销/重做 · 色卡匹配 · 导出缩放</p>
+  </div>

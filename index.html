@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>一键拼豆 - 拼豆图纸生成器</title>
+  <title>拼豆图纸生成器</title>
   <style>
     * {
       margin: 0;
@@ -30,17 +30,9 @@
     }
 
     .header h1 {
-      font-size: 3.5rem;
-      font-weight: 700;
-      margin-bottom: 8px;
+      font-size: 2.5rem;
     }
 
-    .header p {
-      font-size: 1.5rem;
-      opacity: 0.9;
-    }
-
-    /* 上传区域 */
     .upload-area {
       background: white;
       border: 3px dashed #d1d5db;
@@ -49,7 +41,6 @@
       text-align: center;
       cursor: pointer;
       margin-bottom: 20px;
-      transition: all 0.3s;
     }
 
     .upload-area:hover {
@@ -57,22 +48,10 @@
       background: #f8faff;
     }
 
-    .upload-area h3 {
-      font-size: 1.5rem;
-      color: #111827;
-      margin-bottom: 15px;
-    }
-
-    .upload-area p {
-      color: #6b7280;
-      font-size: 1.1rem;
-    }
-
     #fileInput {
       display: none;
     }
 
-    /* 品牌切换 */
     .brand-tabs {
       background: white;
       border-radius: 20px;
@@ -84,14 +63,11 @@
     }
 
     .brand-tab {
-      padding: 12px 30px;
+      padding: 10px 20px;
       border: 2px solid #d1d5db;
       border-radius: 12px;
       background: white;
-      font-size: 1.3rem;
       cursor: pointer;
-      transition: all 0.2s;
-      white-space: nowrap;
     }
 
     .brand-tab.active {
@@ -100,7 +76,6 @@
       border-color: #6366f1;
     }
 
-    /* 设置面板 */
     .settings-panel {
       background: white;
       border-radius: 20px;
@@ -115,18 +90,6 @@
       gap: 15px;
     }
 
-    .setting-item label {
-      font-size: 1.3rem;
-      color: #111827;
-      min-width: 120px;
-    }
-
-    .setting-item input[type="checkbox"] {
-      width: 24px;
-      height: 24px;
-      cursor: pointer;
-    }
-
     .slider-container {
       flex: 1;
       display: flex;
@@ -136,53 +99,22 @@
 
     #sizeSlider {
       flex: 1;
-      height: 10px;
-      border-radius: 5px;
-      background: #e5e7eb;
-      outline: none;
-      -webkit-appearance: none;
     }
 
-    #sizeSlider::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      background: #0088ff;
-      cursor: pointer;
-    }
-
-    #sizeValue {
-      font-size: 1.5rem;
-      font-weight: 600;
-      color: #111827;
-      min-width: 70px;
-      text-align: right;
-    }
-
-    /* 生成按钮 */
     .generate-btn {
       width: 100%;
       padding: 18px;
-      background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
+      background: #6366f1;
       color: white;
       border: none;
       border-radius: 20px;
-      font-size: 1.8rem;
-      font-weight: 600;
+      font-size: 1.2rem;
+      font-weight: bold;
       cursor: pointer;
-      transition: all 0.2s;
     }
 
-    .generate-btn:active {
-      transform: scale(0.98);
-    }
-
-    /* 结果标签 */
     .result-tabs {
       background: white;
-      border-radius: 20px 20px 0 0;
       display: flex;
       margin-top: 20px;
     }
@@ -191,10 +123,7 @@
       flex: 1;
       padding: 15px;
       text-align: center;
-      font-size: 1.3rem;
       cursor: pointer;
-      border-radius: 20px 20px 0 0;
-      transition: all 0.2s;
     }
 
     .result-tab.active {
@@ -202,13 +131,11 @@
       color: white;
     }
 
-    /* 结果区域 */
     .result-area {
       background: white;
-      border-radius: 0 0 20px 20px;
       padding: 20px;
-      min-height: 400px;
       overflow: auto;
+      max-height: 600px;
     }
 
     .tab-content {
@@ -221,48 +148,25 @@
 
     #originalImage {
       max-width: 100%;
-      border-radius: 12px;
     }
 
-    /* 拼豆图纸样式 */
     .beads-grid {
       border-collapse: collapse;
       width: 100%;
-      font-size: 8px;
+      font-size: 7px;
     }
 
     .beads-grid th, .beads-grid td {
-      border: 1px solid #e5e7eb;
-      padding: 2px;
+      border: 1px solid #ccc;
+      min-width: 14px;
+      height: 14px;
       text-align: center;
-      min-width: 12px;
-      height: 12px;
     }
 
-    .beads-grid th {
-      background: #f3f4f6;
-      font-weight: 600;
-      position: sticky;
-      top: 0;
-      z-index: 10;
-    }
-
-    .row-header {
-      position: sticky;
-      left: 0;
-      z-index: 10;
-      background: #f3f4f6;
-    }
-
-    /* 裁剪弹窗 */
     .modal {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0,0,0,0.8);
-      z-index: 1000;
       display: none;
       align-items: center;
       justify-content: center;
@@ -270,229 +174,27 @@
 
     .modal-content {
       background: white;
-      border-radius: 20px;
       padding: 20px;
-      max-width: 90%;
-      max-height: 90%;
-    }
-
-    .crop-container {
-      position: relative;
-      background: repeating-conic-gradient(#eee 0% 25%, transparent 0% 50%) 50% / 20px 20px;
-      margin-bottom: 20px;
-    }
-
-    #cropCanvas {
-      max-width: 100%;
-      max-height: 60vh;
-      display: block;
-      margin: 0 auto;
+      border-radius: 16px;
     }
 
     .crop-buttons {
       display: flex;
       gap: 15px;
       justify-content: center;
+      margin-top: 15px;
     }
 
     .crop-btn {
-      padding: 15px 50px;
+      padding: 10px 30px;
+      border-radius: 8px;
       border: none;
-      border-radius: 30px;
-      font-size: 1.5rem;
-      font-weight: 600;
       cursor: pointer;
     }
 
-    .crop-btn.confirm {
+    .confirm {
       background: #10b981;
       color: white;
-    }
-
-    .crop-btn.cancel {
-      background: #e5e7eb;
-      color: #374151;
-    }
-
-    /* 上传选择弹窗 */
-    .action-sheet {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      background: white;
-      border-radius: 20px 20px 0 0;
-      z-index: 1001;
-      display: none;
-    }
-
-    .action-item {
-      padding: 20px;
-      text-align: center;
-      font-size: 1.3rem;
-      border-bottom: 1px solid #e5e7eb;
-      cursor: pointer;
-    }
-
-    .action-item:last-child {
-      border-bottom: none;
-      color: #ef4444;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>Perler Beads</h1>
-      <p>拼豆图纸生成器</p>
-    </div>
-
-    <label class="upload-area" id="uploadLabel">
-      <h3>点击图片到这里上传</h3>
-      <p>支持 JPG、JPEG、PNG、WEBP 格式（最大10MB）</p>
-      <input type="file" id="fileInput" accept="image/*">
-    </label>
-
-    <div class="brand-tabs">
-      <div class="brand-tab active" data-brand="MARD">MARD</div>
-      <div class="brand-tab" data-brand="COCO">COCO</div>
-      <div class="brand-tab" data-brand="漫漫">漫漫</div>
-      <div class="brand-tab" data-brand="盼盼">盼盼</div>
-      <div class="brand-tab" data-brand="咪小窝">咪小窝</div>
-    </div>
-
-    <div class="settings-panel">
-      <div class="setting-item">
-        <label>图片反转:</la      color: white;
-    }
-
-    .header h1 {
-      font-size: 24px;
-      font-weight: 600;
-    }
-
-    .upload-box {
-      padding: 30px;
-      text-align: center;
-      border: 2px dashed #ddd;
-      margin: 24px;
-      border-radius: 12px;
-      cursor: pointer;
-      transition: all 0.3s;
-    }
-
-    .upload-box:hover {
-      border-color: #667eea;
-      background: #f8f9ff;
-    }
-
-    #fileInput {
-      display: none;
-    }
-
-    .canvas-container {
-      display: none;
-      margin: 0 24px;
-      overflow: auto;
-      border-radius: 12px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.05);
-    }
-
-    #colorCanvas {
-      display: block;
-      cursor: crosshair;
-      max-width: 100%;
-    }
-
-    .color-panel {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: center;
-      gap: 16px;
-      padding: 20px 24px;
-      background: #fafafa;
-    }
-
-    .color-preview {
-      width: 60px;
-      height: 60px;
-      border-radius: 10px;
-      border: 2px solid #fff;
-      box-shadow: 0 0 8px rgba(0,0,0,0.1);
-    }
-
-    .color-values {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      font-size: 15px;
-    }
-
-    .value {
-      font-weight: 600;
-      color: #333;
-    }
-
-    .btn {
-      padding: 10px 18px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 500;
-      transition: 0.2s;
-    }
-
-    .btn-primary {
-      background: #667eea;
-      color: white;
-    }
-
-    .btn-primary:active {
-      background: #5a6fd8;
-    }
-
-    .btn-lock {
-      background: #fff;
-      color: #667eea;
-      border: 1px solid #667eea;
-    }
-
-    .history-section {
-      padding: 20px 24px;
-    }
-
-    .history-title {
-      font-size: 16px;
-      margin-bottom: 12px;
-      color: #555;
-      font-weight: 500;
-    }
-
-    .color-history {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    .history-item {
-      width: 40px;
-      height: 40px;
-      border-radius: 8px;
-      cursor: pointer;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-      transition: transform 0.2s;
-    }
-
-    .history-item:hover {
-      transform: scale(1.1);
-    }
-
-    .tip {
-      text-align: center;
-      padding: 0 24px 24px;
-      color: #888;
-      font-size: 14px;
     }
   </style>
 </head>
@@ -500,128 +202,121 @@
 
 <div class="container">
   <div class="header">
-    <h1>高级图片取色器</h1>
+    <h1>拼豆图纸生成器</h1>
   </div>
 
-  <label class="upload-box" for="fileInput">
-    <div>点击上传图片，鼠标移动取色</div>
+  <label class="upload-area">
+    点击上传图片
+    <input type="file" id="fileInput" accept="image/*">
   </label>
-  <input type="file" id="fileInput" accept="image/*" />
 
-  <div class="canvas-container">
-    <canvas id="colorCanvas"></canvas>
+  <div class="brand-tabs">
+    <div class="brand-tab active" data-brand="MARD">MARD</div>
+    <div class="brand-tab" data-brand="COCO">COCO</div>
   </div>
 
-  <div class="color-panel">
-    <div class="color-preview" id="preview"></div>
-    <div class="color-values">
-      <div>HEX: <span class="value" id="hex">#000000</span></div>
-      <div>RGB: <span class="value" id="rgb">0, 0, 0</span></div>
-      <div>HSL: <span class="value" id="hsl">0, 0%, 0%</span></div>
+  <div class="settings-panel">
+    <div class="setting-item">
+      <label>水平反转</label>
+      <input type="checkbox" id="flipCheckbox">
     </div>
-    <button class="btn btn-primary" id="copyBtn">复制颜色</button>
-    <button class="btn btn-lock" id="lockBtn">锁定颜色</button>
+    <div class="setting-item">
+      <label>去除背景</label>
+      <input type="checkbox" id="removeBgCheckbox">
+    </div>
+    <div class="setting-item">
+      <label>网格大小</label>
+      <div class="slider-container">
+        <input type="range" id="sizeSlider" min="10" max="60" value="32">
+        <span id="sizeValue">32×32</span>
+      </div>
+    </div>
+    <button class="generate-btn" id="generateBtn">生成拼豆图纸</button>
   </div>
 
-  <div class="history-section">
-    <div class="history-title">颜色历史</div>
-    <div class="color-history" id="historyList"></div>
+  <div class="result-tabs">
+    <div class="result-tab" data-tab="original">原图</div>
+    <div class="result-tab active" data-tab="result">图纸</div>
+    <div class="result-tab" data-tab="preview">预览</div>
   </div>
 
-  <div class="tip">点击颜色历史可快速复制 · 锁定后不再随鼠标变化</div>
+  <div class="result-area">
+    <div class="tab-content" id="originalTab">
+      <img id="originalImage">
+    </div>
+    <div class="tab-content active" id="resultTab">
+      <div id="beadsGridContainer"></div>
+    </div>
+    <div class="tab-content" id="previewTab">
+      <canvas id="previewCanvas"></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="cropModal">
+  <div class="modal-content">
+    <canvas id="cropCanvas"></canvas>
+    <div class="crop-buttons">
+      <button class="crop-btn confirm" id="cropConfirm">确认裁剪</button>
+      <button class="crop-btn" id="cropCancel">取消</button>
+    </div>
+  </div>
 </div>
 
 <script>
   const fileInput = document.getElementById('fileInput');
-  const canvas = document.getElementById('colorCanvas');
-  const ctx = canvas.getContext('2d');
-  const canvasContainer = document.querySelector('.canvas-container');
-  const preview = document.getElementById('preview');
-  const hexText = document.getElementById('hex');
-  const rgbText = document.getElementById('rgb');
-  const hslText = document.getElementById('hsl');
-  const copyBtn = document.getElementById('copyBtn');
-  const lockBtn = document.getElementById('lockBtn');
-  const historyList = document.getElementById('historyList');
+  const sizeSlider = document.getElementById('sizeSlider');
+  const sizeValue = document.getElementById('sizeValue');
+  const generateBtn = document.getElementById('generateBtn');
+  const cropModal = document.getElementById('cropModal');
+  const cropCanvas = document.getElementById('cropCanvas');
+  const cropConfirm = document.getElementById('cropConfirm');
+  const cropCancel = document.getElementById('cropCancel');
+  const originalImageEl = document.getElementById('originalImage');
+  const beadsGridContainer = document.getElementById('beadsGridContainer');
+  const previewCanvas = document.getElementById('previewCanvas');
 
-  let isLocked = false;
-  let history = [];
-  let img = null;
+  let originalImage;
+  let croppedImage;
+  let gridSize = 32;
+
+  const brandColors = {
+    MARD: [
+      { code: 'H2', rgb: [255,255,255] },
+      { code: 'K1', rgb: [0,0,0] },
+      { code: 'R1', rgb: [255,0,0] },
+      { code: 'G1', rgb: [0,255,0] },
+      { code: 'B1', rgb: [0,0,255] },
+      { code: 'Y1', rgb: [255,255,0] },
+    ],
+    COCO: [
+      { code: 'W', rgb: [255,255,255] },
+      { code: 'BL', rgb: [0,0,0] },
+      { code: 'RD', rgb: [255,0,0] },
+    ]
+  };
+
+  // 尺寸滑块
+  sizeSlider.addEventListener('input', () => {
+    gridSize = +sizeSlider.value;
+    sizeValue.textContent = `${gridSize}×${gridSize}`;
+  });
 
   // 上传图片
-  fileInput.addEventListener('change', (e) => {
+  fileInput.addEventListener('change', e => {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (e) => {
-      img = new Image();
+    reader.onload = ev => {
+      const img = new Image();
       img.onload = () => {
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.drawImage(img, 0, 0);
-        canvasContainer.style.display = 'block';
+        originalImage = img;
+        openCropModal(img);
       };
-      img.src = e.target.result;
+      img.src = ev.target.result;
     };
     reader.readAsDataURL(file);
   });
 
-  // 取色
-  canvas.addEventListener('mousemove', (e) => {
-    if (isLocked || !img) return;
-    updateColor(e);
-  });
-
-  // 点击加入历史
-  canvas.addEventListener('click', (e) => {
-    if (!img) return;
-    const color = hexText.innerText;
-    if (!history.includes(color)) {
-      history.unshift(color);
-      if (history.length > 12) history.pop();
-      renderHistory();
-    }
-  });
-
-  function updateColor(e) {
-    const rect = canvas.getBoundingClientRect();
-    const x = Math.floor((e.clientX - rect.left) * canvas.width / rect.width);
-    const y = Math.floor((e.clientY - rect.top) * canvas.height / rect.height);
-    const pixel = ctx.getImageData(x, y, 1, 1).data;
-    const r = pixel[0], g = pixel[1], b = pixel[2];
-    const hex = rgbToHex(r, g, b);
-    const hsl = rgbToHsl(r, g, b);
-
-    preview.style.background = hex;
-    hexText.innerText = hex;
-    rgbText.innerText = `${r}, ${g}, ${b}`;
-    hslText.innerText = hsl;
-  }
-
-  // 锁定开关
-  lockBtn.addEventListener('click', () => {
-    isLocked = !isLocked;
-    lockBtn.textContent = isLocked ? '已锁定' : '锁定颜色';
-    lockBtn.style.background = isLocked ? '#667eea' : '#fff';
-    lockBtn.style.color = isLocked ? '#fff' : '#667eea';
-  });
-
-  // 复制
-  copyBtn.addEventListener('click', () => {
-    const color = hexText.innerText;
-    navigator.clipboard.writeText(color).then(() => {
-      copyBtn.textContent = '复制成功！';
-      setTimeout(() => copyBtn.textContent = '复制颜色', 1500);
-    });
-  });
-
-  // 渲染历史
-  function renderHistory() {
-    historyList.innerHTML = '';
-    history.forEach(color => {
-      const div = document.createElement('div');
-      div.className = 'history-item';
-      div.style.background = color;
-      div.onclick = () => {
-        navigator.clipboard.writeText(color);
-        copyBtn.textContent = '已
+  // 打开裁剪
+  function openCro

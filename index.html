@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>拼豆图纸生成器（专业优化版）</title>
+<title>拼豆图纸生成器（显示色号版）</title>
 <style>
 *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
 body{background:#f3f4f6;margin:0;padding:20px}
@@ -37,10 +37,9 @@ th{background:#f1f5f9}
 <body>
 <div class="container">
   <div class="header">
-    <h1>🧩 拼豆图纸生成器（专业优化版）</h1>
-    <p>一键切换板尺寸 · Canvas高性能渲染 · 撤销/重做 · 色卡匹配 · 导出缩放</p>
+    <h1>🧩 拼豆图纸生成器（显示色号版）</h1>
+    <p>一键切换板尺寸 · Canvas高性能渲染 · 撤销/重做 · 色卡匹配 · 显示拼豆色号</p>
   </div>
-
   <div class="card">
     <div class="flex">
       <label for="fileInput" class="btn">📸 上传图片</label>
@@ -59,7 +58,7 @@ th{background:#f1f5f9}
       <div>自定义：<input type="number" id="gridSize" value="29" min="5" max="150"></div>
       <div>去白阈值：<input type="number" id="whiteThreshold" value="240" min="200" max="255"></div>
       <div><label><input type="checkbox" id="flipX"> 左右反转</label></div>
-      <div><label><input type="checkbox" id="useMARD"> 使用MARD色卡</label></div>
+      <div><label><input type="checkbox" id="useMARD" checked> 使用MARD色卡（显示色号）</label></div>
       <div>导出缩放：<select id="exportScale"><option value="1">1倍</option><option value="2" selected>2倍</option><option value="4">4倍</option></select></div>
     </div>
     <div class="editArea">
@@ -86,7 +85,7 @@ th{background:#f1f5f9}
   <div class="card stat">
     <h3>📊 颜色统计</h3>
     <table id="statTable">
-      <thead><tr><th>颜色</th><th>十六进制</th><th>原图RGB</th><th>最终RGB</th><th>颗数</th><th>占比</th></tr></thead>
+      <thead><tr><th>颜色</th><th>十六进制</th><th>原图RGB</th><th>最终RGB</th><th>颗数</th><th>占比</th></thead>
       <tbody id="statBody"></tbody>
     </table>
   </div>
@@ -129,10 +128,10 @@ function matchMARD(r,g,b){let best=null,bestDist=Infinity; for(const col of MARD
 
 // 主应用对象
 const app = {
-  originalImage: null,      // 存储原始Image对象
+  originalImage: null,
   currentSize: 29,
-  pixels: [],               // 三维数组 [y][x] => {r,g,b,or,og,ob}
-  history: [],              // 撤销栈
+  pixels: [],               // 每个元素: {r,g,b,or,og,ob, code}
+  history: [],
   historyIndex: -1,
   
   init(){
@@ -143,7 +142,6 @@ const app = {
   bindEvents(){
     document.getElementById('fileInput').onchange = e => this.handleImageUpload(e);
     document.getElementById('gridSize').addEventListener('change', () => this.setSize(parseInt(document.getElementById('gridSize').value)));
-    // 网格Canvas点击获取坐标
     const canvas = document.getElementById('gridCanvas');
     canvas.addEventListener('click', (e) => this.onCanvasClick(e));
   },
@@ -154,22 +152,21 @@ const app = {
     else el.classList.remove('show');
   },
   
-  async handleImageUpload(e){
+  handleImageUpload(e){
     const file = e.target.files[0];
     if(!file) return;
     const img = new Image();
     img.onload = () => {
       this.originalImage = img;
-      // 自动生成网格
       this.generateGrid();
     };
     img.src = URL.createObjectURL(file);
   },
-
+  
   setSize(n){
     document.getElementById('gridSize').value = n;
     this.currentSize = n;
-    if(this.originalImage) this.generateGrid(); // 有图片则重新采样
+    if(this.originalImage) this.generateGrid();
     else this.clearGrid();
   },
   
@@ -181,22 +178,19 @@ const app = {
     this.updateStat();
   },
   
-  // 核心：从原始图片生成像素矩阵
   async generateGrid(){
     if(!this.originalImage){
       alert("请先上传图片");
       return;
     }
     this.showLoading(true);
-    await new Promise(r => setTimeout(r, 10)); // 让UI更新
-    
+    await new Promise(r => setTimeout(r, 10));
     const size = parseInt(document.getElementById('gridSize').value);
     this.currentSize = size;
     const threshold = parseInt(document.getElementById('whiteThreshold').value);
     const flip = document.getElementById('flipX').checked;
     const useMARD = document.getElementById('useMARD').checked;
     
-    // 创建离屏canvas缩放图片
     const offCanvas = document.createElement('canvas');
     offCanvas.width = size;
     offCanvas.height = size;
@@ -212,30 +206,32 @@ const app = {
         const idx = (y*size + x) * 4;
         let r = data[idx], g = data[idx+1], b = data[idx+2];
         const or=r, og=g, ob=b;
+        let code = null;
         // 去白
         if(r>threshold && g>threshold && b>threshold) r=g=b=255;
         // 色卡匹配
         if(useMARD){
           const matched = matchMARD(r,g,b);
-          r=matched.r; g=matched.g; b=matched.b;
+          r = matched.r; g = matched.g; b = matched.b;
+          code = matched.code;
         }
-        row.push({r,g,b,or,og,ob});
+        row.push({r,g,b,or,og,ob, code});
       }
       newPixels.push(row);
-    }  // 左右反转
+    }
+    // 左右反转
     if(flip){
       for(let y=0; y<size; y++){
         newPixels[y].reverse();
       }
     }
     this.pixels = newPixels;
-    this.pushHistory(); // 记录初始状态
+    this.pushHistory();
     this.renderCanvas();
     this.updateStat();
     this.showLoading(false);
   },
   
-  // 渲染Canvas网格（每个格子 cellSize 根据容器自适应，固定32px）
   renderCanvas(){
     const size = this.pixels.length;
     if(size===0) return;
@@ -249,14 +245,14 @@ const app = {
         const p = this.pixels[y][x];
         ctx.fillStyle = `rgb(${p.r},${p.g},${p.b})`;
         ctx.fillRect(x*cellSize, y*cellSize, cellSize-1, cellSize-1);
-        // 可选：显示十六进制小字
-        ctx.font = "10px monospace";
+        // 显示文字：优先显示色号，否则显示十六进制后6位
+        let displayText = p.code ? p.code : rgbToHex(p.r,p.g,p.b).slice(1);
+        ctx.font = "bold 11px monospace";
         ctx.fillStyle = (p.r*0.299 + p.g*0.587 + p.b*0.114) > 160 ? "#000" : "#fff";
-        ctx.fillText(rgbToHex(p.r,p.g,p.b).slice(1), x*cellSize+2, y*cellSize+12);
+        ctx.fillText(displayText, x*cellSize+4, y*cellSize+20);
       }
     }
   },
-  
   onCanvasClick(e){
     const canvas = document.getElementById('gridCanvas');
     const rect = canvas.getBoundingClientRect();
@@ -273,38 +269,38 @@ const app = {
       document.getElementById('r').value = p.r;
       document.getElementById('g').value = p.g;
       document.getElementById('b').value = p.b;
-    }
-  },
-  applyCellEdit(){
-    if(!this.pixels.length) return;
-    const r = parseInt(document.getElementById('r').value);
-    const g = parseInt(document.getElementById('g').value);
-    const b = parseInt(document.getElementById('b').value);
-    // 需要知道当前选中的格子？简化：通过canvas点击选中的坐标。但为了易用，增加全局选中坐标变量
-    if(this.selectedCell){
-      const {x,y} = this.selectedCell;
-      if(this.pixels[y] && this.pixels[y][x]){
-        this.pixels[y][x].r = r;
-        this.pixels[y][x].g = g;
-        this.pixels[y][x].b = b;
-        this.pushHistory();
-        this.renderCanvas();
-        this.updateStat();
-      }
-    } else {
-      alert("请先在网格上点击一个格子");
+      this.selectedCell = {x,y};
     }
   },
   
-  // 记录选中格子（用于单格编辑）
-  setSelected(x,y){
-    this.selectedCell = {x,y};
+  applyCellEdit(){
+    if(!this.pixels.length || !this.selectedCell) { alert("请先在网格上点击一个格子"); return; }
+    const r = parseInt(document.getElementById('r').value);
+    const g = parseInt(document.getElementById('g').value);
+    const b = parseInt(document.getElementById('b').value);
+    const {x,y} = this.selectedCell;
+    if(this.pixels[y] && this.pixels[y][x]){
+      this.pixels[y][x].r = r;
+      this.pixels[y][x].g = g;
+      this.pixels[y][x].b = b;
+      // 如果启用了色卡，重新匹配色号
+      if(document.getElementById('useMARD').checked){
+        const matched = matchMARD(r,g,b);
+        this.pixels[y][x].code = matched.code;
+      } else {
+        this.pixels[y][x].code = null;
+      }
+      this.pushHistory();
+      this.renderCanvas();
+      this.updateStat();
+    }
   },
   
   applyBatchReplace(){
     const fromRGB = hexToRgb(document.getElementById('fromColor').value);
     const toRGB = hexToRgb(document.getElementById('toColor').value);
     const tolerance = parseInt(document.getElementById('replaceTolerance').value);
+    const useMARD = document.getElementById('useMARD').checked;
     let changed = false;
     for(let y=0; y<this.pixels.length; y++){
       for(let x=0; x<this.pixels[y].length; x++){
@@ -314,6 +310,12 @@ const app = {
           p.r = toRGB[0];
           p.g = toRGB[1];
           p.b = toRGB[2];
+          if(useMARD){
+            const matched = matchMARD(p.r, p.g, p.b);
+            p.code = matched.code;
+          } else {
+            p.code = null;
+          }
           changed = true;
         }
       }
@@ -326,8 +328,6 @@ const app = {
       alert("未找到匹配的颜色（可增加容差值）");
     }
   },
-  
-  // 历史记录（最多50步）
   pushHistory(){
     const copy = JSON.parse(JSON.stringify(this.pixels));
     this.history = this.history.slice(0, this.historyIndex+1);
@@ -335,7 +335,7 @@ const app = {
     if(this.history.length > 50) this.history.shift();
     this.historyIndex = this.history.length - 1;
   },
-
+  
   undo(){
     if(this.historyIndex > 0){
       this.historyIndex--;
@@ -384,6 +384,7 @@ const app = {
       tbody.appendChild(tr);
     }
   },
+  
   exportFull(){
     if(!this.pixels.length){ alert("没有可导出的图纸"); return; }
     const size = this.pixels.length;
@@ -391,12 +392,11 @@ const app = {
     const cellSize = 32;
     const outWidth = size * cellSize * scale;
     const outHeight = size * cellSize * scale;
-    // 检查canvas最大限制（某些浏览器限制16384）
     if(outWidth > 16384 || outHeight > 16384){
       alert("导出尺寸过大，请减小缩放倍数或网格尺寸");
       return;
     }
-    const exportCanvas = document.createElement('canvas');
+      const exportCanvas = document.createElement('canvas');
     exportCanvas.width = outWidth;
     exportCanvas.height = outHeight;
     const ctx = exportCanvas.getContext('2d');
@@ -406,6 +406,11 @@ const app = {
         const p = this.pixels[y][x];
         ctx.fillStyle = `rgb(${p.r},${p.g},${p.b})`;
         ctx.fillRect(x*cellSize, y*cellSize, cellSize, cellSize);
+        // 导出图片上也显示色号（可选，为了导出效果也加上文字）
+        let displayText = p.code ? p.code : rgbToHex(p.r,p.g,p.b).slice(1);
+        ctx.font = "bold 11px monospace";
+        ctx.fillStyle = (p.r*0.299 + p.g*0.587 + p.b*0.114) > 160 ? "#000" : "#fff";
+        ctx.fillText(displayText, x*cellSize+4, y*cellSize+20);
       }
     }
     const link = document.createElement('a');
@@ -415,7 +420,6 @@ const app = {
   },
   
   loadDemoData(){
-    // 生成一个默认示例棋盘格，便于体验
     const img = new Image();
     img.onload = () => {
       this.originalImage = img;
@@ -424,27 +428,6 @@ const app = {
     img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23f0f0f0'/%3E%3Ccircle cx='50' cy='50' r='40' fill='%234caf50'/%3E%3C/svg%3E";
   }
 };
-
-// 补全canvas点击时记录选中格子
-document.getElementById('gridCanvas').addEventListener('click', (e) => {
-  const canvas = document.getElementById('gridCanvas');
-  const rect = canvas.getBoundingClientRect();
-  const scaleX = canvas.width / rect.width;
-  const scaleY = canvas.height / rect.height;
-  const mouseX = (e.clientX - rect.left) * scaleX;
-  const mouseY = (e.clientY - rect.top) * scaleY;
-  const cellSize = 32;
-  const x = Math.floor(mouseX / cellSize);
-  const y = Math.floor(mouseY / cellSize);
-  if(x>=0 && x<app.pixels.length && y>=0 && y<app.pixels.length){
-    app.setSelected(x,y);
-    const p = app.pixels[y][x];
-    document.getElementById('cellColor').value = rgbToHex(p.r,p.g,p.b);
-    document.getElementById('r').value = p.r;
-    document.getElementById('g').value = p.g;
-    document.getElementById('b').value = p.b;
-  }
-});
 
 window.onload = () => { app.init(); };
 </script>

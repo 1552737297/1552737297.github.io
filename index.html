@@ -1,40 +1,369 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>高级图片取色器</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>一键拼豆 - 拼豆图纸生成器</title>
   <style>
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
     }
 
     body {
-      background: #f0f2f5;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      background: #6366f1;
       min-height: 100vh;
+      padding: 20px;
     }
 
     .container {
-      width: 100%;
-      max-width: 1000px;
-      background: #fff;
-      border-radius: 16px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-      overflow: hidden;
+      max-width: 800px;
+      margin: 0 auto;
     }
 
     .header {
-      padding: 24px;
       text-align: center;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
+      margin-bottom: 30px;
+    }
+
+    .header h1 {
+      font-size: 3.5rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      font-size: 1.5rem;
+      opacity: 0.9;
+    }
+
+    /* 上传区域 */
+    .upload-area {
+      background: white;
+      border: 3px dashed #d1d5db;
+      border-radius: 20px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      margin-bottom: 20px;
+      transition: all 0.3s;
+    }
+
+    .upload-area:hover {
+      border-color: #6366f1;
+      background: #f8faff;
+    }
+
+    .upload-area h3 {
+      font-size: 1.5rem;
+      color: #111827;
+      margin-bottom: 15px;
+    }
+
+    .upload-area p {
+      color: #6b7280;
+      font-size: 1.1rem;
+    }
+
+    #fileInput {
+      display: none;
+    }
+
+    /* 品牌切换 */
+    .brand-tabs {
+      background: white;
+      border-radius: 20px;
+      padding: 15px;
+      display: flex;
+      gap: 15px;
+      overflow-x: auto;
+      margin-bottom: 20px;
+    }
+
+    .brand-tab {
+      padding: 12px 30px;
+      border: 2px solid #d1d5db;
+      border-radius: 12px;
+      background: white;
+      font-size: 1.3rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .brand-tab.active {
+      background: #6366f1;
+      color: white;
+      border-color: #6366f1;
+    }
+
+    /* 设置面板 */
+    .settings-panel {
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      margin-bottom: 20px;
+    }
+
+    .setting-item {
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .setting-item label {
+      font-size: 1.3rem;
+      color: #111827;
+      min-width: 120px;
+    }
+
+    .setting-item input[type="checkbox"] {
+      width: 24px;
+      height: 24px;
+      cursor: pointer;
+    }
+
+    .slider-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    #sizeSlider {
+      flex: 1;
+      height: 10px;
+      border-radius: 5px;
+      background: #e5e7eb;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    #sizeSlider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: #0088ff;
+      cursor: pointer;
+    }
+
+    #sizeValue {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #111827;
+      min-width: 70px;
+      text-align: right;
+    }
+
+    /* 生成按钮 */
+    .generate-btn {
+      width: 100%;
+      padding: 18px;
+      background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
+      color: white;
+      border: none;
+      border-radius: 20px;
+      font-size: 1.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .generate-btn:active {
+      transform: scale(0.98);
+    }
+
+    /* 结果标签 */
+    .result-tabs {
+      background: white;
+      border-radius: 20px 20px 0 0;
+      display: flex;
+      margin-top: 20px;
+    }
+
+    .result-tab {
+      flex: 1;
+      padding: 15px;
+      text-align: center;
+      font-size: 1.3rem;
+      cursor: pointer;
+      border-radius: 20px 20px 0 0;
+      transition: all 0.2s;
+    }
+
+    .result-tab.active {
+      background: #6366f1;
+      color: white;
+    }
+
+    /* 结果区域 */
+    .result-area {
+      background: white;
+      border-radius: 0 0 20px 20px;
+      padding: 20px;
+      min-height: 400px;
+      overflow: auto;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    #originalImage {
+      max-width: 100%;
+      border-radius: 12px;
+    }
+
+    /* 拼豆图纸样式 */
+    .beads-grid {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 8px;
+    }
+
+    .beads-grid th, .beads-grid td {
+      border: 1px solid #e5e7eb;
+      padding: 2px;
+      text-align: center;
+      min-width: 12px;
+      height: 12px;
+    }
+
+    .beads-grid th {
+      background: #f3f4f6;
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .row-header {
+      position: sticky;
+      left: 0;
+      z-index: 10;
+      background: #f3f4f6;
+    }
+
+    /* 裁剪弹窗 */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.8);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 20px;
+      padding: 20px;
+      max-width: 90%;
+      max-height: 90%;
+    }
+
+    .crop-container {
+      position: relative;
+      background: repeating-conic-gradient(#eee 0% 25%, transparent 0% 50%) 50% / 20px 20px;
+      margin-bottom: 20px;
+    }
+
+    #cropCanvas {
+      max-width: 100%;
+      max-height: 60vh;
+      display: block;
+      margin: 0 auto;
+    }
+
+    .crop-buttons {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+    }
+
+    .crop-btn {
+      padding: 15px 50px;
+      border: none;
+      border-radius: 30px;
+      font-size: 1.5rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .crop-btn.confirm {
+      background: #10b981;
+      color: white;
+    }
+
+    .crop-btn.cancel {
+      background: #e5e7eb;
+      color: #374151;
+    }
+
+    /* 上传选择弹窗 */
+    .action-sheet {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: white;
+      border-radius: 20px 20px 0 0;
+      z-index: 1001;
+      display: none;
+    }
+
+    .action-item {
+      padding: 20px;
+      text-align: center;
+      font-size: 1.3rem;
+      border-bottom: 1px solid #e5e7eb;
+      cursor: pointer;
+    }
+
+    .action-item:last-child {
+      border-bottom: none;
+      color: #ef4444;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Perler Beads</h1>
+      <p>拼豆图纸生成器</p>
+    </div>
+
+    <label class="upload-area" id="uploadLabel">
+      <h3>点击图片到这里上传</h3>
+      <p>支持 JPG、JPEG、PNG、WEBP 格式（最大10MB）</p>
+      <input type="file" id="fileInput" accept="image/*">
+    </label>
+
+    <div class="brand-tabs">
+      <div class="brand-tab active" data-brand="MARD">MARD</div>
+      <div class="brand-tab" data-brand="COCO">COCO</div>
+      <div class="brand-tab" data-brand="漫漫">漫漫</div>
+      <div class="brand-tab" data-brand="盼盼">盼盼</div>
+      <div class="brand-tab" data-brand="咪小窝">咪小窝</div>
+    </div>
+
+    <div class="settings-panel">
+      <div class="setting-item">
+        <label>图片反转:</la      color: white;
     }
 
     .header h1 {

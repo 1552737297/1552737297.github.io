@@ -335,3 +335,119 @@ const app = {
     if(this.history.length > 50) this.history.shift();
     this.historyIndex = this.history.length - 1;
   },
+
+  undo(){
+    if(this.historyIndex > 0){
+      this.historyIndex--;
+      this.pixels = JSON.parse(JSON.stringify(this.history[this.historyIndex]));
+      this.renderCanvas();
+      this.updateStat();
+    }
+  },
+  
+  redo(){
+    if(this.historyIndex < this.history.length-1){
+      this.historyIndex++;
+      this.pixels = JSON.parse(JSON.stringify(this.history[this.historyIndex]));
+      this.renderCanvas();
+      this.updateStat();
+    }
+  },
+  
+  updateStat(){
+    if(!this.pixels.length){ document.getElementById('statBody').innerHTML = '<tr><td colspan="6">暂无数据</td></tr>'; return; }
+    const size = this.pixels.length;
+    const total = size*size;
+    const colorMap = new Map();
+    for(let y=0; y<size; y++){
+      for(let x=0; x<size; x++){
+        const p = this.pixels[y][x];
+        const key = `${p.r},${p.g},${p.b}`;
+        if(!colorMap.has(key)) colorMap.set(key, {r:p.r,g:p.g,b:p.b, or:p.or, og:p.og, ob:p.ob, cnt:0});
+        colorMap.get(key).cnt++;
+      }
+    }
+    const sorted = Array.from(colorMap.values()).sort((a,b)=>b.cnt-a.cnt);
+    const tbody = document.getElementById('statBody');
+    tbody.innerHTML = '';
+    for(const c of sorted){
+      const tr = document.createElement('tr');
+      const hex = rgbToHex(c.r,c.g,c.b);
+      tr.innerHTML = `
+        <td style="background:${hex};width:40px"></td>
+        <td>${hex}</td>
+        <td>${c.or},${c.og},${c.ob}</td>
+        <td>${c.r},${c.g},${c.b}</td>
+        <td>${c.cnt}</td>
+        <td>${(c.cnt/total*100).toFixed(2)}%</td>
+      `;
+      tbody.appendChild(tr);
+    }
+  },
+  exportFull(){
+    if(!this.pixels.length){ alert("没有可导出的图纸"); return; }
+    const size = this.pixels.length;
+    const scale = parseInt(document.getElementById('exportScale').value);
+    const cellSize = 32;
+    const outWidth = size * cellSize * scale;
+    const outHeight = size * cellSize * scale;
+    // 检查canvas最大限制（某些浏览器限制16384）
+    if(outWidth > 16384 || outHeight > 16384){
+      alert("导出尺寸过大，请减小缩放倍数或网格尺寸");
+      return;
+    }
+    const exportCanvas = document.createElement('canvas');
+    exportCanvas.width = outWidth;
+    exportCanvas.height = outHeight;
+    const ctx = exportCanvas.getContext('2d');
+    ctx.scale(scale, scale);
+    for(let y=0; y<size; y++){
+      for(let x=0; x<size; x++){
+        const p = this.pixels[y][x];
+        ctx.fillStyle = `rgb(${p.r},${p.g},${p.b})`;
+        ctx.fillRect(x*cellSize, y*cellSize, cellSize, cellSize);
+      }
+    }
+    const link = document.createElement('a');
+    link.download = `拼豆图纸_${size}x${size}.png`;
+    link.href = exportCanvas.toDataURL('image/png');
+    link.click();
+  },
+  
+  loadDemoData(){
+    // 生成一个默认示例棋盘格，便于体验
+    const img = new Image();
+    img.onload = () => {
+      this.originalImage = img;
+      this.generateGrid();
+    };
+    img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23f0f0f0'/%3E%3Ccircle cx='50' cy='50' r='40' fill='%234caf50'/%3E%3C/svg%3E";
+  }
+};
+
+// 补全canvas点击时记录选中格子
+document.getElementById('gridCanvas').addEventListener('click', (e) => {
+  const canvas = document.getElementById('gridCanvas');
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const mouseX = (e.clientX - rect.left) * scaleX;
+  const mouseY = (e.clientY - rect.top) * scaleY;
+  const cellSize = 32;
+  const x = Math.floor(mouseX / cellSize);
+  const y = Math.floor(mouseY / cellSize);
+  if(x>=0 && x<app.pixels.length && y>=0 && y<app.pixels.length){
+    app.setSelected(x,y);
+    const p = app.pixels[y][x];
+    document.getElementById('cellColor').value = rgbToHex(p.r,p.g,p.b);
+    document.getElementById('r').value = p.r;
+    document.getElementById('g').value = p.g;
+    document.getElementById('b').value = p.b;
+  }
+});
+
+window.onload = () => { app.init(); };
+</script>
+</body>
+</html>
+```

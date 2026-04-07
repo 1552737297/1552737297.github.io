@@ -319,4 +319,128 @@
   });
 
   // 打开裁剪
-  function openCro
+  function openCropModal(img) {
+    cropModal.style.display = 'flex';
+    const ctx = cropCanvas.getContext('2d');
+    const max = 400;
+    let w = img.width, h = img.height;
+    if (w > max) { h *= max/w; w = max; }
+    if (h > max) { w *= max/h; h = max; }
+    cropCanvas.width = w;
+    cropCanvas.height = h;
+    ctx.drawImage(img, 0,0,w,h);
+  }
+
+  cropCancel.onclick = () => cropModal.style.display = 'none';
+
+  // 确认裁剪
+  cropConfirm.onclick = () => {
+    const size = Math.min(cropCanvas.width, cropCanvas.height);
+    const x = (cropCanvas.width - size)/2;
+    const y = (cropCanvas.height - size)/2;
+
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = size;
+    tempCanvas.height = size;
+    const tctx = tempCanvas.getContext('2d');
+    tctx.drawImage(cropCanvas, x,y,size,size, 0,0,size,size);
+
+    croppedImage = new Image();
+    croppedImage.onload = () => {
+      originalImageEl.src = croppedImage.src;
+      cropModal.style.display = 'none';
+    };
+    croppedImage.src = tempCanvas.toDataURL();
+  };
+
+  // 生成拼豆图纸
+  generateBtn.onclick = () => {
+    if (!croppedImage) {
+      alert('请先上传并裁剪图片');
+      return;
+    }
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = gridSize;
+    canvas.height = gridSize;
+
+    if (document.getElementById('flipCheckbox').checked) {
+      ctx.translate(gridSize, 0);
+      ctx.scale(-1, 1);
+    }
+
+    ctx.drawImage(croppedImage, 0,0,gridSize,gridSize);
+    const data = ctx.getImageData(0,0,gridSize,gridSize).data;
+
+    // 生成表格
+    let html = '<table class="beads-grid">';
+    for (let y = 0; y < gridSize; y++) {
+      html += '<tr>';
+      for (let x = 0; x < gridSize; x++) {
+        const idx = (y * gridSize + x) * 4;
+        const r = data[idx];
+        const g = data[idx+1];
+        const b = data[idx+2];
+        const a = data[idx+3];
+
+        const removeBg = document.getElementById('removeBgCheckbox').checked;
+        if (removeBg && (a < 100 || (r>245&&g>245&&b>245))) {
+          html += `<td style="background:#fff"></td>`;
+          continue;
+        }
+
+        const color = findClosest(r,g,b);
+        html += `<td style="background:rgb(${color.rgb.join(',')})">${color.code}</td>`;
+      }
+      html += '</tr>';
+    }
+    html += '</table>';
+    beadsGridContainer.innerHTML = html;
+
+    // 预览图
+    const pctx = previewCanvas.getContext('2d');
+    previewCanvas.width = gridSize * 4;
+    previewCanvas.height = gridSize * 4;
+    pctx.imageSmoothingEnabled = false;
+    pctx.drawImage(canvas, 0,0, previewCanvas.width, previewCanvas.height);
+  };
+
+  // 找最接近颜色
+  function findClosest(r,g,b) {
+    const brand = document.querySelector('.brand-tab.active').dataset.brand;
+    const list = brandColors[brand];
+    let best = list[0];
+    let min = Infinity;
+    for (const c of list) {
+      const dr = r - c.rgb[0];
+      const dg = g - c.rgb[1];
+      const db = b - c.rgb[2];
+      const d = dr*dr + dg*dg + db*db;
+      if (d < min) {
+        min = d;
+        best = c;
+      }
+    }
+    return best;
+  }
+
+  // 标签切换
+  document.querySelectorAll('.result-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.result-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(`${tab.dataset.tab}Tab`).classList.add('active');
+    });
+  });
+
+  document.querySelectorAll('.brand-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.brand-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

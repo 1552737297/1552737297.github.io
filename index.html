@@ -1,10 +1,9 @@
-```html
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>拼豆图纸生成器（含网格识别）</title>
+<title>拼豆图纸生成器（带坐标轴·十字绣定位）</title>
 <style>
 *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
 body{background:#f3f4f6;margin:0;padding:20px}
@@ -30,7 +29,7 @@ th{background:#f1f5f9}
 .tip{background:#fffbeb;border:1px solid #fef3c7;padding:12px;border-radius:8px;color:#92400e}
 .heatTip{background:#ecfeff;border:1px solid #cffafe;padding:12px;border-radius:8px;color:#0e7494}
 .loading{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000;visibility:hidden}
-.loading.show{visibility:visible}
+  .loading.show{visibility:visible}
 .spinner{border:4px solid #f3f3f3;border-top:4px solid #3b82f6;border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite}
 @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
 .grid-tool{background:#f3e8ff;border-radius:12px;padding:12px;margin-top:12px}
@@ -39,9 +38,10 @@ th{background:#f1f5f9}
 <body>
 <div class="container">
   <div class="header">
-    <h1>🧩 拼豆图纸生成器（含网格识别）</h1>
-    <p>支持普通图片上传 / 识别规则网格图片（如5×5方格图）· 一键生成带色号图纸</p>
+    <h1>🧩 拼豆图纸生成器（带坐标轴·十字绣定位）</h1>
+    <p>支持普通图片 / 识别规则网格 · 自动显示行列坐标 · 导出带定位的图纸</p>
   </div>
+
   <div class="card">
     <div class="flex">
       <label for="fileInput" class="btn">📸 上传图片</label>
@@ -57,14 +57,14 @@ th{background:#f1f5f9}
         <button class="btn btn-presets" onclick="app.setSize(104)">104×104</button>
         <button class="btn btn-presets" onclick="app.setSize(150)">150×150</button>
         <button class="btn btn-presets" onclick="app.setSize(200)">200×200</button>
-      </div>
-      
+      </div>    
       <div>自定义：<input type="number" id="gridSize" value="29" min="5" max="300"></div>
       <div>去白阈值：<input type="number" id="whiteThreshold" value="240" min="200" max="255"></div>
       <div><label><input type="checkbox" id="flipX"> 左右反转</label></div>
       <div><label><input type="checkbox" id="useColorMatch" checked> 使用真实色卡</label></div>
       <div>导出缩放：<select id="exportScale"><option value="1">1倍</option><option value="2" selected>2倍</option><option value="4">4倍</option></select></div>
     </div>
+
     <div class="grid-tool">
       <strong>🎯 网格图片识别（例如图片中有很多5×5的方格）</strong><br>
       <div class="flex" style="margin-top:8px">
@@ -86,7 +86,6 @@ th{background:#f1f5f9}
       <div><button class="btn" onclick="app.undo()">↩️ 撤销</button> <button class="btn" onclick="app.redo()">↪️ 重做</button></div>
     </div>
   </div>
-
   <div class="card tip">
     <strong>拼豆小贴士：</strong> 1.将拼豆摆到拼豆板上对照图纸；2.铺上助烫纸；3.熨斗中温均匀熨烫；4.冷却后翻面再烫固定。
   </div>
@@ -106,6 +105,7 @@ th{background:#f1f5f9}
     </table>
   </div>
 </div>
+
 <div id="loading" class="loading"><div class="spinner"></div></div>
 
 <script>
@@ -138,7 +138,7 @@ const COLOR_CARD = [
   {code:"C19", r:24, g:134, b:157}, {code:"C20", r:26, g:112, b:169}, {code:"C21", r:188, g:221, b:252},
   {code:"C22", r:107, g:177, b:187}, {code:"C23", r:200, g:226, b:253}, {code:"C24", r:126, g:197, b:249},
   {code:"C25", r:169, g:232, b:224},
-    {code:"D1", r:172, g:183, b:239}, {code:"D2", r:134, g:141, b:211}, {code:"D3", r:53, g:84, b:175},
+  {code:"D1", r:172, g:183, b:239}, {code:"D2", r:134, g:141, b:211}, {code:"D3", r:53, g:84, b:175},
   {code:"D4", r:22, g:45, b:123}, {code:"D5", r:179, g:78, b:198}, {code:"D6", r:179, g:123, b:220},
   {code:"D7", r:135, g:88, b:169}, {code:"D8", r:227, g:210, b:254}, {code:"D9", r:213, g:185, b:244},
   {code:"D10", r:48, g:26, b:73}, {code:"D11", r:190, g:185, b:226}, {code:"D12", r:220, g:153, b:206},
@@ -155,7 +155,7 @@ const COLOR_CARD = [
   {code:"E16", r:251, g:244, b:236}, {code:"E17", r:247, g:227, b:236}, {code:"E18", r:249, g:200, b:219},
   {code:"E19", r:246, g:187, b:209}, {code:"E20", r:215, g:198, b:206}, {code:"E21", r:192, g:157, b:164},
   {code:"E22", r:179, g:140, b:159}, {code:"E23", r:147, g:125, b:138}, {code:"E24", r:222, g:190, b:229},
-   {code:"F1", r:254, g:147, b:129}, {code:"F2", r:246, g:61, b:75}, {code:"F3", r:238, g:78, b:62},
+  {code:"F1", r:254, g:147, b:129}, {code:"F2", r:246, g:61, b:75}, {code:"F3", r:238, g:78, b:62},
   {code:"F4", r:251, g:42, b:64}, {code:"F5", r:225, g:3, b:40}, {code:"F6", r:145, g:54, b:53},
   {code:"F7", r:145, g:25, b:50}, {code:"F8", r:187, g:1, b:38}, {code:"F9", r:224, g:103, b:122},
   {code:"F10", r:135, g:70, b:40}, {code:"F11", r:89, g:35, b:35}, {code:"F12", r:243, g:83, b:107},
@@ -164,7 +164,7 @@ const COLOR_CARD = [
   {code:"F19", r:190, g:69, b:74}, {code:"F20", r:198, g:148, b:149}, {code:"F21", r:242, g:184, b:198},
   {code:"F22", r:247, g:195, b:208}, {code:"F23", r:237, g:128, b:108}, {code:"F24", r:224, g:157, b:175},
   {code:"F25", r:232, g:72, b:84},
-  {code:"G1", r:255, g:228, b:211}, {code:"G2", r:252, g:198, b:172}, {code:"G3", r:241, g:196, b:165},
+   {code:"G1", r:255, g:228, b:211}, {code:"G2", r:252, g:198, b:172}, {code:"G3", r:241, g:196, b:165},
   {code:"G4", r:220, g:179, b:135}, {code:"G5", r:231, g:179, b:78}, {code:"G6", r:227, g:160, b:20},
   {code:"G7", r:152, g:92, b:58}, {code:"G8", r:113, g:61, b:47}, {code:"G9", r:228, g:182, b:133},
   {code:"G10", r:218, g:140, b:66}, {code:"G11", r:218, g:200, b:152}, {code:"G12", r:254, g:201, b:147},
@@ -179,21 +179,26 @@ const COLOR_CARD = [
   {code:"H16", r:27, g:18, b:19}, {code:"H17", r:240, g:238, b:239}, {code:"H18", r:252, g:255, b:246},
   {code:"H19", r:242, g:238, b:229}, {code:"H20", r:150, g:160, b:159}, {code:"H21", r:248, g:251, b:230},
   {code:"H22", r:202, g:202, b:210}, {code:"H23", r:155, g:156, b:148},
-   {code:"M1", r:187, g:198, b:182}, {code:"M2", r:144, g:153, b:148}, {code:"M3", r:105, g:126, b:128},
+  {code:"M1", r:187, g:198, b:182}, {code:"M2", r:144, g:153, b:148}, {code:"M3", r:105, g:126, b:128},
   {code:"M4", r:224, g:212, b:188}, {code:"M5", r:209, g:204, b:175}, {code:"M6", r:176, g:170, b:134},
   {code:"M7", r:176, g:167, b:150}, {code:"M8", r:174, g:127, b:130}, {code:"M9", r:166, g:136, b:98},
   {code:"M10", r:196, g:179, b:187}, {code:"M11", r:158, g:117, b:146}, {code:"M12", r:100, g:74, b:81},
   {code:"M13", r:199, g:146, b:102}, {code:"M14", r:194, g:116, b:100}, {code:"M15", r:116, g:125, b:122}
 ];
-
+  
 function rgbToHex(r,g,b){return '#'+[r,g,b].map(x=>x.toString(16).padStart(2,'0')).join('');}
 function hexToRgb(h){return [parseInt(h.substr(1,2),16),parseInt(h.substr(3,2),16),parseInt(h.substr(5,2),16)];}
 function colorDist(c1,c2){const dr=c1.r-c2.r, dg=c1.g-c2.g, db=c1.b-c2.b; return dr*dr+dg*dg+db*db;}
 function matchColor(r,g,b){let best=null,bestDist=Infinity; for(const col of COLOR_CARD){const d=colorDist({r,g,b},col); if(d<bestDist){bestDist=d; best=col;}} return best || {code:null, r,g,b};}
 
+// 全局配置
+const COORD_SIZE = 28; // 坐标区域宽度/高度（像素）
+const CELL_SIZE = 32;   // 每个格子大小
+
 // 主应用对象
 const app = {
   originalImage: null,
+  gridImage: null,
   currentSize: 29,
   pixels: [],
   history: [],
@@ -203,7 +208,7 @@ const app = {
     this.bindEvents();
     this.loadDemoData();
   },
-   
+  
   bindEvents(){
     document.getElementById('fileInput').onchange = e => this.handleImageUpload(e);
     document.getElementById('gridFileInput').onchange = e => this.handleGridImageUpload(e);
@@ -246,12 +251,78 @@ const app = {
     if(this.originalImage) this.generateGrid();
     else this.clearGrid();
   },
+  
   clearGrid(){
     const canvas = document.getElementById('gridCanvas');
     const ctx = canvas.getContext('2d');
     canvas.width = 0; canvas.height = 0;
     this.pixels = [];
     this.updateStat();
+  },
+  // 通用渲染函数（带坐标轴）
+  renderWithCoordinates(pixels, ctx, canvasWidth, canvasHeight, drawCoordinates = true){
+    const size = pixels.length;
+    if(size===0) return;
+    const gridWidth = size * CELL_SIZE;
+    const gridHeight = size * CELL_SIZE;
+    // 清空背景
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+    // 绘制网格线（浅灰色）
+    ctx.strokeStyle = "#cccccc";
+    ctx.lineWidth = 0.5;
+    for(let i=0; i<=size; i++){
+      ctx.beginPath();
+      ctx.moveTo(COORD_SIZE + i*CELL_SIZE, COORD_SIZE);
+      ctx.lineTo(COORD_SIZE + i*CELL_SIZE, COORD_SIZE + gridHeight);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(COORD_SIZE, COORD_SIZE + i*CELL_SIZE);
+      ctx.lineTo(COORD_SIZE + gridWidth, COORD_SIZE + i*CELL_SIZE);
+      ctx.stroke();
+    }
+    // 绘制颜色格子
+    for(let y=0; y<size; y++){
+      for(let x=0; x<size; x++){
+        const p = pixels[y][x];
+        ctx.fillStyle = `rgb(${p.r},${p.g},${p.b})`;
+        ctx.fillRect(COORD_SIZE + x*CELL_SIZE, COORD_SIZE + y*CELL_SIZE, CELL_SIZE-1, CELL_SIZE-1);
+        // 显示色号或十六进制
+        let displayText = p.code ? p.code : rgbToHex(p.r,p.g,p.b).slice(1);
+        ctx.font = "bold 11px monospace";
+        ctx.fillStyle = (p.r*0.299 + p.g*0.587 + p.b*0.114) > 160 ? "#000" : "#fff";
+        ctx.fillText(displayText, COORD_SIZE + x*CELL_SIZE + 4, COORD_SIZE + y*CELL_SIZE + 20);
+      }
+    }
+    if(!drawCoordinates) return;
+    // 绘制坐标轴（行号、列号）
+    ctx.fillStyle = "#333333";
+    ctx.font = "12px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    // 顶部列号 (1~size)
+    for(let x=0; x<size; x++){
+      ctx.fillText((x+1).toString(), COORD_SIZE + x*CELL_SIZE + CELL_SIZE/2, COORD_SIZE/2);
+    }
+    // 左侧行号
+    for(let y=0; y<size; y++){
+      ctx.fillText((y+1).toString(), COORD_SIZE/2, COORD_SIZE + y*CELL_SIZE + CELL_SIZE/2);
+    }
+    // 可选：绘制原点标记 "0"
+    ctx.fillStyle = "#666";
+    ctx.font = "10px sans-serif";
+    ctx.fillText("0", COORD_SIZE/2, COORD_SIZE/2);
+  },
+  renderCanvas(){
+    const size = this.pixels.length;
+    if(size===0) return;
+    const canvas = document.getElementById('gridCanvas');
+    const totalWidth = COORD_SIZE + size * CELL_SIZE;
+    const totalHeight = COORD_SIZE + size * CELL_SIZE;
+    canvas.width = totalWidth;
+    canvas.height = totalHeight;
+    const ctx = canvas.getContext('2d');
+    this.renderWithCoordinates(this.pixels, ctx, totalWidth, totalHeight, true);
   },
   
   // 普通生成（基于 originalImage）
@@ -304,8 +375,7 @@ const app = {
     this.updateStat();
     this.showLoading(false);
   },
-  
-  // 网格识别生成（基于 gridImage 和用户指定的行列数）
+  // 网格识别生成（基于 gridImage）
   async recognizeGrid(){
     if(!this.gridImage){
       alert("请先上传网格图片（点击「上传网格图片」按钮）");
@@ -313,6 +383,7 @@ const app = {
     }
     this.showLoading(true);
     await new Promise(r => setTimeout(r, 10));
+    
     const cols = parseInt(document.getElementById('gridCols').value);
     const rows = parseInt(document.getElementById('gridRows').value);
     if(isNaN(cols) || isNaN(rows) || cols<1 || rows<1){
@@ -327,7 +398,6 @@ const app = {
     const cellW = imgWidth / cols;
     const cellH = imgHeight / rows;
     
-    // 创建离屏canvas获取像素
     const offCanvas = document.createElement('canvas');
     offCanvas.width = imgWidth;
     offCanvas.height = imgHeight;
@@ -341,7 +411,6 @@ const app = {
     for(let row=0; row<rows; row++){
       const rowPixels = [];
       for(let col=0; col<cols; col++){
-        // 计算当前单元格的边界（考虑浮点，取整数区域）
         const x0 = Math.floor(col * cellW);
         const y0 = Math.floor(row * cellH);
         const x1 = Math.floor((col+1) * cellW);
@@ -352,7 +421,6 @@ const app = {
           rowPixels.push({r:255,g:255,b:255,or:255,og:255,ob:255, code:null});
           continue;
         }
-        // 获取该区域所有像素，计算平均RGB
         const imgData = ctx.getImageData(x0, y0, w, h);
         const data = imgData.data;
         let sumR=0, sumG=0, sumB=0;
@@ -367,7 +435,6 @@ const app = {
         let b = Math.round(sumB / totalPixels);
         const or=r, og=g, ob=b;
         let code = null;
-        // 去白
         if(r>threshold && g>threshold && b>threshold) r=g=b=255;
         if(useColorMatch){
           const matched = matchColor(r,g,b);
@@ -377,40 +444,18 @@ const app = {
         rowPixels.push({r,g,b,or,og,ob, code});
       }
       newPixels.push(rowPixels);
-    }   
-    // 可选：左右反转
+    }
     if(document.getElementById('flipX').checked){
       for(let y=0; y<newPixels.length; y++) newPixels[y].reverse();
     }
     
     this.pixels = newPixels;
-    this.currentSize = rows; // 记录尺寸用于显示
+    this.currentSize = rows;
     this.pushHistory();
     this.renderCanvas();
     this.updateStat();
     this.showLoading(false);
     alert(`识别完成！生成 ${cols}×${rows} 图纸`);
-  },
-  
-  renderCanvas(){
-    const size = this.pixels.length;
-    if(size===0) return;
-    const cellSize = 32;
-    const canvas = document.getElementById('gridCanvas');
-    canvas.width = size * cellSize;
-    canvas.height = size * cellSize;
-    const ctx = canvas.getContext('2d');
-    for(let y=0; y<size; y++){
-      for(let x=0; x<size; x++){
-        const p = this.pixels[y][x];
-        ctx.fillStyle = `rgb(${p.r},${p.g},${p.b})`;
-        ctx.fillRect(x*cellSize, y*cellSize, cellSize-1, cellSize-1);
-        let displayText = p.code ? p.code : rgbToHex(p.r,p.g,p.b).slice(1);
-        ctx.font = "bold 11px monospace";
-        ctx.fillStyle = (p.r*0.299 + p.g*0.587 + p.b*0.114) > 160 ? "#000" : "#fff";
-        ctx.fillText(displayText, x*cellSize+4, y*cellSize+20);
-      }
-    }
   },
   
   onCanvasClick(e){
@@ -420,9 +465,13 @@ const app = {
     const scaleY = canvas.height / rect.height;
     const mouseX = (e.clientX - rect.left) * scaleX;
     const mouseY = (e.clientY - rect.top) * scaleY;
-    const cellSize = 32;
-    const x = Math.floor(mouseX / cellSize);
-    const y = Math.floor(mouseY / cellSize);
+    // 减去坐标偏移
+    const gridX = mouseX - COORD_SIZE;
+    const gridY = mouseY - COORD_SIZE;
+    if(gridX < 0 || gridY < 0) return;
+    const cellSize = CELL_SIZE;
+    const x = Math.floor(gridX / cellSize);
+    const y = Math.floor(gridY / cellSize);
     if(x>=0 && x<this.pixels.length && y>=0 && y<this.pixels.length){
       const p = this.pixels[y][x];
       document.getElementById('cellColor').value = rgbToHex(p.r,p.g,p.b);
@@ -485,8 +534,7 @@ const app = {
     } else {
       alert("未找到匹配的颜色（可增加容差值）");
     }
-  },
-  
+  }, 
   pushHistory(){
     const copy = JSON.parse(JSON.stringify(this.pixels));
     this.history = this.history.slice(0, this.historyIndex+1);
@@ -502,7 +550,8 @@ const app = {
       this.renderCanvas();
       this.updateStat();
     }
-  }, 
+  },
+  
   redo(){
     if(this.historyIndex < this.history.length-1){
       this.historyIndex++;
@@ -542,15 +591,13 @@ const app = {
       `;
       tbody.appendChild(tr);
     }
-  },
-  
+  },  
   exportFull(){
     if(!this.pixels.length){ alert("没有可导出的图纸"); return; }
     const size = this.pixels.length;
     const scale = parseInt(document.getElementById('exportScale').value);
-    const cellSize = 32;
-    const outWidth = size * cellSize * scale;
-    const outHeight = size * cellSize * scale;
+    const outWidth = (COORD_SIZE + size * CELL_SIZE) * scale;
+    const outHeight = (COORD_SIZE + size * CELL_SIZE) * scale;
     if(outWidth > 16384 || outHeight > 16384){
       alert("导出尺寸过大，请减小缩放倍数或网格尺寸");
       return;
@@ -560,17 +607,8 @@ const app = {
     exportCanvas.height = outHeight;
     const ctx = exportCanvas.getContext('2d');
     ctx.scale(scale, scale);
-    for(let y=0; y<size; y++){
-      for(let x=0; x<size; x++){
-        const p = this.pixels[y][x];
-        ctx.fillStyle = `rgb(${p.r},${p.g},${p.b})`;
-        ctx.fillRect(x*cellSize, y*cellSize, cellSize, cellSize);
-        let displayText = p.code ? p.code : rgbToHex(p.r,p.g,p.b).slice(1);
-        ctx.font = "bold 11px monospace";
-        ctx.fillStyle = (p.r*0.299 + p.g*0.587 + p.b*0.114) > 160 ? "#000" : "#fff";
-        ctx.fillText(displayText, x*cellSize+4, y*cellSize+20);
-      }
-    }
+    // 复用带坐标的渲染函数
+    this.renderWithCoordinates(this.pixels, ctx, outWidth/scale, outHeight/scale, true);
     const link = document.createElement('a');
     link.download = `拼豆图纸_${size}x${size}.png`;
     link.href = exportCanvas.toDataURL('image/png');

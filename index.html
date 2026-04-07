@@ -165,3 +165,173 @@ const app = {
     };
     img.src = URL.createObjectURL(file);
   },
+
+  setSize(n){
+    document.getElementById('gridSize').value = n;
+    this.currentSize = n;
+    if(this.originalImage) this.generateGrid(); // 有图片则重新采样
+    else this.clearGrid();
+  },
+  
+  clearGrid(){
+    const canvas = document.getElementById('gridCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 0; canvas.height = 0;
+    this.pixels = [];
+    this.updateStat();
+  },
+  
+  // 核心：从原始图片生成像素矩阵
+  async generateGrid(){
+    if(!this.originalImage){
+      alert("请先上传图片");
+      return;
+    }
+    this.showLoading(true);
+    await new Promise(r => setTimeout(r, 10)); // 让UI更新
+    
+    const size = parseInt(document.getElementById('gridSize').value);
+    this.currentSize = size;
+    const threshold = parseInt(document.getElementById('whiteThreshold').value);
+    const flip = document.getElementById('flipX').checked;
+    const useMARD = document.getElementById('useMARD').checked;
+    
+    // 创建离屏canvas缩放图片
+    const offCanvas = document.createElement('canvas');
+    offCanvas.width = size;
+    offCanvas.height = size;
+    const ctx = offCanvas.getContext('2d');
+    ctx.drawImage(this.originalImage, 0, 0, size, size);
+    const imgData = ctx.getImageData(0, 0, size, size);
+    const data = imgData.data;
+    
+    const newPixels = [];
+    for(let y=0; y<size; y++){
+      const row = [];
+      for(let x=0; x<size; x++){
+        const idx = (y*size + x) * 4;
+        let r = data[idx], g = data[idx+1], b = data[idx+2];
+        const or=r, og=g, ob=b;
+        // 去白
+        if(r>threshold && g>threshold && b>threshold) r=g=b=255;
+        // 色卡匹配
+        if(useMARD){
+          const matched = matchMARD(r,g,b);
+          r=matched.r; g=matched.g; b=matched.b;
+        }
+        row.push({r,g,b,or,og,ob});
+      }
+      newPixels.push(row);
+    }  // 左右反转
+    if(flip){
+      for(let y=0; y<size; y++){
+        newPixels[y].reverse();
+      }
+    }
+    this.pixels = newPixels;
+    this.pushHistory(); // 记录初始状态
+    this.renderCanvas();
+    this.updateStat();
+    this.showLoading(false);
+  },
+  
+  // 渲染Canvas网格（每个格子 cellSize 根据容器自适应，固定32px）
+  renderCanvas(){
+    const size = this.pixels.length;
+    if(size===0) return;
+    const cellSize = 32;
+    const canvas = document.getElementById('gridCanvas');
+    canvas.width = size * cellSize;
+    canvas.height = size * cellSize;
+    const ctx = canvas.getContext('2d');
+    for(let y=0; y<size; y++){
+      for(let x=0; x<size; x++){
+        const p = this.pixels[y][x];
+        ctx.fillStyle = `rgb(${p.r},${p.g},${p.b})`;
+        ctx.fillRect(x*cellSize, y*cellSize, cellSize-1, cellSize-1);
+        // 可选：显示十六进制小字
+        ctx.font = "10px monospace";
+        ctx.fillStyle = (p.r*0.299 + p.g*0.587 + p.b*0.114) > 160 ? "#000" : "#fff";
+        ctx.fillText(rgbToHex(p.r,p.g,p.b).slice(1), x*cellSize+2, y*cellSize+12);
+      }
+    }
+  },
+  
+  onCanvasClick(e){
+    const canvas = document.getElementById('gridCanvas');
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const mouseX = (e.clientX - rect.left) * scaleX;
+    const mouseY = (e.clientY - rect.top) * scaleY;
+    const cellSize = 32;
+    const x = Math.floor(mouseX / cellSize);
+    const y = Math.floor(mouseY / cellSize);
+    if(x>=0 && x<this.pixels.length && y>=0 && y<this.pixels.length){
+      const p = this.pixels[y][x];
+      document.getElementById('cellColor').value = rgbToHex(p.r,p.g,p.b);
+      document.getElementById('r').value = p.r;
+      document.getElementById('g').value = p.g;
+      document.getElementById('b').value = p.b;
+    }
+  },
+  applyCellEdit(){
+    if(!this.pixels.length) return;
+    const r = parseInt(document.getElementById('r').value);
+    const g = parseInt(document.getElementById('g').value);
+    const b = parseInt(document.getElementById('b').value);
+    // 需要知道当前选中的格子？简化：通过canvas点击选中的坐标。但为了易用，增加全局选中坐标变量
+    if(this.selectedCell){
+      const {x,y} = this.selectedCell;
+      if(this.pixels[y] && this.pixels[y][x]){
+        this.pixels[y][x].r = r;
+        this.pixels[y][x].g = g;
+        this.pixels[y][x].b = b;
+        this.pushHistory();
+        this.renderCanvas();
+        this.updateStat();
+      }
+    } else {
+      alert("请先在网格上点击一个格子");
+    }
+  },
+  
+  // 记录选中格子（用于单格编辑）
+  setSelected(x,y){
+    this.selectedCell = {x,y};
+  },
+  
+  applyBatchReplace(){
+    const fromRGB = hexToRgb(document.getElementById('fromColor').value);
+    const toRGB = hexToRgb(document.getElementById('toColor').value);
+    const tolerance = parseInt(document.getElementById('replaceTolerance').value);
+    let changed = false;
+    for(let y=0; y<this.pixels.length; y++){
+      for(let x=0; x<this.pixels[y].length; x++){
+        const p = this.pixels[y][x];
+        const dist = Math.sqrt((p.r-fromRGB[0])**2 + (p.g-fromRGB[1])**2 + (p.b-fromRGB[2])**2);
+        if(dist <= tolerance){
+          p.r = toRGB[0];
+          p.g = toRGB[1];
+          p.b = toRGB[2];
+          changed = true;
+        }
+      }
+    }
+    if(changed){
+      this.pushHistory();
+      this.renderCanvas();
+      this.updateStat();
+    } else {
+      alert("未找到匹配的颜色（可增加容差值）");
+    }
+  },
+  
+  // 历史记录（最多50步）
+  pushHistory(){
+    const copy = JSON.parse(JSON.stringify(this.pixels));
+    this.history = this.history.slice(0, this.historyIndex+1);
+    this.history.push(copy);
+    if(this.history.length > 50) this.history.shift();
+    this.historyIndex = this.history.length - 1;
+  },

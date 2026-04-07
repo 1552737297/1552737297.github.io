@@ -1,446 +1,224 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>拼豆图纸生成器</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
-    }
-
-    body {
-      background: #6366f1;
-      min-height: 100vh;
-      padding: 20px;
-    }
-
-    .container {
-      max-width: 800px;
-      margin: 0 auto;
-    }
-
-    .header {
-      text-align: center;
-      color: white;
-      margin-bottom: 30px;
-    }
-
-    .header h1 {
-      font-size: 2.5rem;
-    }
-
-    .upload-area {
-      background: white;
-      border: 3px dashed #d1d5db;
-      border-radius: 20px;
-      padding: 40px 20px;
-      text-align: center;
-      cursor: pointer;
-      margin-bottom: 20px;
-    }
-
-    .upload-area:hover {
-      border-color: #6366f1;
-      background: #f8faff;
-    }
-
-    #fileInput {
-      display: none;
-    }
-
-    .brand-tabs {
-      background: white;
-      border-radius: 20px;
-      padding: 15px;
-      display: flex;
-      gap: 15px;
-      overflow-x: auto;
-      margin-bottom: 20px;
-    }
-
-    .brand-tab {
-      padding: 10px 20px;
-      border: 2px solid #d1d5db;
-      border-radius: 12px;
-      background: white;
-      cursor: pointer;
-    }
-
-    .brand-tab.active {
-      background: #6366f1;
-      color: white;
-      border-color: #6366f1;
-    }
-
-    .settings-panel {
-      background: white;
-      border-radius: 20px;
-      padding: 30px;
-      margin-bottom: 20px;
-    }
-
-    .setting-item {
-      margin-bottom: 20px;
-      display: flex;
-      align-items: center;
-      gap: 15px;
-    }
-
-    .slider-container {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      gap: 15px;
-    }
-
-    #sizeSlider {
-      flex: 1;
-    }
-
-    .generate-btn {
-      width: 100%;
-      padding: 18px;
-      background: #6366f1;
-      color: white;
-      border: none;
-      border-radius: 20px;
-      font-size: 1.2rem;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    .result-tabs {
-      background: white;
-      display: flex;
-      margin-top: 20px;
-    }
-
-    .result-tab {
-      flex: 1;
-      padding: 15px;
-      text-align: center;
-      cursor: pointer;
-    }
-
-    .result-tab.active {
-      background: #6366f1;
-      color: white;
-    }
-
-    .result-area {
-      background: white;
-      padding: 20px;
-      overflow: auto;
-      max-height: 600px;
-    }
-
-    .tab-content {
-      display: none;
-    }
-
-    .tab-content.active {
-      display: block;
-    }
-
-    #originalImage {
-      max-width: 100%;
-    }
-
-    .beads-grid {
-      border-collapse: collapse;
-      width: 100%;
-      font-size: 7px;
-    }
-
-    .beads-grid th, .beads-grid td {
-      border: 1px solid #ccc;
-      min-width: 14px;
-      height: 14px;
-      text-align: center;
-    }
-
-    .modal {
-      position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.8);
-      display: none;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .modal-content {
-      background: white;
-      padding: 20px;
-      border-radius: 16px;
-    }
-
-    .crop-buttons {
-      display: flex;
-      gap: 15px;
-      justify-content: center;
-      margin-top: 15px;
-    }
-
-    .crop-btn {
-      padding: 10px 30px;
-      border-radius: 8px;
-      border: none;
-      cursor: pointer;
-    }
-
-    .confirm {
-      background: #10b981;
-      color: white;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>拼豆图纸生成器</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+body{background:#6366f1;padding:15px 0}
+.container{max-width:700px;margin:0 auto;padding:0 15px}
+header{text-align:center;color:#fff;margin:30px 0}
+header h1{font-size:48px;margin-bottom:5px}
+header p{font-size:17px;opacity:.9}
+.upload{background:#fff;border:2px dashed #d1d5db;border-radius:16px;padding:40px 20px;text-align:center;cursor:pointer;margin-bottom:20px}
+.upload:hover{border-color:#6366f1}
+.upload h3{font-size:18px;margin-bottom:8px}
+.upload p{font-size:14px;color:#6b7280}
+#fileInput{display:none}
+.brands{background:#fff;border-radius:16px;padding:12px;display:flex;gap:10px;overflow:auto;margin-bottom:20px}
+.brand{padding:10px 18px;border:1px solid #e5e7eb;border-radius:12px;background:#fff;white-space:nowrap}
+.brand.active{background:#6366f1;color:#fff}
+.panel{background:#fff;border-radius:16px;padding:20px;margin-bottom:20px}
+.setting{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.setting label{font-size:15px}
+.sliderWrap{display:flex;align-items:center;gap:10px;width:100%}
+#size{width:100%}
+.btnGenerate{width:100%;background:linear-gradient(135deg,#a855f7,#6366f1);color:#fff;border:none;border-radius:16px;padding:16px;font-size:16px;font-weight:500;margin-top:10px}
+.tabs{display:flex;background:#fff;border-radius:16px 16px 0 0}
+.tab{flex:1;text-align:center;padding:14px;font-size:15px}
+.tab.active{background:#6366f1;color:#fff;border-radius:16px 16px 0 0}
+.content{background:#fff;padding:20px;border-radius:0 0 16px 16px;min-height:300px}
+.page{display:none}
+.page.active{display:block}
+#originImg{max-width:100%;display:block;margin:0 auto}
+#grid{overflow:auto}
+table{border-collapse:collapse;width:max-content;margin:0 auto}
+td{width:16px;height:16px;text-align:center;font-size:9px;border:1px solid #eee}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center}
+.modalBody{background:#fff;padding:20px;border-radius:20px;max-width:90vw}
+#cropCanvas{max-width:100%;max-height:60vh}
+.btns{display:flex;gap:15px;justify-content:center;margin-top:15px}
+.btn{padding:10px 24px;border-radius:12px;border:none}
+.btnConfirm{background:#6366f1;color:#fff}
+</style>
 </head>
 <body>
-
 <div class="container">
-  <div class="header">
-    <h1>拼豆图纸生成器</h1>
-  </div>
+<header>
+<h1>Perler Beads</h1>
+<p>拼豆图纸生成器</p>
+</header>
 
-  <label class="upload-area">
-    点击上传图片
-    <input type="file" id="fileInput" accept="image/*">
-  </label>
+<label class="upload">
+<h3>点击图片到这里上传</h3>
+<p>支持 JPG、JPEG、PNG、WEBP 格式（最大10MB）</p>
+<input type="file" id="fileInput" accept="image/*">
+</label>
 
-  <div class="brand-tabs">
-    <div class="brand-tab active" data-brand="MARD">MARD</div>
-    <div class="brand-tab" data-brand="COCO">COCO</div>
-  </div>
+<div class="brands">
+<div class="brand active" data="MARD">MARD</div>
+<div class="brand" data="COCO">COCO</div>
+<div class="brand" data="漫漫">漫漫</div>
+<div class="brand" data="盼盼">盼盼</div>
+<div class="brand" data="咪小窝">咪小窝</div>
+</div>
 
-  <div class="settings-panel">
-    <div class="setting-item">
-      <label>水平反转</label>
-      <input type="checkbox" id="flipCheckbox">
-    </div>
-    <div class="setting-item">
-      <label>去除背景</label>
-      <input type="checkbox" id="removeBgCheckbox">
-    </div>
-    <div class="setting-item">
-      <label>网格大小</label>
-      <div class="slider-container">
-        <input type="range" id="sizeSlider" min="10" max="60" value="32">
-        <span id="sizeValue">32×32</span>
-      </div>
-    </div>
-    <button class="generate-btn" id="generateBtn">生成拼豆图纸</button>
-  </div>
+<div class="panel">
+<div class="setting">
+<label>图片反转</label>
+<input type="checkbox" id="flip">
+</div>
+<div class="setting">
+<label>去除背景</label>
+<input type="checkbox" id="nobg">
+</div>
+<div class="setting">
+<div class="sliderWrap">
+<label>色块大小</label>
+<input type="range" id="size" min="10" max="60" value="40">
+<span id="sizeText">40×40</span>
+</div>
+</div>
+<button class="btnGenerate" id="generate">生成</button>
+</div>
 
-  <div class="result-tabs">
-    <div class="result-tab" data-tab="original">原图</div>
-    <div class="result-tab active" data-tab="result">图纸</div>
-    <div class="result-tab" data-tab="preview">预览</div>
-  </div>
+<div class="tabs">
+<div class="tab" data="origin">原图</div>
+<div class="tab active" data="grid">结果</div>
+<div class="tab" data="view">预览</div>
+</div>
 
-  <div class="result-area">
-    <div class="tab-content" id="originalTab">
-      <img id="originalImage">
-    </div>
-    <div class="tab-content active" id="resultTab">
-      <div id="beadsGridContainer"></div>
-    </div>
-    <div class="tab-content" id="previewTab">
-      <canvas id="previewCanvas"></canvas>
-    </div>
-  </div>
+<div class="content">
+<div class="page" id="origin">
+<img id="originImg">
+</div>
+<div class="page active" id="grid">
+<div id="result"></div>
+</div>
+<div class="page" id="view">
+<canvas id="viewCanvas"></canvas>
+</div>
+</div>
 </div>
 
 <div class="modal" id="cropModal">
-  <div class="modal-content">
-    <canvas id="cropCanvas"></canvas>
-    <div class="crop-buttons">
-      <button class="crop-btn confirm" id="cropConfirm">确认裁剪</button>
-      <button class="crop-btn" id="cropCancel">取消</button>
-    </div>
-  </div>
+<div class="modalBody">
+<canvas id="cropCanvas"></canvas>
+<div class="btns">
+<button class="btn btnConfirm" id="sureCrop">确认裁剪</button>
+<button class="btn" id="closeCrop">取消</button>
+</div>
+</div>
 </div>
 
 <script>
-  const fileInput = document.getElementById('fileInput');
-  const sizeSlider = document.getElementById('sizeSlider');
-  const sizeValue = document.getElementById('sizeValue');
-  const generateBtn = document.getElementById('generateBtn');
-  const cropModal = document.getElementById('cropModal');
-  const cropCanvas = document.getElementById('cropCanvas');
-  const cropConfirm = document.getElementById('cropConfirm');
-  const cropCancel = document.getElementById('cropCancel');
-  const originalImageEl = document.getElementById('originalImage');
-  const beadsGridContainer = document.getElementById('beadsGridContainer');
-  const previewCanvas = document.getElementById('previewCanvas');
+const fileInput = document.getElementById('fileInput')
+const size = document.getElementById('size')
+const sizeText = document.getElementById('sizeText')
+const generate = document.getElementById('generate')
+const result = document.getElementById('result')
+const viewCanvas = document.getElementById('viewCanvas')
+const originImg = document.getElementById('originImg')
+const cropModal = document.getElementById('cropModal')
+const cropCanvas = document.getElementById('cropCanvas')
+const sureCrop = document.getElementById('sureCrop')
+const closeCrop = document.getElementById('closeCrop')
 
-  let originalImage;
-  let croppedImage;
-  let gridSize = 32;
+let gridSize = 40
+let cropImg = null
+let img = null
 
-  const brandColors = {
-    MARD: [
-      { code: 'H2', rgb: [255,255,255] },
-      { code: 'K1', rgb: [0,0,0] },
-      { code: 'R1', rgb: [255,0,0] },
-      { code: 'G1', rgb: [0,255,0] },
-      { code: 'B1', rgb: [0,0,255] },
-      { code: 'Y1', rgb: [255,255,0] },
-    ],
-    COCO: [
-      { code: 'W', rgb: [255,255,255] },
-      { code: 'BL', rgb: [0,0,0] },
-      { code: 'RD', rgb: [255,0,0] },
-    ]
-  };
+size.oninput = ()=>{
+gridSize = size.value
+sizeText.textContent = gridSize+'×'+gridSize
+}
 
-  // 尺寸滑块
-  sizeSlider.addEventListener('input', () => {
-    gridSize = +sizeSlider.value;
-    sizeValue.textContent = `${gridSize}×${gridSize}`;
-  });
+document.querySelectorAll('.brand').forEach(e=>{
+e.onclick = ()=>{
+document.querySelectorAll('.brand').forEach(b=>b.classList.remove('active'))
+e.classList.add('active')
+}
+})
 
-  // 上传图片
-  fileInput.addEventListener('change', e => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      const img = new Image();
-      img.onload = () => {
-        originalImage = img;
-        openCropModal(img);
-      };
-      img.src = ev.target.result;
-    };
-    reader.readAsDataURL(file);
-  });
+document.querySelectorAll('.tab').forEach(e=>{
+e.onclick = ()=>{
+document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'))
+document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'))
+e.classList.add('active')
+document.getElementById(e.dataset).classList.add('active')
+}
+})
 
-  // 打开裁剪
-  function openCropModal(img) {
-    cropModal.style.display = 'flex';
-    const ctx = cropCanvas.getContext('2d');
-    const max = 400;
-    let w = img.width, h = img.height;
-    if (w > max) { h *= max/w; w = max; }
-    if (h > max) { w *= max/h; h = max; }
-    cropCanvas.width = w;
-    cropCanvas.height = h;
-    ctx.drawImage(img, 0,0,w,h);
-  }
+fileInput.onchange = (e)=>{
+const f = e.target.files[0]
+if(!f) return
+const reader = new FileReader()
+reader.onload = (ev)=>{
+img = new Image()
+img.onload = ()=>{
+showCrop()
+}
+img.src = ev.target.result
+}
+reader.readAsDataURL(f)
+}
 
-  cropCancel.onclick = () => cropModal.style.display = 'none';
+function showCrop(){
+cropModal.style.display = 'flex'
+const ctx = cropCanvas.getContext('2d')
+let w = img.width, h = img.height
+const max = 400
+if(w>max){h=h*max/w;w=max}
+if(h>max){w=w*max/h;h=max}
+cropCanvas.width = w
+cropCanvas.height = h
+ctx.drawImage(img,0,0,w,h)
+}
 
-  // 确认裁剪
-  cropConfirm.onclick = () => {
-    const size = Math.min(cropCanvas.width, cropCanvas.height);
-    const x = (cropCanvas.width - size)/2;
-    const y = (cropCanvas.height - size)/2;
+closeCrop.onclick = ()=>{
+cropModal.style.display = 'none'
+}
 
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = size;
-    tempCanvas.height = size;
-    const tctx = tempCanvas.getContext('2d');
-    tctx.drawImage(cropCanvas, x,y,size,size, 0,0,size,size);
+sureCrop.onclick = ()=>{
+const s = Math.min(cropCanvas.width,cropCanvas.height)
+const x = (cropCanvas.width-s)/2
+const y = (cropCanvas.height-s)/2
+const c = document.createElement('canvas')
+c.width = s
+c.height = s
+const ct = c.getContext('2d')
+ct.drawImage(cropCanvas,x,y,s,s,0,0,s,s)
+cropImg = new Image()
+cropImg.onload = ()=>{
+originImg.src = cropImg.src
+cropModal.style.display = 'none'
+}
+cropImg.src = c.toDataURL()
+}
 
-    croppedImage = new Image();
-    croppedImage.onload = () => {
-      originalImageEl.src = croppedImage.src;
-      cropModal.style.display = 'none';
-    };
-    croppedImage.src = tempCanvas.toDataURL();
-  };
-
-  // 生成拼豆图纸
-  generateBtn.onclick = () => {
-    if (!croppedImage) {
-      alert('请先上传并裁剪图片');
-      return;
-    }
-
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    canvas.width = gridSize;
-    canvas.height = gridSize;
-
-    if (document.getElementById('flipCheckbox').checked) {
-      ctx.translate(gridSize, 0);
-      ctx.scale(-1, 1);
-    }
-
-    ctx.drawImage(croppedImage, 0,0,gridSize,gridSize);
-    const data = ctx.getImageData(0,0,gridSize,gridSize).data;
-
-    // 生成表格
-    let html = '<table class="beads-grid">';
-    for (let y = 0; y < gridSize; y++) {
-      html += '<tr>';
-      for (let x = 0; x < gridSize; x++) {
-        const idx = (y * gridSize + x) * 4;
-        const r = data[idx];
-        const g = data[idx+1];
-        const b = data[idx+2];
-        const a = data[idx+3];
-
-        const removeBg = document.getElementById('removeBgCheckbox').checked;
-        if (removeBg && (a < 100 || (r>245&&g>245&&b>245))) {
-          html += `<td style="background:#fff"></td>`;
-          continue;
-        }
-
-        const color = findClosest(r,g,b);
-        html += `<td style="background:rgb(${color.rgb.join(',')})">${color.code}</td>`;
-      }
-      html += '</tr>';
-    }
-    html += '</table>';
-    beadsGridContainer.innerHTML = html;
-
-    // 预览图
-    const pctx = previewCanvas.getContext('2d');
-    previewCanvas.width = gridSize * 4;
-    previewCanvas.height = gridSize * 4;
-    pctx.imageSmoothingEnabled = false;
-    pctx.drawImage(canvas, 0,0, previewCanvas.width, previewCanvas.height);
-  };
-
-  // 找最接近颜色
-  function findClosest(r,g,b) {
-    const brand = document.querySelector('.brand-tab.active').dataset.brand;
-    const list = brandColors[brand];
-    let best = list[0];
-    let min = Infinity;
-    for (const c of list) {
-      const dr = r - c.rgb[0];
-      const dg = g - c.rgb[1];
-      const db = b - c.rgb[2];
-      const d = dr*dr + dg*dg + db*db;
-      if (d < min) {
-        min = d;
-        best = c;
-      }
-    }
-    return best;
-  }
-
-  // 标签切换
-  document.querySelectorAll('.result-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.result-tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      tab.classList.add('active');
-      document.getElementById(`${tab.dataset.tab}Tab`).classList.add('active');
-    });
-  });
-
-  document.querySelectorAll('.brand-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.brand-tab').forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-    });
-  });
-</script>
-</body>
-</html>
+generate.onclick = ()=>{
+if(!cropImg){alert('请上传图片');return}
+const c = document.createElement('canvas')
+const ctx = c.getContext('2d')
+c.width = gridSize
+c.height = gridSize
+if(document.getElementById('flip').checked){
+ctx.translate(gridSize,0)
+ctx.scale(-1,1)
+}
+ctx.drawImage(cropImg,0,0,gridSize,gridSize)
+const data = ctx.getImageData(0,0,gridSize,gridSize).data
+let html = '<table>'
+for(let y=0;y<gridSize;y++){
+html+='<tr>'
+for(let x=0;x<gridSize;x++){
+const i = (y*gridSize+x)*4
+const r=data[i],g=data[i+1],b=data[i+2],a=data[i+3]
+const noBg = document.getElementById('nobg').checked
+if(noBg && (a<100 || (r>240&&g>240&&b>240))){
+html+='<td></td>'
+continue
+}
+const color = getColor(r,g,b)
+html+=`<td style="backg

@@ -1,194 +1,298 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <title>图片取色器</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: Arial, sans-serif;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>高级图片取色器</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
 
-        body {
-            background: #f5f7fa;
-            padding: 30px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
+    body {
+      background: #f0f2f5;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
 
-        .container {
-            width: 100%;
-            max-width: 900px;
-            background: white;
-            padding: 24px;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
+    .container {
+      width: 100%;
+      max-width: 1000px;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+    }
 
-        h1 {
-            text-align: center;
-            margin-bottom: 20px;
-            color: #333;
-        }
+    .header {
+      padding: 24px;
+      text-align: center;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
 
-        .upload-area {
-            border: 2px dashed #ccc;
-            padding: 40px;
-            text-align: center;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            cursor: pointer;
-        }
+    .header h1 {
+      font-size: 24px;
+      font-weight: 600;
+    }
 
-        .upload-area:hover {
-            border-color: #409eff;
-        }
+    .upload-box {
+      padding: 30px;
+      text-align: center;
+      border: 2px dashed #ddd;
+      margin: 24px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
 
-        #fileInput {
-            display: none;
-        }
+    .upload-box:hover {
+      border-color: #667eea;
+      background: #f8f9ff;
+    }
 
-        .preview {
-            display: none;
-            margin-bottom: 20px;
-            text-align: center;
-        }
+    #fileInput {
+      display: none;
+    }
 
-        #imageCanvas {
-            max-width: 100%;
-            border: 1px solid #eee;
-            border-radius: 8px;
-            cursor: crosshair;
-        }
+    .canvas-container {
+      display: none;
+      margin: 0 24px;
+      overflow: auto;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    }
 
-        .color-info {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 16px;
-            margin-top: 20px;
-        }
+    #colorCanvas {
+      display: block;
+      cursor: crosshair;
+      max-width: 100%;
+    }
 
-        #colorPreview {
-            width: 50px;
-            height: 50px;
-            border-radius: 8px;
-            border: 2px solid #ddd;
-        }
+    .color-panel {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding: 20px 24px;
+      background: #fafafa;
+    }
 
-        #colorCode {
-            font-size: 20px;
-            font-weight: bold;
-            color: #333;
-        }
+    .color-preview {
+      width: 60px;
+      height: 60px;
+      border-radius: 10px;
+      border: 2px solid #fff;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+    }
 
-        #copyBtn {
-            padding: 8px 16px;
-            background: #409eff;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-        }
+    .color-values {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 15px;
+    }
 
-        #copyBtn:active {
-            background: #337ecc;
-        }
-    </style>
+    .value {
+      font-weight: 600;
+      color: #333;
+    }
+
+    .btn {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: 0.2s;
+    }
+
+    .btn-primary {
+      background: #667eea;
+      color: white;
+    }
+
+    .btn-primary:active {
+      background: #5a6fd8;
+    }
+
+    .btn-lock {
+      background: #fff;
+      color: #667eea;
+      border: 1px solid #667eea;
+    }
+
+    .history-section {
+      padding: 20px 24px;
+    }
+
+    .history-title {
+      font-size: 16px;
+      margin-bottom: 12px;
+      color: #555;
+      font-weight: 500;
+    }
+
+    .color-history {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .history-item {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      transition: transform 0.2s;
+    }
+
+    .history-item:hover {
+      transform: scale(1.1);
+    }
+
+    .tip {
+      text-align: center;
+      padding: 0 24px 24px;
+      color: #888;
+      font-size: 14px;
+    }
+  </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>图片取色器 🎨</h1>
+  <div class="header">
+    <h1>高级图片取色器</h1>
+  </div>
 
-    <label class="upload-area" id="uploadBtn">
-        点击或拖拽上传图片
-        <input type="file" id="fileInput" accept="image/*">
-    </label>
+  <label class="upload-box" for="fileInput">
+    <div>点击上传图片，鼠标移动取色</div>
+  </label>
+  <input type="file" id="fileInput" accept="image/*" />
 
-    <div class="preview" id="preview">
-        <canvas id="imageCanvas"></canvas>
-        <div class="color-info">
-            <div id="colorPreview"></div>
-            <span id="colorCode">#000000</span>
-            <button id="copyBtn">复制色号</button>
-        </div>
+  <div class="canvas-container">
+    <canvas id="colorCanvas"></canvas>
+  </div>
+
+  <div class="color-panel">
+    <div class="color-preview" id="preview"></div>
+    <div class="color-values">
+      <div>HEX: <span class="value" id="hex">#000000</span></div>
+      <div>RGB: <span class="value" id="rgb">0, 0, 0</span></div>
+      <div>HSL: <span class="value" id="hsl">0, 0%, 0%</span></div>
     </div>
+    <button class="btn btn-primary" id="copyBtn">复制颜色</button>
+    <button class="btn btn-lock" id="lockBtn">锁定颜色</button>
+  </div>
+
+  <div class="history-section">
+    <div class="history-title">颜色历史</div>
+    <div class="color-history" id="historyList"></div>
+  </div>
+
+  <div class="tip">点击颜色历史可快速复制 · 锁定后不再随鼠标变化</div>
 </div>
 
 <script>
-    const fileInput = document.getElementById('fileInput');
-    const uploadBtn = document.getElementById('uploadBtn');
-    const preview = document.getElementById('preview');
-    const canvas = document.getElementById('imageCanvas');
-    const ctx = canvas.getContext('2d');
-    const colorPreview = document.getElementById('colorPreview');
-    const colorCode = document.getElementById('colorCode');
-    const copyBtn = document.getElementById('copyBtn');
+  const fileInput = document.getElementById('fileInput');
+  const canvas = document.getElementById('colorCanvas');
+  const ctx = canvas.getContext('2d');
+  const canvasContainer = document.querySelector('.canvas-container');
+  const preview = document.getElementById('preview');
+  const hexText = document.getElementById('hex');
+  const rgbText = document.getElementById('rgb');
+  const hslText = document.getElementById('hsl');
+  const copyBtn = document.getElementById('copyBtn');
+  const lockBtn = document.getElementById('lockBtn');
+  const historyList = document.getElementById('historyList');
 
-    let img = null;
+  let isLocked = false;
+  let history = [];
+  let img = null;
 
-    // 选择图片
-    fileInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
+  // 上传图片
+  fileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      img = new Image();
+      img.onload = () => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+        canvasContainer.style.display = 'block';
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
 
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            img = new Image();
-            img.onload = () => {
-                // 设置画布大小
-                const maxWidth = 800;
-                const scale = maxWidth / img.width;
-                canvas.width = maxWidth;
-                canvas.height = img.height * scale;
+  // 取色
+  canvas.addEventListener('mousemove', (e) => {
+    if (isLocked || !img) return;
+    updateColor(e);
+  });
 
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                preview.style.display = 'block';
-            };
-            img.src = event.target.result;
-        };
-        reader.readAsDataURL(file);
-    });
-
-    // 鼠标移动取色
-    canvas.addEventListener('mousemove', (e) => {
-        if (!img) return;
-
-        const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-
-        const pixel = ctx.getImageData(x, y, 1, 1).data;
-        const r = pixel[0];
-        const g = pixel[1];
-        const b = pixel[2];
-
-        const hex = rgbToHex(r, g, b);
-
-        colorPreview.style.backgroundColor = hex;
-        colorCode.textContent = hex;
-    });
-
-    // RGB 转 十六进制
-    function rgbToHex(r, g, b) {
-        return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
+  // 点击加入历史
+  canvas.addEventListener('click', (e) => {
+    if (!img) return;
+    const color = hexText.innerText;
+    if (!history.includes(color)) {
+      history.unshift(color);
+      if (history.length > 12) history.pop();
+      renderHistory();
     }
+  });
 
-    // 复制颜色
-    copyBtn.addEventListener('click', () => {
-        navigator.clipboard.writeText(colorCode.textContent)
-            .then(() => {
-                alert('已复制：' + colorCode.textContent);
-            })
-            .catch(err => {
-                console.error('复制失败', err);
-            });
+  function updateColor(e) {
+    const rect = canvas.getBoundingClientRect();
+    const x = Math.floor((e.clientX - rect.left) * canvas.width / rect.width);
+    const y = Math.floor((e.clientY - rect.top) * canvas.height / rect.height);
+    const pixel = ctx.getImageData(x, y, 1, 1).data;
+    const r = pixel[0], g = pixel[1], b = pixel[2];
+    const hex = rgbToHex(r, g, b);
+    const hsl = rgbToHsl(r, g, b);
+
+    preview.style.background = hex;
+    hexText.innerText = hex;
+    rgbText.innerText = `${r}, ${g}, ${b}`;
+    hslText.innerText = hsl;
+  }
+
+  // 锁定开关
+  lockBtn.addEventListener('click', () => {
+    isLocked = !isLocked;
+    lockBtn.textContent = isLocked ? '已锁定' : '锁定颜色';
+    lockBtn.style.background = isLocked ? '#667eea' : '#fff';
+    lockBtn.style.color = isLocked ? '#fff' : '#667eea';
+  });
+
+  // 复制
+  copyBtn.addEventListener('click', () => {
+    const color = hexText.innerText;
+    navigator.clipboard.writeText(color).then(() => {
+      copyBtn.textContent = '复制成功！';
+      setTimeout(() => copyBtn.textContent = '复制颜色', 1500);
     });
-</script>
+  });
 
-</body>
-</html>
+  // 渲染历史
+  function renderHistory() {
+    historyList.innerHTML = '';
+    history.forEach(color => {
+      const div = document.createElement('div');
+      div.className = 'history-item';
+      div.style.background = color;
+      div.onclick = () => {
+        navigator.clipboard.writeText(color);
+        copyBtn.textContent = '已

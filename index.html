@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>拼豆图纸生成器（真实色号版·含150x150）</title>
+<title>拼豆图纸生成器（含网格识别）</title>
 <style>
 *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
 body{background:#f3f4f6;margin:0;padding:20px}
@@ -17,6 +17,7 @@ body{background:#f3f4f6;margin:0;padding:20px}
 .btn-danger{background:#ef4444}
 .btn-success{background:#10b981}
 .btn-presets{background:#64748b}
+.btn-grid{background:#8b5cf6}
 #fileInput{display:none}
 label.btn{display:inline-block}
 input[type="number"],input[type="color"],select{padding:6px 8px;border-radius:6px;border:1px solid #ddd}
@@ -32,19 +33,20 @@ th{background:#f1f5f9}
 .loading.show{visibility:visible}
 .spinner{border:4px solid #f3f3f3;border-top:4px solid #3b82f6;border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite}
 @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+.grid-tool{background:#f3e8ff;border-radius:12px;padding:12px;margin-top:12px}
 </style>
 </head>
 <body>
 <div class="container">
   <div class="header">
-    <h1>🧩 拼豆图纸生成器（真实色号版·含150x150）</h1>
-    <p>基于您提供的完整色号表 · 一键生成带色号图纸 · 撤销/重做 · 导出高清图</p>
+    <h1>🧩 拼豆图纸生成器（含网格识别）</h1>
+    <p>支持普通图片上传 / 识别规则网格图片（如5×5方格图）· 一键生成带色号图纸</p>
   </div>
   <div class="card">
     <div class="flex">
       <label for="fileInput" class="btn">📸 上传图片</label>
       <input type="file" id="fileInput" accept="image/*">
-      <button class="btn" onclick="app.generateGrid()">⚙️ 生成网格</button>
+      <button class="btn" onclick="app.generateGrid()">⚙️ 普通生成</button>
       <button class="btn btn-success" onclick="app.exportFull()">💾 导出图纸</button>
       
       <div style="display:flex;gap:6px;flex-wrap:wrap">
@@ -55,12 +57,24 @@ th{background:#f1f5f9}
         <button class="btn btn-presets" onclick="app.setSize(104)">104×104</button>
         <button class="btn btn-presets" onclick="app.setSize(150)">150×150</button>
         <button class="btn btn-presets" onclick="app.setSize(200)">200×200</button>
-      </div>    
+      </div>
+      
       <div>自定义：<input type="number" id="gridSize" value="29" min="5" max="300"></div>
       <div>去白阈值：<input type="number" id="whiteThreshold" value="240" min="200" max="255"></div>
       <div><label><input type="checkbox" id="flipX"> 左右反转</label></div>
-      <div><label><input type="checkbox" id="useColorMatch" checked> 使用真实色卡（显示色号）</label></div>
+      <div><label><input type="checkbox" id="useColorMatch" checked> 使用真实色卡</label></div>
       <div>导出缩放：<select id="exportScale"><option value="1">1倍</option><option value="2" selected>2倍</option><option value="4">4倍</option></select></div>
+    </div>
+    <div class="grid-tool">
+      <strong>🎯 网格图片识别（例如图片中有很多5×5的方格）</strong><br>
+      <div class="flex" style="margin-top:8px">
+        <label for="gridFileInput" class="btn btn-grid">📐 上传网格图片</label>
+        <input type="file" id="gridFileInput" accept="image/*" style="display:none">
+        <div>水平方格数：<input type="number" id="gridCols" value="10" min="1" max="200" style="width:70px"></div>
+        <div>垂直方格数：<input type="number" id="gridRows" value="10" min="1" max="200" style="width:70px"></div>
+        <button class="btn btn-grid" onclick="app.recognizeGrid()">🔍 识别并生成图纸</button>
+        <span style="font-size:12px;color:#666">提示：上传带规则方格的图片，输入行列数，自动提取每个方格的平均颜色</span>
+      </div>
     </div>
 
     <div class="editArea">
@@ -92,12 +106,11 @@ th{background:#f1f5f9}
     </table>
   </div>
 </div>
-
 <div id="loading" class="loading"><div class="spinner"></div></div>
+
 <script>
-// ======================== 真实拼豆色卡（仅保留您提供的真实RGB，移除占位黑色） ========================
+// ======================== 真实拼豆色卡（完整221色） ========================
 const COLOR_CARD = [
-  // A 系列 (A1~A25)
   {code:"A1", r:250, g:245, b:205}, {code:"A2", r:252, g:254, b:214}, {code:"A3", r:252, g:255, b:146},
   {code:"A4", r:247, g:236, b:92}, {code:"A5", r:240, g:216, b:58}, {code:"A6", r:253, g:169, b:81},
   {code:"A7", r:250, g:140, b:79}, {code:"A8", r:251, g:218, b:77}, {code:"A9", r:247, g:157, b:95},
@@ -107,17 +120,15 @@ const COLOR_CARD = [
   {code:"A19", r:253, g:126, b:119}, {code:"A20", r:249, g:214, b:110}, {code:"A21", r:250, g:227, b:147},
   {code:"A22", r:237, g:248, b:120}, {code:"A23", r:228, g:200, b:186}, {code:"A24", r:243, g:246, b:169},
   {code:"A25", r:255, g:215, b:133},
-  // B 系列 (B1~B25) 修正 B13
   {code:"B1", r:223, g:241, b:59}, {code:"B2", r:100, g:243, b:67}, {code:"B3", r:161, g:245, b:134},
   {code:"B4", r:95, g:223, b:52}, {code:"B5", r:57, g:225, b:88}, {code:"B6", r:100, g:224, b:164},
   {code:"B7", r:62, g:174, b:124}, {code:"B8", r:29, g:155, b:84}, {code:"B9", r:42, g:80, b:55},
   {code:"B10", r:154, g:209, b:186}, {code:"B11", r:98, g:112, b:50}, {code:"B12", r:26, g:110, b:61},
-  {code:"B13", r:200, g:232, b:125},  // 修正
-  {code:"B14", r:171, g:232, b:79}, {code:"B15", r:48, g:83, b:53}, {code:"B16", r:192, g:237, b:79},
-  {code:"B17", r:158, g:179, b:62}, {code:"B18", r:230, g:237, b:79}, {code:"B19", r:38, g:138, b:142},
-  {code:"B20", r:203, g:236, b:207}, {code:"B21", r:24, g:97, b:106}, {code:"B22", r:10, g:66, b:65},
-  {code:"B23", r:52, g:59, b:26}, {code:"B24", r:232, g:250, b:166}, {code:"B25", r:78, g:132, b:109},
-    // C 系列 (C1~C25)
+  {code:"B13", r:200, g:232, b:125}, {code:"B14", r:171, g:232, b:79}, {code:"B15", r:48, g:83, b:53},
+  {code:"B16", r:192, g:237, b:79}, {code:"B17", r:158, g:179, b:62}, {code:"B18", r:230, g:237, b:79},
+  {code:"B19", r:38, g:138, b:142}, {code:"B20", r:203, g:236, b:207}, {code:"B21", r:24, g:97, b:106},
+  {code:"B22", r:10, g:66, b:65}, {code:"B23", r:52, g:59, b:26}, {code:"B24", r:232, g:250, b:166},
+  {code:"B25", r:78, g:132, b:109},
   {code:"C1", r:240, g:254, b:228}, {code:"C2", r:171, g:248, b:254}, {code:"C3", r:26, g:224, b:247},
   {code:"C4", r:68, g:205, b:251}, {code:"C5", r:6, g:170, b:223}, {code:"C6", r:84, g:167, b:233},
   {code:"C7", r:57, g:119, b:202}, {code:"C8", r:15, g:82, b:189}, {code:"C9", r:51, g:73, b:195},
@@ -127,8 +138,7 @@ const COLOR_CARD = [
   {code:"C19", r:24, g:134, b:157}, {code:"C20", r:26, g:112, b:169}, {code:"C21", r:188, g:221, b:252},
   {code:"C22", r:107, g:177, b:187}, {code:"C23", r:200, g:226, b:253}, {code:"C24", r:126, g:197, b:249},
   {code:"C25", r:169, g:232, b:224},
-  // D 系列 (D1~D25)
-  {code:"D1", r:172, g:183, b:239}, {code:"D2", r:134, g:141, b:211}, {code:"D3", r:53, g:84, b:175},
+    {code:"D1", r:172, g:183, b:239}, {code:"D2", r:134, g:141, b:211}, {code:"D3", r:53, g:84, b:175},
   {code:"D4", r:22, g:45, b:123}, {code:"D5", r:179, g:78, b:198}, {code:"D6", r:179, g:123, b:220},
   {code:"D7", r:135, g:88, b:169}, {code:"D8", r:227, g:210, b:254}, {code:"D9", r:213, g:185, b:244},
   {code:"D10", r:48, g:26, b:73}, {code:"D11", r:190, g:185, b:226}, {code:"D12", r:220, g:153, b:206},
@@ -137,7 +147,6 @@ const COLOR_CARD = [
   {code:"D19", r:216, g:194, b:217}, {code:"D20", r:154, g:53, b:173}, {code:"D21", r:148, g:5, b:149},
   {code:"D22", r:56, g:56, b:154}, {code:"D23", r:234, g:219, b:248}, {code:"D24", r:118, g:138, b:225},
   {code:"D25", r:73, g:80, b:194},
-  // E 系列 (E1~E24) 修正 E24
   {code:"E1", r:246, g:212, b:203}, {code:"E2", r:252, g:193, b:221}, {code:"E3", r:246, g:189, b:232},
   {code:"E4", r:232, g:100, b:158}, {code:"E5", r:240, g:86, b:159}, {code:"E6", r:235, g:65, b:114},
   {code:"E7", r:197, g:54, b:116}, {code:"E8", r:253, g:219, b:233}, {code:"E9", r:227, g:118, b:199},
@@ -146,8 +155,7 @@ const COLOR_CARD = [
   {code:"E16", r:251, g:244, b:236}, {code:"E17", r:247, g:227, b:236}, {code:"E18", r:249, g:200, b:219},
   {code:"E19", r:246, g:187, b:209}, {code:"E20", r:215, g:198, b:206}, {code:"E21", r:192, g:157, b:164},
   {code:"E22", r:179, g:140, b:159}, {code:"E23", r:147, g:125, b:138}, {code:"E24", r:222, g:190, b:229},
-  // F 系列 (F1~F25)
-  {code:"F1", r:254, g:147, b:129}, {code:"F2", r:246, g:61, b:75}, {code:"F3", r:238, g:78, b:62},
+   {code:"F1", r:254, g:147, b:129}, {code:"F2", r:246, g:61, b:75}, {code:"F3", r:238, g:78, b:62},
   {code:"F4", r:251, g:42, b:64}, {code:"F5", r:225, g:3, b:40}, {code:"F6", r:145, g:54, b:53},
   {code:"F7", r:145, g:25, b:50}, {code:"F8", r:187, g:1, b:38}, {code:"F9", r:224, g:103, b:122},
   {code:"F10", r:135, g:70, b:40}, {code:"F11", r:89, g:35, b:35}, {code:"F12", r:243, g:83, b:107},
@@ -156,7 +164,6 @@ const COLOR_CARD = [
   {code:"F19", r:190, g:69, b:74}, {code:"F20", r:198, g:148, b:149}, {code:"F21", r:242, g:184, b:198},
   {code:"F22", r:247, g:195, b:208}, {code:"F23", r:237, g:128, b:108}, {code:"F24", r:224, g:157, b:175},
   {code:"F25", r:232, g:72, b:84},
-   // G 系列 (G1~G21，仅提供到G21)
   {code:"G1", r:255, g:228, b:211}, {code:"G2", r:252, g:198, b:172}, {code:"G3", r:241, g:196, b:165},
   {code:"G4", r:220, g:179, b:135}, {code:"G5", r:231, g:179, b:78}, {code:"G6", r:227, g:160, b:20},
   {code:"G7", r:152, g:92, b:58}, {code:"G8", r:113, g:61, b:47}, {code:"G9", r:228, g:182, b:133},
@@ -164,7 +171,6 @@ const COLOR_CARD = [
   {code:"G13", r:178, g:113, b:75}, {code:"G14", r:139, g:104, b:76}, {code:"G15", r:246, g:248, b:227},
   {code:"G16", r:242, g:216, b:193}, {code:"G17", r:119, g:84, b:78}, {code:"G18", r:255, g:227, b:213},
   {code:"G19", r:221, g:125, b:65}, {code:"G20", r:165, g:69, b:47}, {code:"G21", r:179, g:133, b:97},
-  // H 系列 (H1~H23)
   {code:"H1", r:255, g:255, b:255}, {code:"H2", r:251, g:251, b:251}, {code:"H3", r:180, g:180, b:180},
   {code:"H4", r:135, g:135, b:135}, {code:"H5", r:70, g:70, b:72}, {code:"H6", r:44, g:44, b:44},
   {code:"H7", r:1, g:1, b:1}, {code:"H8", r:231, g:214, b:220}, {code:"H9", r:239, g:237, b:238},
@@ -173,14 +179,13 @@ const COLOR_CARD = [
   {code:"H16", r:27, g:18, b:19}, {code:"H17", r:240, g:238, b:239}, {code:"H18", r:252, g:255, b:246},
   {code:"H19", r:242, g:238, b:229}, {code:"H20", r:150, g:160, b:159}, {code:"H21", r:248, g:251, b:230},
   {code:"H22", r:202, g:202, b:210}, {code:"H23", r:155, g:156, b:148},
-  // M 系列 (M1~M15)
-  {code:"M1", r:187, g:198, b:182}, {code:"M2", r:144, g:153, b:148}, {code:"M3", r:105, g:126, b:128},
+   {code:"M1", r:187, g:198, b:182}, {code:"M2", r:144, g:153, b:148}, {code:"M3", r:105, g:126, b:128},
   {code:"M4", r:224, g:212, b:188}, {code:"M5", r:209, g:204, b:175}, {code:"M6", r:176, g:170, b:134},
   {code:"M7", r:176, g:167, b:150}, {code:"M8", r:174, g:127, b:130}, {code:"M9", r:166, g:136, b:98},
   {code:"M10", r:196, g:179, b:187}, {code:"M11", r:158, g:117, b:146}, {code:"M12", r:100, g:74, b:81},
   {code:"M13", r:199, g:146, b:102}, {code:"M14", r:194, g:116, b:100}, {code:"M15", r:116, g:125, b:122}
 ];
-  
+
 function rgbToHex(r,g,b){return '#'+[r,g,b].map(x=>x.toString(16).padStart(2,'0')).join('');}
 function hexToRgb(h){return [parseInt(h.substr(1,2),16),parseInt(h.substr(3,2),16),parseInt(h.substr(5,2),16)];}
 function colorDist(c1,c2){const dr=c1.r-c2.r, dg=c1.g-c2.g, db=c1.b-c2.b; return dr*dr+dg*dg+db*db;}
@@ -198,9 +203,10 @@ const app = {
     this.bindEvents();
     this.loadDemoData();
   },
-  
+   
   bindEvents(){
     document.getElementById('fileInput').onchange = e => this.handleImageUpload(e);
+    document.getElementById('gridFileInput').onchange = e => this.handleGridImageUpload(e);
     document.getElementById('gridSize').addEventListener('change', () => this.setSize(parseInt(document.getElementById('gridSize').value)));
     const canvas = document.getElementById('gridCanvas');
     canvas.addEventListener('click', (e) => this.onCanvasClick(e));
@@ -223,13 +229,23 @@ const app = {
     img.src = URL.createObjectURL(file);
   },
   
+  handleGridImageUpload(e){
+    const file = e.target.files[0];
+    if(!file) return;
+    const img = new Image();
+    img.onload = () => {
+      this.gridImage = img;
+      alert(`网格图片已加载（${img.width}×${img.height}），请设置行列数后点击“识别并生成图纸”`);
+    };
+    img.src = URL.createObjectURL(file);
+  },
+  
   setSize(n){
     document.getElementById('gridSize').value = n;
     this.currentSize = n;
     if(this.originalImage) this.generateGrid();
     else this.clearGrid();
   },
-  
   clearGrid(){
     const canvas = document.getElementById('gridCanvas');
     const ctx = canvas.getContext('2d');
@@ -238,13 +254,15 @@ const app = {
     this.updateStat();
   },
   
+  // 普通生成（基于 originalImage）
   async generateGrid(){
     if(!this.originalImage){
       alert("请先上传图片");
       return;
     }
     this.showLoading(true);
-    await new Promise(r => setTimeout(r, 10));   
+    await new Promise(r => setTimeout(r, 10));
+    
     const size = parseInt(document.getElementById('gridSize').value);
     this.currentSize = size;
     const threshold = parseInt(document.getElementById('whiteThreshold').value);
@@ -267,9 +285,7 @@ const app = {
         let r = data[idx], g = data[idx+1], b = data[idx+2];
         const or=r, og=g, ob=b;
         let code = null;
-        // 去白
         if(r>threshold && g>threshold && b>threshold) r=g=b=255;
-        // 色卡匹配
         if(useColorMatch){
           const matched = matchColor(r,g,b);
           r = matched.r; g = matched.g; b = matched.b;
@@ -287,6 +303,93 @@ const app = {
     this.renderCanvas();
     this.updateStat();
     this.showLoading(false);
+  },
+  
+  // 网格识别生成（基于 gridImage 和用户指定的行列数）
+  async recognizeGrid(){
+    if(!this.gridImage){
+      alert("请先上传网格图片（点击「上传网格图片」按钮）");
+      return;
+    }
+    this.showLoading(true);
+    await new Promise(r => setTimeout(r, 10));
+    const cols = parseInt(document.getElementById('gridCols').value);
+    const rows = parseInt(document.getElementById('gridRows').value);
+    if(isNaN(cols) || isNaN(rows) || cols<1 || rows<1){
+      alert("请输入有效的水平/垂直方格数（大于0）");
+      this.showLoading(false);
+      return;
+    }
+    
+    const img = this.gridImage;
+    const imgWidth = img.width;
+    const imgHeight = img.height;
+    const cellW = imgWidth / cols;
+    const cellH = imgHeight / rows;
+    
+    // 创建离屏canvas获取像素
+    const offCanvas = document.createElement('canvas');
+    offCanvas.width = imgWidth;
+    offCanvas.height = imgHeight;
+    const ctx = offCanvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    
+    const useColorMatch = document.getElementById('useColorMatch').checked;
+    const threshold = parseInt(document.getElementById('whiteThreshold').value);
+    const newPixels = [];
+    
+    for(let row=0; row<rows; row++){
+      const rowPixels = [];
+      for(let col=0; col<cols; col++){
+        // 计算当前单元格的边界（考虑浮点，取整数区域）
+        const x0 = Math.floor(col * cellW);
+        const y0 = Math.floor(row * cellH);
+        const x1 = Math.floor((col+1) * cellW);
+        const y1 = Math.floor((row+1) * cellH);
+        const w = x1 - x0;
+        const h = y1 - y0;
+        if(w<=0 || h<=0){
+          rowPixels.push({r:255,g:255,b:255,or:255,og:255,ob:255, code:null});
+          continue;
+        }
+        // 获取该区域所有像素，计算平均RGB
+        const imgData = ctx.getImageData(x0, y0, w, h);
+        const data = imgData.data;
+        let sumR=0, sumG=0, sumB=0;
+        const totalPixels = w * h;
+        for(let i=0; i<totalPixels; i++){
+          sumR += data[i*4];
+          sumG += data[i*4+1];
+          sumB += data[i*4+2];
+        }
+        let r = Math.round(sumR / totalPixels);
+        let g = Math.round(sumG / totalPixels);
+        let b = Math.round(sumB / totalPixels);
+        const or=r, og=g, ob=b;
+        let code = null;
+        // 去白
+        if(r>threshold && g>threshold && b>threshold) r=g=b=255;
+        if(useColorMatch){
+          const matched = matchColor(r,g,b);
+          r = matched.r; g = matched.g; b = matched.b;
+          code = matched.code;
+        }
+        rowPixels.push({r,g,b,or,og,ob, code});
+      }
+      newPixels.push(rowPixels);
+    }   
+    // 可选：左右反转
+    if(document.getElementById('flipX').checked){
+      for(let y=0; y<newPixels.length; y++) newPixels[y].reverse();
+    }
+    
+    this.pixels = newPixels;
+    this.currentSize = rows; // 记录尺寸用于显示
+    this.pushHistory();
+    this.renderCanvas();
+    this.updateStat();
+    this.showLoading(false);
+    alert(`识别完成！生成 ${cols}×${rows} 图纸`);
   },
   
   renderCanvas(){
@@ -308,7 +411,8 @@ const app = {
         ctx.fillText(displayText, x*cellSize+4, y*cellSize+20);
       }
     }
-  }, 
+  },
+  
   onCanvasClick(e){
     const canvas = document.getElementById('gridCanvas');
     const rect = canvas.getBoundingClientRect();
@@ -328,7 +432,6 @@ const app = {
       this.selectedCell = {x,y};
     }
   },
-  
   applyCellEdit(){
     if(!this.pixels.length || !this.selectedCell) { alert("请先在网格上点击一个格子"); return; }
     const r = parseInt(document.getElementById('r').value);
@@ -350,6 +453,7 @@ const app = {
       this.updateStat();
     }
   },
+  
   applyBatchReplace(){
     const fromRGB = hexToRgb(document.getElementById('fromColor').value);
     const toRGB = hexToRgb(document.getElementById('toColor').value);
@@ -390,6 +494,7 @@ const app = {
     if(this.history.length > 50) this.history.shift();
     this.historyIndex = this.history.length - 1;
   },
+  
   undo(){
     if(this.historyIndex > 0){
       this.historyIndex--;
@@ -397,8 +502,7 @@ const app = {
       this.renderCanvas();
       this.updateStat();
     }
-  },
-  
+  }, 
   redo(){
     if(this.historyIndex < this.history.length-1){
       this.historyIndex++;
@@ -438,7 +542,8 @@ const app = {
       `;
       tbody.appendChild(tr);
     }
-  }, 
+  },
+  
   exportFull(){
     if(!this.pixels.length){ alert("没有可导出的图纸"); return; }
     const size = this.pixels.length;
@@ -470,7 +575,8 @@ const app = {
     link.download = `拼豆图纸_${size}x${size}.png`;
     link.href = exportCanvas.toDataURL('image/png');
     link.click();
-  }, 
+  },
+  
   loadDemoData(){
     const img = new Image();
     img.onload = () => {

@@ -91,3 +91,77 @@ th{background:#f1f5f9}
     </table>
   </div>
 </div>
+
+<div id="loading" class="loading"><div class="spinner"></div></div>
+
+<script>
+// ======================== 扩展 MARD 色卡（常用48色） ========================
+const MARD_PALETTE = [
+  {r:255,g:255,b:255,code:"H2"},{r:0,g:0,b:0,code:"K1"},
+  {r:253,g:246,b:226,code:"A1"},{r:250,g:240,b:190,code:"A2"},
+  {r:245,g:222,b:179,code:"B1"},{r:236,g:206,b:143,code:"B2"},
+  {r:255,g:217,b:117,code:"C1"},{r:255,g:193,b:7,code:"C2"},
+  {r:255,g:170,b:0,code:"D1"},{r:255,g:137,b:0,code:"D2"},
+  {r:255,g:105,b:0,code:"E1"},{r:255,g:70,b:0,code:"E2"},
+  {r:0,g:200,b:50,code:"G1"},{r:0,g:170,b:50,code:"G2"},
+  {r:0,g:150,b:100,code:"H1"},{r:0,g:90,b:150,code:"I1"},
+  {r:255,g:255,b:180,code:"Y1"},{r:255,g:235,b:100,code:"Y2"},
+  {r:255,g:200,b:80,code:"O1"},{r:255,g:160,b:60,code:"O2"},
+  {r:255,g:120,b:40,code:"R1"},{r:255,g:80,b:20,code:"R2"},
+  {r:200,g:100,b:50,code:"BR1"},{r:160,g:70,b:30,code:"BR2"},
+  {r:255,g:180,b:200,code:"P1"},{r:255,g:120,b:160,code:"P2"},
+  {r:180,g:80,b:150,code:"PU1"},{r:140,g:50,b:120,code:"PU2"},
+  {r:100,g:200,b:220,code:"C3"},{r:50,g:160,b:200,code:"C4"},
+  {r:0,g:140,b:200,code:"B3"},{r:0,g:100,b:180,code:"B4"},
+  {r:120,g:200,b:80,code:"G3"},{r:80,g:160,b:60,code:"G4"},
+  {r:255,g:140,b:100,code:"S1"},{r:240,g:100,b:80,code:"S2"},
+  {r:180,g:180,b:180,code:"M1"},{r:120,g:120,b:120,code:"M2"},
+  {r:80,g:80,b:80,code:"M3"},{r:60,g:40,b:30,code:"DK"},
+  {r:255,g:220,b:140,code:"CR"},{r:210,g:180,b:110,code:"CR2"},
+  {r:150,g:200,b:150,code:"MINT"},{r:100,g:180,b:140,code:"MINT2"},
+  {r:200,g:130,b:70,code:"TN"},{r:160,g:90,b:40,code:"TN2"},
+  {r:255,g:230,b:210,code:"SK"},{r:250,g:200,b:170,code:"SK2"}
+];
+function rgbToHex(r,g,b){return '#'+[r,g,b].map(x=>x.toString(16).padStart(2,'0')).join('');}
+function hexToRgb(h){return [parseInt(h.substr(1,2),16),parseInt(h.substr(3,2),16),parseInt(h.substr(5,2),16)];}
+function colorDist(c1,c2){const dr=c1.r-c2.r, dg=c1.g-c2.g, db=c1.b-c2.b; return dr*dr+dg*dg+db*db;}
+function matchMARD(r,g,b){let best=null,bestDist=Infinity; for(const col of MARD_PALETTE){const d=colorDist({r,g,b},col); if(d<bestDist){bestDist=d; best=col;}} return best;}
+
+// 主应用对象
+const app = {
+  originalImage: null,      // 存储原始Image对象
+  currentSize: 29,
+  pixels: [],               // 三维数组 [y][x] => {r,g,b,or,og,ob}
+  history: [],              // 撤销栈
+  historyIndex: -1,
+  
+  init(){
+    this.bindEvents();
+    this.loadDemoData();
+  },
+  
+  bindEvents(){
+    document.getElementById('fileInput').onchange = e => this.handleImageUpload(e);
+    document.getElementById('gridSize').addEventListener('change', () => this.setSize(parseInt(document.getElementById('gridSize').value)));
+    // 网格Canvas点击获取坐标
+    const canvas = document.getElementById('gridCanvas');
+    canvas.addEventListener('click', (e) => this.onCanvasClick(e));
+  },
+  
+  showLoading(show){
+    const el = document.getElementById('loading');
+    if(show) el.classList.add('show');
+    else el.classList.remove('show');
+  },
+  
+  async handleImageUpload(e){
+    const file = e.target.files[0];
+    if(!file) return;
+    const img = new Image();
+    img.onload = () => {
+      this.originalImage = img;
+      // 自动生成网格
+      this.generateGrid();
+    };
+    img.src = URL.createObjectURL(file);
+  },

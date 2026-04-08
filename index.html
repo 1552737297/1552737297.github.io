@@ -56,8 +56,7 @@ th{background:#f1f5f9}
         <button class="btn btn-presets" onclick="app.setSize(104,104)">104×104</button>
         <button class="btn btn-presets" onclick="app.setSize(150,150)">150×150</button>
         <button class="btn btn-presets" onclick="app.setSize(200,200)">200×200</button>
-      </div>
-      
+      </div>  
       <div>自定义宽×高：<input type="number" id="gridWidth" value="29" min="1" max="300" style="width:70px"> × <input type="number" id="gridHeight" value="29" min="1" max="300" style="width:70px"></div>
       <div>去白阈值：<input type="number" id="whiteThreshold" value="240" min="200" max="255"></div>
       <div><label><input type="checkbox" id="flipX"> 左右反转</label></div>
@@ -65,6 +64,7 @@ th{background:#f1f5f9}
       <div><label><input type="checkbox" id="showLegend" checked> 右侧显示统计面板</label></div>
       <div>导出缩放：<select id="exportScale"><option value="1">1倍</option><option value="2" selected>2倍</option><option value="4">4倍</option></select></div>
     </div>
+
     <div class="grid-tool">
       <strong>🎯 网格图片识别（不等比例识别）</strong><br>
       <div class="flex" style="margin-top:8px">
@@ -76,7 +76,6 @@ th{background:#f1f5f9}
         <span style="font-size:12px;color:#666">提示：上传带规则方格的图片，输入行列数，自动提取每个方格的平均颜色</span>
       </div>
     </div>
-
     <div class="editArea">
       <div>🔹单格编辑：<input type="color" id="cellColor"> R:<input id="r" size=3> G:<input id="g" size=3> B:<input id="b" size=3>
       <button class="btn" onclick="app.applyCellEdit()">应用</button></div>
@@ -86,13 +85,13 @@ th{background:#f1f5f9}
       <div><button class="btn" onclick="app.undo()">↩️ 撤销</button> <button class="btn" onclick="app.redo()">↪️ 重做</button></div>
     </div>
   </div>
+
   <div class="card tip">
     <strong>拼豆小贴士：</strong> 1.将拼豆摆到拼豆板上对照图纸；2.铺上助烫纸；3.熨斗中温均匀熨烫；4.冷却后翻面再烫固定。
   </div>
   <div class="card heatTip">
     <strong>熨烫提示：</strong> 温度不可过高，时间不宜过久，避免烫化变形；烫完冷却后再取下，防止变形。
   </div>
-
   <div class="canvas-wrapper" id="canvasWrapper">
     <canvas id="gridCanvas"></canvas>
   </div>
@@ -119,7 +118,8 @@ const COLOR_CARD = [
   {code:"A16", r:254, g:255, b:151}, {code:"A17", r:253, g:225, b:115}, {code:"A18", r:252, g:191, b:128},
   {code:"A19", r:253, g:126, b:119}, {code:"A20", r:249, g:214, b:110}, {code:"A21", r:250, g:227, b:147},
   {code:"A22", r:237, g:248, b:120}, {code:"A23", r:228, g:200, b:186}, {code:"A24", r:243, g:246, b:169},
-  {code:"A25", r:255, g:215, b:133},  {code:"B1", r:223, g:241, b:59}, {code:"B2", r:100, g:243, b:67}, {code:"B3", r:161, g:245, b:134},
+  {code:"A25", r:255, g:215, b:133},
+    {code:"B1", r:223, g:241, b:59}, {code:"B2", r:100, g:243, b:67}, {code:"B3", r:161, g:245, b:134},
   {code:"B4", r:95, g:223, b:52}, {code:"B5", r:57, g:225, b:88}, {code:"B6", r:100, g:224, b:164},
   {code:"B7", r:62, g:174, b:124}, {code:"B8", r:29, g:155, b:84}, {code:"B9", r:42, g:80, b:55},
   {code:"B10", r:154, g:209, b:186}, {code:"B11", r:98, g:112, b:50}, {code:"B12", r:26, g:110, b:61},
@@ -136,8 +136,8 @@ const COLOR_CARD = [
   {code:"C16", r:24, g:88, b:162}, {code:"C17", r:2, g:209, b:243}, {code:"C18", r:33, g:50, b:68},
   {code:"C19", r:24, g:134, b:157}, {code:"C20", r:26, g:112, b:169}, {code:"C21", r:188, g:221, b:252},
   {code:"C22", r:107, g:177, b:187}, {code:"C23", r:200, g:226, b:253}, {code:"C24", r:126, g:197, b:249},
-  {code:"C25", r:169, g:232, b:224}, 
-  {code:"D1", r:172, g:183, b:239}, {code:"D2", r:134, g:141, b:211}, {code:"D3", r:53, g:84, b:175},
+  {code:"C25", r:169, g:232, b:224},
+    {code:"D1", r:172, g:183, b:239}, {code:"D2", r:134, g:141, b:211}, {code:"D3", r:53, g:84, b:175},
   {code:"D4", r:22, g:45, b:123}, {code:"D5", r:179, g:78, b:198}, {code:"D6", r:179, g:123, b:220},
   {code:"D7", r:135, g:88, b:169}, {code:"D8", r:227, g:210, b:254}, {code:"D9", r:213, g:185, b:244},
   {code:"D10", r:48, g:26, b:73}, {code:"D11", r:190, g:185, b:226}, {code:"D12", r:220, g:153, b:206},
@@ -154,7 +154,7 @@ const COLOR_CARD = [
   {code:"E16", r:251, g:244, b:236}, {code:"E17", r:247, g:227, b:236}, {code:"E18", r:249, g:200, b:219},
   {code:"E19", r:246, g:187, b:209}, {code:"E20", r:215, g:198, b:206}, {code:"E21", r:192, g:157, b:164},
   {code:"E22", r:179, g:140, b:159}, {code:"E23", r:147, g:125, b:138}, {code:"E24", r:222, g:190, b:229},
-  {code:"F1", r:254, g:147, b:129}, {code:"F2", r:246, g:61, b:75}, {code:"F3", r:238, g:78, b:62},
+    {code:"F1", r:254, g:147, b:129}, {code:"F2", r:246, g:61, b:75}, {code:"F3", r:238, g:78, b:62},
   {code:"F4", r:251, g:42, b:64}, {code:"F5", r:225, g:3, b:40}, {code:"F6", r:145, g:54, b:53},
   {code:"F7", r:145, g:25, b:50}, {code:"F8", r:187, g:1, b:38}, {code:"F9", r:224, g:103, b:122},
   {code:"F10", r:135, g:70, b:40}, {code:"F11", r:89, g:35, b:35}, {code:"F12", r:243, g:83, b:107},
@@ -170,7 +170,7 @@ const COLOR_CARD = [
   {code:"G13", r:178, g:113, b:75}, {code:"G14", r:139, g:104, b:76}, {code:"G15", r:246, g:248, b:227},
   {code:"G16", r:242, g:216, b:193}, {code:"G17", r:119, g:84, b:78}, {code:"G18", r:255, g:227, b:213},
   {code:"G19", r:221, g:125, b:65}, {code:"G20", r:165, g:69, b:47}, {code:"G21", r:179, g:133, b:97},
-    {code:"H1", r:255, g:255, b:255}, {code:"H2", r:251, g:251, b:251}, {code:"H3", r:180, g:180, b:180},
+   {code:"H1", r:255, g:255, b:255}, {code:"H2", r:251, g:251, b:251}, {code:"H3", r:180, g:180, b:180},
   {code:"H4", r:135, g:135, b:135}, {code:"H5", r:70, g:70, b:72}, {code:"H6", r:44, g:44, b:44},
   {code:"H7", r:1, g:1, b:1}, {code:"H8", r:231, g:214, b:220}, {code:"H9", r:239, g:237, b:238},
   {code:"H10", r:235, g:235, b:235}, {code:"H11", r:205, g:205, b:205}, {code:"H12", r:253, g:246, b:238},
@@ -215,11 +215,11 @@ const app = {
   pixels: [],        // 二维数组 [height][width]
   history: [],
   historyIndex: -1,
-  
   init(){
     this.bindEvents();
     this.loadDemoData();
-  }, 
+  },
+  
   bindEvents(){
     document.getElementById('fileInput').onchange = e => this.handleImageUpload(e);
     document.getElementById('gridFileInput').onchange = e => this.handleGridImageUpload(e);
@@ -267,7 +267,7 @@ const app = {
     this.currentHeight = h;
     if(this.originalImage) this.generateGrid();
     else this.clearGrid();
-  },
+  },  
   clearGrid(){
     const canvas = document.getElementById('gridCanvas');
     const ctx = canvas.getContext('2d');
@@ -298,7 +298,7 @@ const app = {
     if(!stats.length) return 0;
     // 标题高度40 + 每个颜色行高28 + 底部边距10
     return 40 + stats.length * PANEL_ROW_H + 10;
-  },  
+  },
   // 绘制右侧统计面板（自适应高度，从startY开始向下延伸）
   drawStatsPanel(ctx, stats, startX, startY, panelWidth, maxAvailableHeight){
     if(!stats.length) return;
@@ -334,7 +334,6 @@ const app = {
     }
     ctx.restore();
   },
-  
   // 核心渲染：绘制网格 + 坐标 + 右侧统计面板（自适应整体高度）
   renderFull(pixels, ctx, drawCoordinates = true, includePanel = true){
     const height = pixels.length;
@@ -354,7 +353,8 @@ const app = {
       if(panelNeeded > gridHeight){
         panelExtraHeight = panelNeeded - gridHeight;
       }
-    }    const totalWidth = COORD_SIZE + gridWidth + (includePanel ? (panelWidth + 10) : 0);
+    }
+    const totalWidth = COORD_SIZE + gridWidth + (includePanel ? (panelWidth + 10) : 0);
     const totalHeight = COORD_SIZE + gridHeight + panelExtraHeight;
     // 调整画布大小
     if(ctx.canvas.width !== totalWidth || ctx.canvas.height !== totalHeight){
@@ -404,7 +404,38 @@ const app = {
       ctx.lineTo(pos, COORD_SIZE + gridHeight);
       ctx.stroke();
     }
-      
+    for(let i=0; i<=height; i+=GRID_STEP){
+      const pos = COORD_SIZE + i * CELL_SIZE;
+      ctx.beginPath();
+      ctx.moveTo(COORD_SIZE, pos);
+      ctx.lineTo(COORD_SIZE + gridWidth, pos);
+      ctx.stroke();
+    }
+    ctx.restore();
+     // 4. 坐标轴
+    if(drawCoordinates){
+      ctx.fillStyle = "#333333";
+      ctx.font = "12px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      for(let x=0; x<width; x++){
+        ctx.fillText((x+1).toString(), COORD_SIZE + x*CELL_SIZE + CELL_SIZE/2, COORD_SIZE/2);
+      }
+      for(let y=0; y<height; y++){
+        ctx.fillText((y+1).toString(), COORD_SIZE/2, COORD_SIZE + y*CELL_SIZE + CELL_SIZE/2);
+      }
+      ctx.fillStyle = "#666";
+      ctx.font = "10px sans-serif";
+      ctx.fillText("0", COORD_SIZE/2, COORD_SIZE/2);
+    }
+    // 5. 右侧统计面板
+    if(includePanel && stats.length){
+      const panelStartY = COORD_SIZE;
+      const maxPanelHeight = gridHeight + panelExtraHeight;
+      this.drawStatsPanel(ctx, stats, panelStartX, panelStartY, panelWidth, maxPanelHeight);
+    }
+  },
+  
   renderCanvas(){
     const height = this.pixels.length;
     if(height===0) return;
@@ -412,8 +443,7 @@ const app = {
     const ctx = canvas.getContext('2d');
     const showPanel = document.getElementById('showLegend').checked;
     this.renderFull(this.pixels, ctx, true, showPanel);
-  },
-  
+  },  
   // 普通生成
   async generateGrid(){
     if(!this.originalImage){
@@ -442,8 +472,7 @@ const app = {
     const ctx = offCanvas.getContext('2d');
     ctx.drawImage(this.originalImage, 0, 0, width, height);
     const imgData = ctx.getImageData(0, 0, width, height);
-    const data = imgData.data;
-    
+    const data = imgData.data;   
     const newPixels = [];
     for(let y=0; y<height; y++){
       const row = [];
@@ -470,7 +499,8 @@ const app = {
     this.renderCanvas();
     this.updateStat();
     this.showLoading(false);
-  }, 
+  },
+  
   // 网格识别生成
   async recognizeGrid(){
     if(!this.gridImage){
@@ -478,8 +508,7 @@ const app = {
       return;
     }
     this.showLoading(true);
-    await new Promise(r => setTimeout(r, 10));
-    
+    await new Promise(r => setTimeout(r, 10)); 
     const cols = parseInt(document.getElementById('gridCols').value);
     const rows = parseInt(document.getElementById('gridRows').value);
     if(isNaN(cols) || isNaN(rows) || cols<1 || rows<1){
@@ -540,7 +569,7 @@ const app = {
         rowPixels.push({r,g,b,or,og,ob, code});
       }
       newPixels.push(rowPixels);
-    }
+    }   
     if(document.getElementById('flipX').checked){
       for(let y=0; y<newPixels.length; y++) newPixels[y].reverse();
     }
@@ -596,7 +625,7 @@ const app = {
       this.renderCanvas();
       this.updateStat();
     }
-  },  
+  },
   applyBatchReplace(){
     const fromRGB = hexToRgb(document.getElementById('fromColor').value);
     const toRGB = hexToRgb(document.getElementById('toColor').value);
@@ -629,7 +658,6 @@ const app = {
       alert("未找到匹配的颜色（可增加容差值）");
     }
   },
-  
   pushHistory(){
     const copy = JSON.parse(JSON.stringify(this.pixels));
     this.history = this.history.slice(0, this.historyIndex+1);
@@ -678,7 +706,7 @@ const app = {
       `;
       tbody.appendChild(tr);
     }
-  }, 
+  },
   exportFull(){
     if(!this.pixels.length){ alert("没有可导出的图纸"); return; }
     const scale = parseInt(document.getElementById('exportScale').value);
@@ -754,7 +782,7 @@ const app = {
           ctx.fillText(displayText, COORD_SIZE + x*CELL_SIZE + 4, COORD_SIZE + y*CELL_SIZE + 20);
         }
       }
-      // 网格线
+         // 网格线
       ctx.save();
       ctx.beginPath();
       ctx.lineWidth = 0.5;
@@ -764,7 +792,8 @@ const app = {
         ctx.beginPath(); ctx.moveTo(pos, COORD_SIZE); ctx.lineTo(pos, COORD_SIZE+gh); ctx.stroke();
       }
       for(let i=0; i<=h; i++){
-        const pos = COORD_SIZE + i*CELL_SIZE;     ctx.beginPath(); ctx.moveTo(COORD_SIZE, pos); ctx.lineTo(COORD_SIZE+gw, pos); ctx.stroke();
+        const pos = COORD_SIZE + i*CELL_SIZE;
+        ctx.beginPath(); ctx.moveTo(COORD_SIZE, pos); ctx.lineTo(COORD_SIZE+gw, pos); ctx.stroke();
       }
       ctx.lineWidth = 2;
       ctx.strokeStyle = "#555555";
@@ -789,7 +818,7 @@ const app = {
         ctx.font = "10px sans-serif";
         ctx.fillText("0", COORD_SIZE/2, COORD_SIZE/2);
       }
-      // 面板
+        // 面板
       if(includePanel && sts.length){
         const panelStartX = COORD_SIZE + gw + 10;
         const panelStartY = COORD_SIZE;
@@ -818,7 +847,8 @@ const app = {
             ctx.font = "12px monospace";
             ctx.fillText(codeText, sx+35, y+14);
             ctx.font = "12px sans-serif";
-            ctx.fillText(`${s.cnt}颗`, sx+pw-45, y+14);            y += PANEL_ROW_H;
+            ctx.fillText(`${s.cnt}颗`, sx+pw-45, y+14);
+            y += PANEL_ROW_H;
           }
         };
         drawPanel(ctx, sts, panelStartX, panelStartY, PANEL_WIDTH, maxHeight);
@@ -829,8 +859,7 @@ const app = {
     link.download = `拼豆图纸_${width}x${height}.png`;
     link.href = exportCanvas.toDataURL('image/png');
     link.click();
-  },
-  
+  },  
   loadDemoData(){
     const img = new Image();
     img.onload = () => {

@@ -2,106 +2,488 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>拼豆图纸生成器（右侧统计面板·修复版）</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+<title>🎨 拼豆图纸生成器 · 现代版</title>
 <style>
-*{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
-body{background:#f3f4f6;margin:0;padding:20px}
-.container{max-width:1400px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
-.header{text-align:center}
-.card{background:#fff;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.08)}
-.flex{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
-.btn{padding:8px 16px;border-radius:8px;border:none;background:#3b82f6;color:white;cursor:pointer;transition:0.2s}
-.btn:hover{opacity:0.85}
-.btn-danger{background:#ef4444}
-.btn-success{background:#10b981}
-.btn-presets{background:#64748b}
-.btn-grid{background:#8b5cf6}
-#fileInput{display:none}
-label.btn{display:inline-block}
-input[type="number"],input[type="color"],select{padding:6px 8px;border-radius:6px;border:1px solid #ddd}
-#gridCanvas{display:block;margin:0 auto;box-shadow:0 1px 4px rgba(0,0,0,0.1);cursor:pointer;background:#f9fafb}
-.canvas-wrapper{overflow:auto;text-align:center;background:#f9fafb;border-radius:8px;padding:10px}
-.stat table{width:100%;border-collapse:collapse;margin-top:10px}
-.stat th,.stat td{border:1px solid #e5e7eb;padding:8px;text-align:center}
-th{background:#f1f5f9}
-.editArea{display:flex;gap:10px;flex-wrap:wrap;padding:12px;background:#f8fafc;border-radius:8px}
-.tip{background:#fffbeb;border:1px solid #fef3c7;padding:12px;border-radius:8px;color:#92400e}
-.heatTip{background:#ecfeff;border:1px solid #cffafe;padding:12px;border-radius:8px;color:#0e7494}
-.loading{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000;visibility:hidden}
-.loading.show{visibility:visible}
-.spinner{border:4px solid #f3f3f3;border-top:4px solid #3b82f6;border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite}
-@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
-.grid-tool{background:#f3e8ff;border-radius:12px;padding:12px;margin-top:12px}
+/* ===== 全局变量与重置 ===== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --primary: #4361ee;
+  --primary-light: #4895ef;
+  --success: #10b981;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --dark: #1e293b;
+  --gray-bg: #f8fafc;
+  --card-bg: #ffffff;
+  --border-light: #e2e8f0;
+  --text-main: #0f172a;
+  --text-muted: #475569;
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 6px 12px -2px rgba(0,0,0,0.08), 0 3px 6px -2px rgba(0,0,0,0.04);
+  --radius: 14px;
+  --radius-sm: 8px;
+}
+
+body {
+  background: #f1f5f9;
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  color: var(--text-main);
+  line-height: 1.5;
+  padding: 24px 20px;
+  min-height: 100vh;
+}
+
+.container {
+  max-width: 1440px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ===== 标题区域 ===== */
+.header {
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.header h1 {
+  font-weight: 700;
+  font-size: 2.2rem;
+  letter-spacing: -0.01em;
+  background: linear-gradient(145deg, #1e293b, #334155);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  margin-bottom: 6px;
+}
+
+.header p {
+  color: var(--text-muted);
+  font-weight: 400;
+  font-size: 0.95rem;
+}
+
+/* ===== 卡片设计 ===== */
+.card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
+  transition: box-shadow 0.2s ease;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* 内部小卡片分组 */
+.section-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-title i {
+  font-size: 1.1rem;
+}
+
+.control-group {
+  background: var(--gray-bg);
+  border-radius: var(--radius-sm);
+  padding: 16px 18px;
+  margin-bottom: 16px;
+  border: 1px solid #eef2f6;
+}
+
+/* ===== 按钮与输入 ===== */
+.btn {
+  padding: 8px 16px;
+  border-radius: 30px;
+  border: none;
+  background: #f1f5f9;
+  color: var(--text-main);
+  font-weight: 500;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid transparent;
+}
+
+.btn:hover {
+  background: #e2e8f0;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+}
+
+.btn:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+/* 主要按钮 */
+.btn-primary {
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 4px 8px rgba(67, 97, 238, 0.15);
+}
+.btn-primary:hover { background: #3a5cd7; }
+
+.btn-success {
+  background: var(--success);
+  color: white;
+}
+.btn-success:hover { background: #0d9e6e; }
+
+.btn-danger {
+  background: var(--danger);
+  color: white;
+}
+.btn-danger:hover { background: #dc2626; }
+
+.btn-presets {
+  background: #64748b;
+  color: white;
+}
+.btn-presets:hover { background: #475569; }
+
+.btn-grid {
+  background: #8b5cf6;
+  color: white;
+}
+.btn-grid:hover { background: #7c3aed; }
+
+/* 标签按钮（文件上传） */
+label.btn {
+  cursor: pointer;
+  background: var(--primary-light);
+  color: white;
+}
+label.btn:hover { background: #3a7bd5; }
+
+input, select {
+  padding: 8px 12px;
+  border-radius: 30px;
+  border: 1.5px solid var(--border-light);
+  background: white;
+  font-size: 0.9rem;
+  transition: border 0.15s;
+  outline: none;
+}
+input:focus, select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(67,97,238,0.1);
+}
+
+input[type="number"] {
+  width: 85px;
+}
+
+/* ===== 布局辅助 ===== */
+.flex {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.flex-wrap {
+  flex-wrap: wrap;
+}
+
+.gap-2 { gap: 8px; }
+.mt-2 { margin-top: 12px; }
+.mb-2 { margin-bottom: 12px; }
+
+/* ===== 提示卡片 ===== */
+.tip, .heatTip {
+  border-radius: var(--radius-sm);
+  padding: 14px 18px;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tip {
+  background: #fffbeb;
+  border-left: 6px solid var(--warning);
+  color: #92400e;
+}
+
+.heatTip {
+  background: #ecfeff;
+  border-left: 6px solid #06b6d4;
+  color: #0e7494;
+}
+
+/* ===== 画布区域 ===== */
+.canvas-wrapper {
+  background: #f9fafb;
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.02), var(--shadow-sm);
+  overflow: auto;
+  text-align: center;
+  border: 1px solid var(--border-light);
+}
+
+#gridCanvas {
+  display: block;
+  margin: 0 auto;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  background: #ffffff;
+  cursor: pointer;
+}
+
+/* ===== 编辑工具栏 ===== */
+.editArea {
+  display: flex;
+  gap: 16px 20px;
+  flex-wrap: wrap;
+  align-items: center;
+  background: var(--gray-bg);
+  padding: 14px 20px;
+  border-radius: 40px;
+  margin-top: 8px;
+  border: 1px solid #e9edf2;
+}
+
+.editArea .btn {
+  background: white;
+  border: 1px solid #cbd5e1;
+  box-shadow: none;
+}
+.editArea .btn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+/* ===== 统计表格 ===== */
+.stat {
+  overflow-x: auto;
+}
+.stat h3 {
+  font-weight: 600;
+  font-size: 1.3rem;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.stat table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.stat th {
+  background: #f1f5f9;
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: #334155;
+  padding: 14px 12px;
+  border-bottom: 2px solid #cbd5e1;
+}
+
+.stat td {
+  padding: 12px;
+  border-bottom: 1px solid #e2e8f0;
+  background: white;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.stat tbody tr:hover td {
+  background: #faf9fe;
+}
+
+.stat td:first-child {
+  width: 50px;
+}
+
+/* ===== 网格工具卡片 ===== */
+.grid-tool {
+  background: linear-gradient(135deg, #f3e8ff 0%, #f5f3ff 100%);
+  border-radius: 20px;
+  padding: 16px 20px;
+  border: 1px solid #e9d5ff;
+}
+
+/* ===== 加载动画 ===== */
+.loading {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  visibility: hidden;
+}
+.loading.show { visibility: visible; }
+.spinner {
+  border: 4px solid rgba(255,255,255,0.3);
+  border-top: 4px solid white;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+/* ===== 响应式微调 ===== */
+@media (max-width: 700px) {
+  body { padding: 16px 12px; }
+  .card { padding: 16px; }
+  .btn { padding: 6px 14px; font-size: 0.85rem; }
+  .header h1 { font-size: 1.8rem; }
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 </style>
 </head>
 <body>
 <div class="container">
   <div class="header">
-    <h1>🧩 拼豆图纸生成器（右侧统计面板·修复版）</h1>
-    <p>右侧自动统计颜色·5x5定位网格·坐标轴·色号匹配·自适应高度</p>
+    <h1>🧩 拼豆图纸生成器</h1>
+    <p>右侧自动统计 · 5x5定位网格 · 坐标轴 · 色号匹配 · 自适应高度</p>
   </div>
-  <div class="card">
-    <div class="flex">
-      <label for="fileInput" class="btn">📸 上传图片</label>
-      <input type="file" id="fileInput" accept="image/*">
-      <button class="btn" onclick="app.generateGrid()">⚙️ 普通生成</button>
-      <button class="btn btn-success" onclick="app.exportFull()">💾 导出图纸</button>
-      
-      <div style="display:flex;gap:6px;flex-wrap:wrap">
-        <button class="btn btn-presets" onclick="app.setSize(15,15)">15×15</button>
-        <button class="btn btn-presets" onclick="app.setSize(29,29)">29×29</button>
-        <button class="btn btn-presets" onclick="app.setSize(50,50)">50×50</button>
-        <button class="btn btn-presets" onclick="app.setSize(52,52)">52×52</button>
-        <button class="btn btn-presets" onclick="app.setSize(104,104)">104×104</button>
-        <button class="btn btn-presets" onclick="app.setSize(150,150)">150×150</button>
-        <button class="btn btn-presets" onclick="app.setSize(200,200)">200×200</button>
-      </div>  
-      <div>自定义宽×高：<input type="number" id="gridWidth" value="29" min="1" max="300" style="width:70px"> × <input type="number" id="gridHeight" value="29" min="1" max="300" style="width:70px"></div>
-      <div>去白阈值：<input type="number" id="whiteThreshold" value="240" min="200" max="255"></div>
-      <div><label><input type="checkbox" id="flipX"> 左右反转</label></div>
-      <div><label><input type="checkbox" id="useColorMatch" checked> 使用真实色卡</label></div>
-      <div><label><input type="checkbox" id="showLegend" checked> 右侧显示统计面板</label></div>
-      <div>导出缩放：<select id="exportScale"><option value="1">1倍</option><option value="2" selected>2倍</option><option value="4">4倍</option></select></div>
-    </div>
 
-    <div class="grid-tool">
-      <strong>🎯 网格图片识别（不等比例识别）</strong><br>
-      <div class="flex" style="margin-top:8px">
-        <label for="gridFileInput" class="btn btn-grid">📐 上传网格图片</label>
-        <input type="file" id="gridFileInput" accept="image/*" style="display:none">
-        <div>水平方格数：<input type="number" id="gridCols" value="10" min="1" max="200" style="width:70px"></div>
-        <div>垂直方格数：<input type="number" id="gridRows" value="10" min="1" max="200" style="width:70px"></div>
-        <button class="btn btn-grid" onclick="app.recognizeGrid()">🔍 识别并生成图纸</button>
-        <span style="font-size:12px;color:#666">提示：上传带规则方格的图片，输入行列数，自动提取每个方格的平均颜色</span>
+  <!-- 主控制卡 -->
+  <div class="card">
+    <!-- 基础设置区 -->
+    <div class="section-title"><span>⚙️ 基础设置</span></div>
+    <div class="control-group">
+      <div class="flex" style="justify-content: space-between;">
+        <div class="flex gap-2">
+          <label for="fileInput" class="btn btn-primary">📸 上传图片</label>
+          <input type="file" id="fileInput" accept="image/*">
+          <button class="btn btn-primary" onclick="app.generateGrid()">⚡ 普通生成</button>
+          <button class="btn btn-success" onclick="app.exportFull()">💾 导出图纸</button>
+        </div>
+        <div class="flex gap-2">
+          <div>导出缩放：<select id="exportScale"><option value="1">1x</option><option value="2" selected>2x</option><option value="4">4x</option></select></div>
+        </div>
+      </div>
+
+      <div class="flex" style="margin-top: 14px;">
+        <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+          <span style="font-weight:500; color:#334155;">预设尺寸：</span>
+          <button class="btn btn-presets" onclick="app.setSize(15,15)">15×15</button>
+          <button class="btn btn-presets" onclick="app.setSize(29,29)">29×29</button>
+          <button class="btn btn-presets" onclick="app.setSize(50,50)">50×50</button>
+          <button class="btn btn-presets" onclick="app.setSize(52,52)">52×52</button>
+          <button class="btn btn-presets" onclick="app.setSize(104,104)">104×104</button>
+          <button class="btn btn-presets" onclick="app.setSize(150,150)">150×150</button>
+          <button class="btn btn-presets" onclick="app.setSize(200,200)">200×200</button>
+        </div>
+        <div style="margin-left: auto; display: flex; gap: 12px;">
+          <div>宽×高：<input type="number" id="gridWidth" value="29" min="1" max="300"> × <input type="number" id="gridHeight" value="29" min="1" max="300"></div>
+          <div>去白阈值：<input type="number" id="whiteThreshold" value="240" min="200" max="255" style="width:85px"></div>
+          <div><label><input type="checkbox" id="flipX"> 左右反转</label></div>
+        </div>
+      </div>
+      <div class="flex" style="margin-top: 10px;">
+        <label><input type="checkbox" id="useColorMatch" checked> 使用真实色卡</label>
+        <label><input type="checkbox" id="showLegend" checked> 右侧显示统计面板</label>
       </div>
     </div>
+
+    <!-- 网格识别工具 -->
+    <div class="section-title"><span>🎯 网格图片识别</span></div>
+    <div class="grid-tool">
+      <div class="flex" style="justify-content: space-between;">
+        <div class="flex gap-2">
+          <label for="gridFileInput" class="btn btn-grid">📐 上传网格图片</label>
+          <input type="file" id="gridFileInput" accept="image/*" style="display:none">
+          <div>水平方格：<input type="number" id="gridCols" value="10" min="1" max="200"> </div>
+          <div>垂直方格：<input type="number" id="gridRows" value="10" min="1" max="200"> </div>
+          <button class="btn btn-grid" onclick="app.recognizeGrid()">🔍 识别并生成图纸</button>
+        </div>
+        <span style="font-size:0.85rem; color:#5b21b6;">上传带规则方格的图片，自动提取颜色</span>
+      </div>
+    </div>
+
+    <!-- 编辑工具条 -->
+    <div class="section-title" style="margin-top: 20px;"><span>✏️ 编辑工具</span></div>
     <div class="editArea">
-      <div>🔹单格编辑：<input type="color" id="cellColor"> R:<input id="r" size=3> G:<input id="g" size=3> B:<input id="b" size=3>
-      <button class="btn" onclick="app.applyCellEdit()">应用</button></div>
-      <div>🔸批量换色：<input type="color" id="fromColor"> → <input type="color" id="toColor">
-      容差：<input type="number" id="replaceTolerance" value="0" min="0" max="50" style="width:60px">
-      <button class="btn" onclick="app.applyBatchReplace()">替换</button></div>
-      <div><button class="btn" onclick="app.undo()">↩️ 撤销</button> <button class="btn" onclick="app.redo()">↪️ 重做</button></div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-weight:500;">🔹单格编辑</span>
+        <input type="color" id="cellColor" style="width:50px; height:38px; padding:2px;">
+        <span>R:<input id="r" size="3" value="255"> G:<input id="g" size="3" value="255"> B:<input id="b" size="3" value="255"></span>
+        <button class="btn" onclick="app.applyCellEdit()">应用</button>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; margin-left:10px;">
+        <span style="font-weight:500;">🔸批量换色</span>
+        <input type="color" id="fromColor" value="#ff0000"> → <input type="color" id="toColor" value="#00ff00">
+        容差：<input type="number" id="replaceTolerance" value="0" min="0" max="50" style="width:70px">
+        <button class="btn" onclick="app.applyBatchReplace()">替换</button>
+      </div>
+      <div style="margin-left: auto; display:flex; gap:6px;">
+        <button class="btn" onclick="app.undo()">↩️ 撤销</button>
+        <button class="btn" onclick="app.redo()">↪️ 重做</button>
+      </div>
     </div>
   </div>
 
-  <div class="card tip">
-    <strong>拼豆小贴士：</strong> 1.将拼豆摆到拼豆板上对照图纸；2.铺上助烫纸；3.熨斗中温均匀熨烫；4.冷却后翻面再烫固定。
+  <!-- 提示卡片 -->
+  <div class="tip">
+    <span style="font-size:1.5rem;">💡</span> 
+    <strong>拼豆小贴士：</strong> 将拼豆摆到拼豆板上对照图纸 → 铺上助烫纸 → 熨斗中温均匀熨烫 → 冷却后翻面再烫固定。
   </div>
-  <div class="card heatTip">
+  <div class="heatTip">
+    <span style="font-size:1.5rem;">🔥</span> 
     <strong>熨烫提示：</strong> 温度不可过高，时间不宜过久，避免烫化变形；烫完冷却后再取下，防止变形。
   </div>
+
+  <!-- 画布区域 -->
   <div class="canvas-wrapper" id="canvasWrapper">
     <canvas id="gridCanvas"></canvas>
   </div>
 
+  <!-- 详细统计表格 -->
   <div class="card stat">
-    <h3>📊 颜色统计表格（详细）</h3>
-    <table id="statTable">
-      <thead><tr><th>颜色</th><th>色号</th><th>十六进制</th><th>原图RGB</th><th>最终RGB</th><th>颗数</th><th>占比</th></thead>
-      <tbody id="statBody"></tbody>
-    </table>
+    <h3>📊 颜色统计表格 <span style="font-size:0.9rem; font-weight:400; margin-left:12px;">（详细数据）</span></h3>
+    <div style="overflow-x: auto;">
+      <table id="statTable">
+        <thead>
+          <tr><th>色块</th><th>色号</th><th>十六进制</th><th>原图RGB</th><th>最终RGB</th><th>颗数</th><th>占比</th></tr>
+        </thead>
+        <tbody id="statBody">
+          <tr><td colspan="7" style="text-align:center; padding:24px;">暂无数据，请上传图片生成</td></tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
 
@@ -194,25 +576,22 @@ function matchColor(r,g,b){
     const d=colorDist({r,g,b},col);
     if(d<bestDist){bestDist=d; best=col;}
   }
-  // 理论上 best 一定存在，但为了安全
   if(!best) best = {code:null, r:r, g:g, b:b};
   return best;
 }
 
-// 布局常量
-const COORD_SIZE = 28;      // 坐标区域宽高
-const CELL_SIZE = 32;       // 每个格子像素
-const GRID_STEP = 5;        // 每5格一条粗线
-const PANEL_WIDTH = 200;    // 右侧统计面板宽度（像素）
-const PANEL_ROW_H = 28;      // 面板每行高度
+const COORD_SIZE = 28;
+const CELL_SIZE = 32;
+const GRID_STEP = 5;
+const PANEL_WIDTH = 200;
+const PANEL_ROW_H = 28;
 
-// 主应用对象
 const app = {
   originalImage: null,
   gridImage: null,
   currentWidth: 29,
   currentHeight: 29,
-  pixels: [],        // 二维数组 [height][width]
+  pixels: [],
   history: [],
   historyIndex: -1,
   init(){
@@ -276,7 +655,6 @@ const app = {
     this.updateStat();
   },
   
-  // 获取颜色统计数组（按颗数降序）
   getColorStats(){
     if(!this.pixels.length) return [];
     const height = this.pixels.length;
@@ -293,13 +671,10 @@ const app = {
     return Array.from(colorMap.values()).sort((a,b)=>b.cnt - a.cnt);
   },
   
-  // 计算右侧面板所需高度（像素）
   calcPanelHeight(stats){
     if(!stats.length) return 0;
-    // 标题高度40 + 每个颜色行高28 + 底部边距10
     return 40 + stats.length * PANEL_ROW_H + 10;
   },
-  // 绘制右侧统计面板（自适应高度，从startY开始向下延伸）
   drawStatsPanel(ctx, stats, startX, startY, panelWidth, maxAvailableHeight){
     if(!stats.length) return;
     const neededHeight = this.calcPanelHeight(stats);
@@ -334,7 +709,6 @@ const app = {
     }
     ctx.restore();
   },
-  // 核心渲染：绘制网格 + 坐标 + 右侧统计面板（自适应整体高度）
   renderFull(pixels, ctx, drawCoordinates = true, includePanel = true){
     const height = pixels.length;
     if(height===0) return;
@@ -342,7 +716,6 @@ const app = {
     const gridWidth = width * CELL_SIZE;
     const gridHeight = height * CELL_SIZE;
     
-    // 计算面板所需额外高度（如果面板高度超过网格高度，则增加画布总高度）
     let panelExtraHeight = 0;
     let panelStartX = COORD_SIZE + gridWidth + 10;
     let panelWidth = PANEL_WIDTH;
@@ -356,15 +729,12 @@ const app = {
     }
     const totalWidth = COORD_SIZE + gridWidth + (includePanel ? (panelWidth + 10) : 0);
     const totalHeight = COORD_SIZE + gridHeight + panelExtraHeight;
-    // 调整画布大小
     if(ctx.canvas.width !== totalWidth || ctx.canvas.height !== totalHeight){
       ctx.canvas.width = totalWidth;
       ctx.canvas.height = totalHeight;
     }
-    // 1. 白色背景
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, totalWidth, totalHeight);
-    // 2. 绘制颜色格子
     for(let y=0; y<height; y++){
       for(let x=0; x<width; x++){
         const p = pixels[y][x];
@@ -376,7 +746,6 @@ const app = {
         ctx.fillText(displayText, COORD_SIZE + x*CELL_SIZE + 4, COORD_SIZE + y*CELL_SIZE + 20);
       }
     }
-    // 3. 绘制网格线
     ctx.save();
     ctx.beginPath();
     ctx.lineWidth = 0.5;
@@ -412,7 +781,6 @@ const app = {
       ctx.stroke();
     }
     ctx.restore();
-     // 4. 坐标轴
     if(drawCoordinates){
       ctx.fillStyle = "#333333";
       ctx.font = "12px sans-serif";
@@ -428,7 +796,6 @@ const app = {
       ctx.font = "10px sans-serif";
       ctx.fillText("0", COORD_SIZE/2, COORD_SIZE/2);
     }
-    // 5. 右侧统计面板
     if(includePanel && stats.length){
       const panelStartY = COORD_SIZE;
       const maxPanelHeight = gridHeight + panelExtraHeight;
@@ -444,7 +811,6 @@ const app = {
     const showPanel = document.getElementById('showLegend').checked;
     this.renderFull(this.pixels, ctx, true, showPanel);
   },  
-  // 普通生成
   async generateGrid(){
     if(!this.originalImage){
       alert("请先上传图片");
@@ -501,7 +867,6 @@ const app = {
     this.showLoading(false);
   },
   
-  // 网格识别生成
   async recognizeGrid(){
     if(!this.gridImage){
       alert("请先上传网格图片（点击「上传网格图片」按钮）");
@@ -711,16 +1076,9 @@ const app = {
     if(!this.pixels.length){ alert("没有可导出的图纸"); return; }
     const scale = parseInt(document.getElementById('exportScale').value);
     const showPanel = document.getElementById('showLegend').checked;
-    // 创建一个临时canvas用于计算最终尺寸
-    const tempCanvas = document.createElement('canvas');
-    const tempCtx = tempCanvas.getContext('2d');
-    // 先调用渲染函数（不实际绘制到屏幕，只为了获取最终尺寸）
-    // 因为renderFull会修改canvas尺寸，我们直接创建一个离屏canvas
     const exportCanvas = document.createElement('canvas');
     const exportCtx = exportCanvas.getContext('2d');
-    // 临时设置pixels
     const savedPixels = this.pixels;
-    // 模拟渲染获取尺寸
     const height = savedPixels.length;
     const width = savedPixels[0].length;
     const gridWidth = width * CELL_SIZE;
@@ -745,13 +1103,6 @@ const app = {
     exportCanvas.width = outWidth;
     exportCanvas.height = outHeight;
     exportCtx.scale(scale, scale);
-    // 直接调用渲染函数，它会设置画布尺寸并绘制
-    // 注意：我们需要临时替换exportCanvas为renderFull的目标
-    const originalCanvas = document.getElementById('gridCanvas');
-    // 为了避免影响显示，我们直接使用exportCtx进行绘制，不改变显示canvas
-    // 手动调用绘制逻辑，但需要模拟canvas对象
-    const fakeCanvas = { width: totalWidth, height: totalHeight, getContext: ()=>exportCtx };
-    // 由于renderFull内部会设置canvas.width/height，我们需要临时保存并恢复
     const renderFunc = (ctx, drawCoords, includePanel) => {
       const h = savedPixels.length;
       const w = savedPixels[0].length;
@@ -766,11 +1117,8 @@ const app = {
       }
       const tw = COORD_SIZE + gw + (includePanel ? (PANEL_WIDTH + 10) : 0);
       const th = COORD_SIZE + gh + panelExtra;
-      // 不调整ctx.canvas尺寸，因为外部已经调好
-      // 白色背景
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, tw, th);
-      // 绘制格子
       for(let y=0; y<h; y++){
         for(let x=0; x<w; x++){
           const p = savedPixels[y][x];
@@ -782,7 +1130,6 @@ const app = {
           ctx.fillText(displayText, COORD_SIZE + x*CELL_SIZE + 4, COORD_SIZE + y*CELL_SIZE + 20);
         }
       }
-         // 网格线
       ctx.save();
       ctx.beginPath();
       ctx.lineWidth = 0.5;
@@ -806,7 +1153,6 @@ const app = {
         ctx.beginPath(); ctx.moveTo(COORD_SIZE, pos); ctx.lineTo(COORD_SIZE+gw, pos); ctx.stroke();
       }
       ctx.restore();
-      // 坐标
       if(drawCoords){
         ctx.fillStyle = "#333";
         ctx.font = "12px sans-serif";
@@ -818,12 +1164,10 @@ const app = {
         ctx.font = "10px sans-serif";
         ctx.fillText("0", COORD_SIZE/2, COORD_SIZE/2);
       }
-        // 面板
       if(includePanel && sts.length){
         const panelStartX = COORD_SIZE + gw + 10;
         const panelStartY = COORD_SIZE;
         const maxHeight = gh + panelExtra;
-        // 复用绘制面板函数
         const drawPanel = (ctx, stats, sx, sy, pw, mh) => {
           if(!stats.length) return;
           const needed = 40 + stats.length * PANEL_ROW_H + 10;
@@ -874,4 +1218,3 @@ window.onload = () => { app.init(); };
 </script>
 </body>
 </html>
-```
